@@ -297,3 +297,49 @@ u16 DAT_0081c7f4[1] = {0};  /* High-res sprite lookup */
 /* Game data globals */
 void* g_inventory = NULL;
 void* g_map = NULL;
+
+/* ========================================
+ * Fade/Transition Effect Variables
+ * ======================================== */
+
+/* Scroll transition globals (FUN_0047a730) */
+float _DAT_046332dc = 0.0f;   /* Scroll X position */
+float _DAT_046332e0 = 0.0f;   /* Scroll Y position (unused in some modes) */
+float _DAT_046332e4 = 0.0f;   /* Scroll Y velocity */
+float _DAT_046332e8 = 0.0f;   /* Scroll Y position 2 (diagonal) */
+float _DAT_046332ec = 0.0f;   /* Scroll velocity/acceleration */
+
+/* Accelerated scroll transition globals (FUN_0047aac0) */
+float _DAT_046332f0 = 0.0f;   /* Position X */
+float _DAT_046332f4 = 0.0f;   /* Position X2 (diagonal) */
+float _DAT_046332f8 = 0.0f;   /* Velocity */
+float _DAT_046332fc = 0.0f;   /* Position Y2 (diagonal) */
+float _DAT_04630e04 = 0.0f;   /* Acceleration */
+
+/* Box wipe transition globals (FUN_0047aea0) */
+s32 DAT_046311b0 = 0;         /* Box rect left */
+s32 DAT_046311b4 = 0;         /* Box rect right */
+s32 DAT_046311b8 = 0;         /* Box rect top */
+s32 DAT_046311bc = 0;         /* Box rect bottom */
+u16 DAT_046332cc = 0;         /* Box rect left (duplicate) */
+u16 DAT_046332d0 = 0;         /* Box rect top (duplicate) */
+u16 DAT_046332d4 = 0;         /* Box rect bottom (duplicate) */
+u16 DAT_046332d8 = 0;         /* Box rect right (duplicate) */
+
+/* Fade state flags */
+s32 DAT_004cf834 = -1;        /* Accelerated scroll init flag */
+s32 DAT_004cf838 = -1;        /* Box wipe init flag */
+u32 DAT_005ab710 = 0;         /* Fade state machine: 2=fade out, 3=fade in, 4=complete */
+
+/* Float constants for fade calculations */
+float _DAT_0049c318 = 0.0f;   /* Minimum velocity threshold */
+float _DAT_0049c440 = 0.0f;   /* Scroll boundary left */
+float _DAT_0049c444 = 0.0f;   /* Scroll boundary top */
+float _DAT_0049c448 = 1.0f;   /* X acceleration */
+float _DAT_0049c44c = 480.0f; /* Scroll boundary bottom */
+float _DAT_0049c450 = 0.0f;   /* Scroll boundary top */
+float _DAT_0049c454 = 1.0f;   /* Y acceleration */
+float _DAT_0049c458 = 0.0f;   /* Initial X position */
+float _DAT_0049c45c = 480.0f; /* Screen height */
+float _DAT_0049c460 = 640.0f; /* Screen width */
+float _DAT_0049c464 = 0.0f;   /* Initial Y position */

@@ -160,3 +160,273 @@ int FUN_0047bde0(int fade_mode) {
     /* TODO: Full fade effect implementation */
     return 1;
 }
+
+/*
+ * FUN_0047a730 - Scroll/Slide Transition
+ *
+ * Binary analysis:
+ * - Implements scroll/slide screen transition with 6 directional modes
+ * - param_1: scroll direction (0-5)
+ *   - 0: Scroll up (Y decreases, velocity increases)
+ *   - 1: Scroll down (Y increases)
+ *   - 2: Scroll left (X decreases)
+ *   - 3: Scroll right (X increases)
+ *   - 4: Diagonal right-up (X increases, Y decreases)
+ *   - 5: Diagonal right-down (Y increases, another Y decreases)
+ * - Uses acceleration for smooth deceleration
+ * - Position tracked in _DAT_046332dc/e0/e4/e8
+ * - Velocity in _DAT_046332ec, incremented by _DAT_0049c454/448
+ * - Returns 1 when transition reaches boundary, 0 otherwise
+ * - Initializes when DAT_004cf830 == 1
+ * - Updates DAT_005ab710 state machine (2->3->4)
+ */
+int FUN_0047a730(int param_1) {
+    extern float _DAT_046332dc, _DAT_046332e0, _DAT_046332e4;
+    extern float _DAT_046332e8, _DAT_046332ec;
+    extern u32 DAT_004cf830;
+    extern u32 DAT_005ab710;
+
+    int complete = 0;
+
+    if (DAT_004cf830 == 1) {
+        DAT_004cf830 = 0;
+        _DAT_046332dc = 0.0f;
+        _DAT_046332e0 = 0.0f;
+        _DAT_046332e4 = 0.0f;
+        _DAT_046332ec = 0.0f;
+    }
+
+    switch (param_1) {
+        case 0: /* Scroll up */
+            _DAT_046332e4 -= _DAT_046332ec;
+            _DAT_046332ec += 1.0f;  /* Acceleration */
+            if (_DAT_046332e4 <= 0.0f) complete = 1;
+            break;
+        case 1: /* Scroll down */
+            _DAT_046332e4 += _DAT_046332ec;
+            _DAT_046332ec += 1.0f;
+            if (_DAT_046332e4 >= 480.0f) complete = 1;
+            break;
+        case 2: /* Scroll left */
+            _DAT_046332dc -= _DAT_046332ec;
+            _DAT_046332ec += 1.0f;
+            if (_DAT_046332dc <= 0.0f) complete = 1;
+            break;
+        case 3: /* Scroll right */
+            _DAT_046332dc += _DAT_046332ec;
+            _DAT_046332ec += 1.0f;
+            if (_DAT_046332dc >= 640.0f) complete = 1;
+            break;
+        case 4: /* Diagonal right-up */
+            _DAT_046332dc += _DAT_046332ec;
+            _DAT_046332e0 -= _DAT_046332ec;
+            _DAT_046332ec += 1.0f;
+            if (_DAT_046332dc >= 640.0f) complete = 1;
+            break;
+        case 5: /* Diagonal right-down */
+            _DAT_046332e4 += _DAT_046332ec;
+            _DAT_046332e8 -= _DAT_046332ec;
+            _DAT_046332ec += 1.0f;
+            if (_DAT_046332e4 >= 480.0f) complete = 1;
+            break;
+    }
+
+    if (complete) {
+        _DAT_046332dc = 0.0f;
+        _DAT_046332e0 = 0.0f;
+        _DAT_046332e4 = 0.0f;
+        _DAT_046332e8 = 0.0f;
+        _DAT_046332ec = 0.0f;
+        if (DAT_005ab710 == 2) DAT_005ab710 = 3;
+        else if (DAT_005ab710 == 3) DAT_005ab710 = 4;
+        return 1;
+    }
+    return 0;
+}
+
+/*
+ * FUN_0047aac0 - Accelerated Scroll Transition
+ *
+ * Binary analysis:
+ * - Scroll transition with deceleration (starts fast, slows down)
+ * - param_1: scroll direction (0-5), same as FUN_0047a730
+ * - Uses separate position (_DAT_046332f0/f4/f8/fc) and velocity (_DAT_04630e04)
+ * - Initial velocity: 17.4 or 22.8 depending on direction
+ * - Decelerates each frame by _DAT_0049c454/448
+ * - Completes when velocity drops below _DAT_0049c318 threshold
+ * - State tracked in DAT_004cf834 (-1 = needs init, 0 = running, 1 = complete)
+ */
+int FUN_0047aac0(int param_1) {
+    extern float _DAT_046332f0, _DAT_046332f4, _DAT_046332f8, _DAT_046332fc;
+    extern float _DAT_04630e04;
+    extern s32 DAT_004cf834;
+    extern u32 DAT_005ab710;
+
+    if (DAT_004cf834 == -1) {
+        /* Initialize based on direction */
+        switch (param_1) {
+            case 0:
+                _DAT_046332f0 = 0.0f;
+                _DAT_04630e04 = 17.4f;
+                _DAT_046332f8 = 0.0f;
+                break;
+            case 1:
+                _DAT_046332f0 = 0.0f;
+                _DAT_04630e04 = 17.4f;
+                _DAT_046332f8 = 480.0f;
+                break;
+            case 2:
+                _DAT_04630e04 = 22.8f;
+                _DAT_046332f8 = 0.0f;
+                _DAT_046332f0 = 480.0f - 22.8f;
+                break;
+            case 3:
+                _DAT_046332f8 = 0.0f;
+                _DAT_04630e04 = 22.8f;
+                _DAT_046332f0 = 0.0f;
+                break;
+            case 4:
+                _DAT_046332f4 = 661.0f;
+                _DAT_046332f8 = 0.0f;
+                _DAT_04630e04 = 22.8f;
+                _DAT_046332f0 = 0.0f;
+                break;
+            case 5:
+                _DAT_046332f0 = 0.0f;
+                _DAT_046332fc = 513.2f;
+                _DAT_04630e04 = 17.4f;
+                _DAT_046332f8 = 480.0f;
+                break;
+        }
+        DAT_004cf834 = 0;
+    }
+
+    /* Update position and decelerate */
+    switch (param_1) {
+        case 0:
+            _DAT_046332f8 -= _DAT_04630e04;
+            _DAT_04630e04 -= 1.0f;
+            break;
+        case 1:
+            _DAT_046332f8 += _DAT_04630e04;
+            _DAT_04630e04 -= 1.0f;
+            break;
+        case 2:
+            _DAT_046332f0 -= _DAT_04630e04;
+            _DAT_04630e04 -= 1.0f;
+            break;
+        case 3:
+            _DAT_046332f0 += _DAT_04630e04;
+            _DAT_04630e04 -= 1.0f;
+            break;
+        case 4:
+            _DAT_046332f0 += _DAT_04630e04;
+            _DAT_046332f4 -= _DAT_04630e04;
+            _DAT_04630e04 -= 1.0f;
+            break;
+        case 5:
+            _DAT_046332f8 += _DAT_04630e04;
+            _DAT_046332fc -= _DAT_04630e04;
+            _DAT_04630e04 -= 1.0f;
+            break;
+    }
+
+    /* Check if velocity below threshold */
+    if (_DAT_04630e04 <= 0.0f) {
+        DAT_004cf834 = 1;
+    }
+
+    if (DAT_004cf834 == 1) {
+        if (DAT_005ab710 == 2) DAT_005ab710 = 3;
+        else if (DAT_005ab710 == 3) DAT_005ab710 = 4;
+        DAT_004cf834 = -1;
+        return 1;
+    }
+    return 0;
+}
+
+/*
+ * FUN_0047aea0 - Box Wipe Transition
+ *
+ * Binary analysis:
+ * - Expanding or contracting box wipe effect
+ * - param_1: wipe mode (0 or 1)
+ *   - 0: Box expands outward from center (open)
+ *   - 1: Box contracts toward center (close)
+ * - Box defined by 4 rectangles with corners at:
+ *   - Left box: (0, 0) to (320, 240) and (0, 240) to (320, 480)
+ *   - Right box: (320, 0) to (640, 240) and (320, 240) to (640, 480)
+ * - Each frame moves edges by 4 pixels
+ * - For mode 0 (expand): edges move toward screen edges
+ * - For mode 1 (contract): edges move toward center
+ * - State tracked in DAT_004cf838 (-1 = needs init, 0 = running, 1 = complete)
+ * - Uses DAT_04560214 to check for half-resolution mode
+ */
+int FUN_0047aea0(int param_1) {
+    extern s32 DAT_046311b0, DAT_046311b4, DAT_046311b8, DAT_046311bc;
+    extern u16 DAT_046332cc, DAT_046332d0, DAT_046332d4, DAT_046332d8;
+    extern s32 DAT_004cf838;
+    extern u32 DAT_005ab710;
+    extern u32 DAT_04560214;
+
+    if (DAT_004cf838 == -1) {
+        if (param_1 == 0) {
+            /* Expanding box - start at center */
+            DAT_046311b0 = 0;
+            DAT_046332cc = 0;
+            DAT_046311b4 = 320;
+            DAT_046332d0 = 0;
+            DAT_046311b8 = 0;
+            DAT_046332d4 = 240;
+            DAT_046311bc = 320;
+            DAT_046332d8 = 240;
+        } else {
+            /* Contracting box - start at edges */
+            DAT_046311b0 = -280;
+            DAT_046332cc = -280;
+            DAT_046311b4 = 600;
+            DAT_046332d0 = -280;
+            DAT_046311b8 = -280;
+            DAT_046332d4 = 520;
+            DAT_046311bc = 600;
+            DAT_046332d8 = 520;
+        }
+        DAT_004cf838 = 0;
+    }
+
+    if (param_1 == 0) {
+        /* Expand: move edges outward */
+        DAT_046332cc -= 4;
+        DAT_046311b4 += 4;
+        DAT_046332d0 -= 4;
+        DAT_046311b8 -= 4;
+        DAT_046311b0 -= 4;
+        DAT_046332d4 += 4;
+        DAT_046311bc += 4;
+        DAT_046332d8 += 4;
+        if (DAT_046311b0 <= -320) {
+            DAT_004cf838 = 1;
+        }
+    } else {
+        /* Contract: move edges inward */
+        DAT_046332cc += 4;
+        DAT_046311b4 -= 4;
+        DAT_046332d0 += 4;
+        DAT_046311b8 += 4;
+        DAT_046311b0 += 4;
+        DAT_046332d4 -= 4;
+        DAT_046311bc -= 4;
+        DAT_046332d8 -= 4;
+        if (DAT_046311b0 >= 0) {
+            DAT_004cf838 = 1;
+        }
+    }
+
+    if (DAT_004cf838 == 1) {
+        if (DAT_005ab710 == 2) DAT_005ab710 = 3;
+        else if (DAT_005ab710 == 3) DAT_005ab710 = 4;
+        DAT_004cf838 = -1;
+        return 1;
+    }
+    return 0;
+}
