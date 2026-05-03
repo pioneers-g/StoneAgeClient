@@ -92,6 +92,7 @@ set(TEST_SOURCES
     test_protocol_util_comprehensive.c
     test_font_system_comprehensive.c
     test_cursor_system_comprehensive.c
+    test_notification_system_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
