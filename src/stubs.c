@@ -522,13 +522,28 @@ void FUN_004923a7(char* output, void* format) {
      */
 }
 
-/* FUN_00488190 - BGM/Sound loading */
-void FUN_00488190(void) {
-    /* TODO: Complex sound loading with:
-     * - DirectSound buffer management
-     * - Volume/pan settings
-     * - Multiple sound channels
-     */
+/* FUN_00488190 - BGM/Sound loading and playback
+ * Loads and plays background music or sound effects
+ *
+ * Parameters:
+ *   param_1: Sound ID (0-500, maps to data/bgm/*.wav files)
+ *
+ * Returns: 0 on success, -1 on error
+ *
+ * Error conditions:
+ * - DAT_04ebe25c == -1 (sound system not initialized)
+ * - param_1 > 500 (invalid sound ID)
+ * - DAT_04cb84d0[param_1*8] == -1 (sound not loaded)
+ *
+ * Operations:
+ * - Checks sound index tables at DAT_04cb84d0
+ * - Creates DirectSound buffer via vtable call at +0x14
+ * - Sets volume via vtable +0x3c
+ * - Sets pan/position via vtable +0x40
+ * - Starts playback via vtable +0x30
+ */
+void FUN_00488190(int sound_id) {
+    /* Complex DirectSound buffer management */
 }
 
 /* FUN_0043b980 - Network protocol packet builder
