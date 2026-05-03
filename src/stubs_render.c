@@ -214,6 +214,80 @@ int FUN_00442070(int param_1) {
 }
 
 /*
+ * FUN_0047e970 - Additive Blend Sprite Rendering
+ *
+ * Binary analysis:
+ * - Renders sprite with additive blending (lighter colors blend additively)
+ * - param_1: sprite surface pointer
+ * - param_2, param_3: screen position (x, y)
+ * - param_4-7: source rectangle dimensions
+ * - param_8: blend intensity (0-255)
+ * - param_9: special flags (flip, etc.)
+ * - Uses RGB565/RGB555 color formats based on DAT_0054bdec
+ * - Pixel formula: result = src + (dst * intensity) >> shift
+ * - Handles clipping against screen bounds
+ */
+void FUN_0047e970(void* surface, int x, int y, int src_x, int src_y,
+                  int src_w, int src_h, unsigned int blend_factor, int flags) {
+    (void)surface; (void)x; (void)y; (void)src_x; (void)src_y;
+    (void)src_w; (void)src_h; (void)blend_factor; (void)flags;
+    /* TODO: Full implementation with additive blending */
+}
+
+/*
+ * FUN_0047f170 - Subtractive Blend Sprite Rendering
+ *
+ * Binary analysis:
+ * - Renders sprite with subtractive blending (darker result)
+ * - param_1: sprite surface pointer
+ * - param_2, param_3: screen position (x, y)
+ * - param_4-7: source rectangle dimensions
+ * - param_8: blend flags
+ * - Uses max() operation to select brighter pixels
+ * - For each channel: result = max(src, dst)
+ * - Handles RGB565/RGB555 pixel formats
+ */
+void FUN_0047f170(void* surface, int x, int y, int src_x, int src_y,
+                  int src_w, int src_h, unsigned int blend_flags, int flags) {
+    (void)surface; (void)x; (void)y; (void)src_x; (void)src_y;
+    (void)src_w; (void)src_h; (void)blend_flags; (void)flags;
+    /* TODO: Full implementation with subtractive blending */
+}
+
+/*
+ * FUN_0047f710 - Special Color Tint Sprite Rendering
+ *
+ * Binary analysis:
+ * - Renders sprite with color tinting effect
+ * - param_1-2: surface pointers
+ * - param_3-8: position, dimensions, blend mode, tint color
+ * - Converts grayscale using: gray = (R + G*2 + B) * 3 / 10
+ * - Applies tint based on blend_mode parameter
+ * - Handles RGB565/RGB555 pixel formats
+ */
+void FUN_0047f710(void* dest_surface, void* src_surface, int x, int y,
+                  int src_x, int src_y, int src_w, int src_h, char blend_mode) {
+    (void)dest_surface; (void)src_surface; (void)x; (void)y;
+    (void)src_x; (void)src_y; (void)src_w; (void)src_h; (void)blend_mode;
+    /* TODO: Full implementation with color tinting */
+}
+
+/*
+ * FUN_0047fae0 - RLE Sprite Rendering
+ *
+ * Binary analysis:
+ * - Renders RLE-compressed sprite data
+ * - Decompresses on-the-fly during blit
+ * - Used for sprites marked with compression flag
+ */
+void FUN_0047fae0(void* surface, int x, int y, int src_x, int src_y,
+                  int src_w, int src_h, unsigned int flags) {
+    (void)surface; (void)x; (void)y; (void)src_x; (void)src_y;
+    (void)src_w; (void)src_h; (void)flags;
+    /* TODO: Full RLE sprite implementation */
+}
+
+/*
  * FUN_0041fad0 - Sprite Image Index Lookup
  *
  * Binary analysis:
