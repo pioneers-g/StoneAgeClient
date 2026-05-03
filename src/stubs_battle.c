@@ -156,6 +156,67 @@ void FUN_00438f70(int param_1, void* param_2) { (void)param_1; (void)param_2; }
 void FUN_0044aff0(void) {}
 void FUN_0044ac50(void) {}
 void FUN_0044adc0(void) {}
+/*
+ * FUN_00405080 - Battle Unit Array Reset
+ *
+ * Binary analysis:
+ * - Initializes battle unit arrays to default state (-2 = empty)
+ * - Clears DAT_004e10e8 (10 entries) - player party units
+ * - Clears DAT_004e214c (6 entries) - enemy units
+ * - Clears DAT_004d9054 (6 entries) - reserve units
+ * - Clears DAT_004e211c (7 entries) - pet units
+ * - Clears DAT_004d7f80 (9 entries) - formation data
+ * - Sets various battle state flags:
+ *   - DAT_004e21e4: 0 (no action pending)
+ *   - DAT_004e21e8: 1 (battle active)
+ *   - DAT_004a1308: -1 (no selection)
+ *   - DAT_0049e090: 1 (normal mode)
+ *   - DAT_004e21f0: 1 if DAT_004a12fc == -2 (PVP mode check)
+ * - Calls FUN_00405300 to initialize additional state
+ */
+void FUN_00405080(void) {}
+
+/*
+ * FUN_00405120 - Check Multiple Active Units
+ *
+ * Binary analysis:
+ * - Counts units with active pets/companions
+ * - Iterates through unit array at DAT_04ebe428 (max 20 entries)
+ * - Checks: unit->offset8 != 0 AND unit->companion->offset0x120 == 1
+ * - Returns:
+ *   - 1 if exactly 2 units have active companions
+ *   - 2 if more than 2 units have active companions
+ *   - Used to determine combined attack availability
+ */
+int FUN_00405120(void) { return 1; }
+
+/*
+ * FUN_00405160 - Mark Units for Action
+ *
+ * Binary analysis:
+ * - Sets action flag (0x40) on units
+ * - If DAT_004e1110 != DAT_004d903c: mark all units
+ * - Otherwise: mark only units where bit is set in DAT_004dd06c bitmask
+ * - Iterates through DAT_04ebe428 array (up to 0x4ebe478)
+ * - Flag 0x40 at offset 0xa0 indicates unit needs action processing
+ */
+void FUN_00405160(void) {}
+
+/*
+ * FUN_00405370 - Battle Grid Position Setup
+ *
+ * Binary analysis:
+ * - Sets up battle grid positions for units
+ * - param_1: base X coordinate
+ * - param_2: base Y coordinate
+ * - Creates grid entries at DAT_04582f30 array
+ * - Each entry has 8 fields: x, y, prev_x, prev_y, sprite_id, surface_type, ...
+ * - Grid spacing: 0x30 (48) X, 0x33 (51) per cell
+ * - Y offset increases by 0x30 (48) every 5 cells (0xef threshold)
+ * - Sprite IDs: 20000, 20001, 20002... (offset 20000 base)
+ */
+void FUN_00405370(int base_x, int base_y) { (void)base_x; (void)base_y; }
+
 void FUN_0040daf0(void) {}
 void FUN_00419ac0(void) {}
 void FUN_00419a40(void) {}

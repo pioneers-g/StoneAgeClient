@@ -109,3 +109,81 @@ int entity_get_position(void* entity, int* x, int* y) {
     *y = 0;
     return 0;
 }
+
+/*
+ * FUN_0040b5e0 - Create Field Entity
+ *
+ * Binary analysis:
+ * - Creates a new field entity (NPC, character, pet, etc.)
+ * - param_1: entity type/model ID
+ * - param_2: world X coordinate
+ * - param_3: world Y coordinate
+ * - param_4: extra data pointer
+ * - Allocates entity via FUN_004010a0 with priority 1
+ * - Initializes entity structure:
+ *   - offset 0x140: model ID
+ *   - offset 0x150: extra data
+ *   - offset 0xb0-bc: world coordinates (int)
+ *   - offset 0x114-118: float coordinates (scaled by DAT_0049c31c)
+ *   - offset 0x148: state (3 = spawning)
+ *   - offset 0x15: render priority (10)
+ *   - offset 0xa0: flags (0x34)
+ *   - offset 0x08: render callback pointer (FUN_0040ad60)
+ * - Calls FUN_00446df0 for isometric coordinate transform
+ * - Returns entity pointer or 0 on failure
+ */
+int FUN_0040b5e0(int model_id, int world_x, int world_y, int extra_data) {
+    (void)model_id; (void)world_x; (void)world_y; (void)extra_data;
+    return 0;
+}
+
+/*
+ * FUN_0040f600 - Reset All Field Entities
+ *
+ * Binary analysis:
+ * - Clears all field entity data
+ * - Sets DAT_004e2b14, DAT_00544d70, DAT_004e2b10 to 0 (counters)
+ * - Iterates through entity array at DAT_004e2bdc
+ * - Clears each entity entry (0x43 dwords = 268 bytes per entry):
+ *   - offset -0xBC: state (2 bytes) = 0
+ *   - offset 0x00: pointer = 0
+ *   - offset -0x90: flags = 0
+ *   - offset -0xB8: index = 0
+ *   - offset -0xA0: value = -1
+ *   - offset -0x84: type (1 byte) = 0
+ * - Array ends at 0x544e2c
+ * - Sets DAT_004e2b0c to 0
+ */
+void FUN_0040f600(void) {}
+
+/*
+ * FUN_0040f7a0 - Clear Entity References
+ *
+ * Binary analysis:
+ * - Clears entity pointers for entities with state != 0
+ * - Iterates through DAT_004e2bdc array
+ * - For each entry with state at offset -0xBC != 0:
+ *   - Sets entity pointer at offset 0x00 to 0
+ *   - Sets index at offset -0xA0 to -1
+ * - Used during scene transitions or entity removal
+ */
+void FUN_0040f7a0(void) {}
+
+/*
+ * FUN_0040f7d0 - Spawn Field Entities
+ *
+ * Binary analysis:
+ * - Spawns entities from spawn data array
+ * - Iterates through DAT_004e2b30 spawn entries
+ * - For each entry with state != 0 and entity pointer == 0:
+ *   - Calls FUN_0040b5e0 to create entity
+ *   - Sets state to 2 (active)
+ *   - Copies name string to entity at offset 0x38
+ *   - Copies extra data based on spawn type:
+ *     - Type 1 or 8: from offset 0x28 in spawn data
+ *     - Type 2: from offset 0x5a (max 28 chars)
+ *     - Type 4: from offset 0x5a (max 16 chars)
+ *   - Sets entity flags from spawn data offset 0xA4
+ * - Spawn entry size: 0x10C bytes (0x43 dwords)
+ */
+void FUN_0040f7d0(void) {}
