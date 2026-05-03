@@ -380,3 +380,51 @@ void FUN_00476980(void* dest_struct) {
  * - Sets DAT_04ebe484 = 3 on protocol end if type != 3
  */
 void FUN_00476a00(void) {}
+
+/*
+ * FUN_0045ebd0 - Network Initialization
+ *
+ * Binary analysis:
+ * - Initializes Winsock and network buffers
+ * - Returns 1 on success, 0 on failure
+ *
+ * Process:
+ * 1. Call WSAStartup(0x101, ...) to initialize Winsock 1.1
+ * 2. Initialize network buffer via FUN_0043d7a0
+ *    - Buffer size: 0x4000 (16KB)
+ *    - Uses gSocket as the socket handle
+ * 3. Clear connection state flags:
+ *    - DAT_0461b420 = 0 (disconnect flag)
+ *    - DAT_0461b424 = 0 (previous disconnect state)
+ * 4. Set DAT_0461b3f8 = 1 (connection active)
+ *
+ * Related: FUN_0045ec30 (network cleanup)
+ */
+int FUN_0045ebd0(void) {
+    /* Network initialization */
+    /* TODO: Full implementation with WSAStartup */
+    return 1;
+}
+
+/*
+ * FUN_0045ec30 - Network Cleanup
+ *
+ * Binary analysis:
+ * - Closes network connection and cleans up Winsock
+ * - Only performs cleanup if DAT_0461b3f8 != 0 (connection active)
+ *
+ * Process:
+ * 1. Clear connection flags:
+ *    - DAT_0461b3f8 = 0 (connection inactive)
+ *    - DAT_0461b3fc = 0 (buffer initialized flag)
+ *    - DAT_0461b420 = 0 (disconnect flag)
+ *    - DAT_0461b424 = 0 (previous disconnect state)
+ * 2. Close socket via closesocket(gSocket)
+ * 3. Set DAT_04ebffd8 = 0 (protocol mode)
+ * 4. Call WSACleanup() to release Winsock
+ * 5. Call FUN_0043d830() for additional cleanup
+ */
+void FUN_0045ec30(void) {
+    /* Network cleanup */
+    /* TODO: Full implementation with WSACleanup */
+}
