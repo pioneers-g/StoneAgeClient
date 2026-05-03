@@ -64,7 +64,7 @@ typedef struct {
     u32 socket;
     u32 login_time;
     u32 timeout_ms;
-    u8 protocol_mode;
+    u32 protocol_mode;      /* FIX: Changed from u8 to u32 to hold PROTOCOL_BINARY (0xf000000) */
     char username[32];
     char password[32];
     char encrypted_username[32];
@@ -302,6 +302,7 @@ static int test_login_result_codes(void) {
 }
 
 static int test_timeout_value(void) {
+    test_setup();  /* FIX: Added initialization */
     return g_login.timeout_ms == 600000;
 }
 
@@ -326,7 +327,8 @@ static int test_des_decrypt_basic(void) {
     des_encrypt(DES_KEY, data, 4, 1);
     des_encrypt(DES_KEY, data, 4, 0);
 
-    /* Data should be restored */
+    /* Data should be restored
+     * TODO: DES encryption stub needs actual implementation for correct decrypt */
     return memcmp(data, original, 4) == 0;
 }
 

@@ -75,24 +75,32 @@ static int tests_passed = 0;
 
 /* ========================================
  * Mock Field Parser - FUN_00489f70 pattern
+ * FIX: Corrected field indexing to match actual FUN_00489f70 behavior
  * ======================================== */
 
 int parse_field(const char* src, char delimiter, int field_index, int max_len, char* out) {
     const char* ptr = src;
-    int current_field = 0;
+    int current_delim = 0;
     int len = 0;
 
-    if (!src || !out || max_len <= 0) {
+    if (!src || !out || max_len <= 0 || field_index < 1) {
         return -1;
     }
 
-    while (current_field < field_index && *ptr) {
+    /* Skip (field_index - 1) delimiters to find field start */
+    while (current_delim < field_index - 1 && *ptr) {
         if (*ptr == delimiter) {
-            current_field++;
+            current_delim++;
         }
         ptr++;
     }
 
+    if (current_delim < field_index - 1) {
+        out[0] = '\0';
+        return 0;
+    }
+
+    /* Copy field content until delimiter or end */
     while (*ptr && *ptr != delimiter && len < max_len - 1) {
         out[len++] = *ptr++;
     }
