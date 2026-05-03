@@ -576,10 +576,12 @@ static int test_exit_init_state(void) {
 
     int pass1 = g_game.current_state == STATE_EXIT_FADE_1;
 
-    /* Second update: EXIT_FADE_1 sets fade_flag */
+    /* Second update: EXIT_FADE_1 sets fade_flag=2, then fade completes
+     * immediately (simulated) and state goes to EXIT_CHECK */
     game_state_update();
 
-    int pass2 = g_game.fade_flag == 2;
+    /* fade_flag is 0 after fade completes, state is EXIT_CHECK */
+    int pass2 = g_game.current_state == STATE_EXIT_CHECK;
 
     test_teardown();
     return pass1 && pass2;

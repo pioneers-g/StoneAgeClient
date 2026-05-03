@@ -727,7 +727,11 @@ static int test_can_learn_skill_check(void) {
 static int test_base_success_rate(void) {
     test_setup();
 
-    /* Recipe 1 has base success rate 90% */
+    /* Set skill level to match requirement for base success rate */
+    craft_set_skill_level(CRAFT_TYPE_ALCHEMY, 1);
+
+    /* Recipe 1 has base success rate 90%, requires level 1
+     * With matching skill level, bonus = 0, rate = 90 */
     int rate = craft_get_success_rate(1);
 
     int pass = rate == 90;
@@ -1202,9 +1206,10 @@ static int test_recipe_lifecycle(void) {
 
     /* Re-learn */
     craft_learn_recipe(1);
+    int result = craft_knows_recipe(1);
 
     test_teardown();
-    return craft_knows_recipe(1);
+    return result;
 }
 
 /* ========================================

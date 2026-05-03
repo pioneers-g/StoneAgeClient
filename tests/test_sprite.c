@@ -385,10 +385,10 @@ static void test_sprite_id_range(void) {
 static void test_render_mode_constants(void) {
     TEST_BEGIN("Render mode constants");
 
-    TEST_ASSERT(RENDER_MODE_NORMAL == 0, "Normal mode should be 0");
-    TEST_ASSERT(RENDER_MODE_ADDITIVE == 1, "Additive mode should be 1");
-    TEST_ASSERT(RENDER_MODE_SUBTRACTIVE == 2, "Subtractive mode should be 2");
-    TEST_ASSERT(RENDER_MODE_CUSTOM == 3, "Custom mode should be 3");
+    TEST_ASSERT(SPRITE_RENDER_MODE_NORMAL == 0, "Normal mode should be 0");
+    TEST_ASSERT(SPRITE_RENDER_MODE_ADDITIVE == 1, "Additive mode should be 1");
+    TEST_ASSERT(SPRITE_RENDER_MODE_SUBTRACTIVE == 2, "Subtractive mode should be 2");
+    TEST_ASSERT(SPRITE_RENDER_MODE_CUSTOM == 3, "Custom mode should be 3");
 
     TEST_END();
 }

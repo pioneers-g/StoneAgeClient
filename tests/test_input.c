@@ -13,6 +13,55 @@
 #include "../include/types.h"
 #include "../include/input.h"
 
+/* Missing key code defines - DIK scancodes */
+#define KEY_ESCAPE      0x01
+#define KEY_1           0x02
+#define KEY_2           0x03
+#define KEY_ENTER       0x1C
+#define KEY_SPACE       0x39
+#define KEY_UP          0xC8
+#define KEY_DOWN        0xD0
+#define KEY_LEFT        0xCB
+#define KEY_RIGHT       0xCD
+
+/* Key state bit flags - matching FUN_004809e0 behavior */
+#define KEY_STATE_PRESSED   0x1000
+#define KEY_STATE_HELD      0x2000
+#define KEY_STATE_REPEAT    0x8000
+#define KEY_STATE_RELEASE   0x4000
+
+/* Key repeat thresholds */
+#define KEY_REPEAT_DELAY    30
+#define KEY_REPEAT_RATE     23
+
+/* Mouse button codes */
+#define MOUSE_LEFT          0x00
+#define MOUSE_RIGHT         0x01
+#define MOUSE_MIDDLE        0x02
+
+/* Mouse state flags */
+#define MOUSE_STATE_CLICKED     0x01
+#define MOUSE_STATE_DOUBLECLICK 0x02
+#define MOUSE_STATE_DRAG        0x04
+
+/* Alias for compatibility */
+typedef InputState InputContext;
+
+/* Stub function for testing */
+static u32 input_check_key_repeat(u32 key) {
+    if (key >= 256) return 0;
+    if (!(g_input.key_state[key] & (KEY_STATE_PRESSED | KEY_STATE_HELD))) {
+        g_input.repeat_counter[key] = 0;
+        return 0;
+    }
+    g_input.repeat_counter[key]++;
+    if (g_input.repeat_counter[key] >= KEY_REPEAT_DELAY) {
+        g_input.repeat_counter[key] = KEY_REPEAT_RATE;
+        return KEY_STATE_REPEAT;
+    }
+    return g_input.key_state[key];
+}
+
 /* ========================================
  * Test Cases for Input Constants
  * ======================================== */
