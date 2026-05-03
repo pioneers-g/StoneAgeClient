@@ -1,0 +1,1373 @@
+/*
+ * Stone Age Client - Map System Implementation
+ * Reverse engineered from sa_9061.exe
+ *
+ * Protocol Analysis:
+ * FUN_00404850 - Battle field loader (isometric 20x20 grid, sprite selection)
+ * FUN_00446df0 - World to screen isometric transform
+ * FUN_00446e40 - Screen to world isometric transform
+ * FUN_0047e210 - Sprite render queue add (max 4096 sprites)
+ * FUN_00492403 - LCG random number generator
+ *
+ * NPC management moved to map_npc.c (FUN_0040ee70, FUN_0040f310, etc.)
+ */
+
+#include <windows.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include "types.h"
+#include "map.h"
+#include "map_npc.h"
+#include "render.h"
+#include "assets.h"
+#include "animation.h"
+#include "logger.h"
+
+/* Global map context */
+MapContext g_map = {0};
+
+/* Isometric camera state */
+static float s_iso_camera_x = 0.0f;  /* Camera offset in world coordinates */
+static float s_iso_camera_y = 0.0f;
+
+/* Battle field data - from FUN_00404850 */
+static BattleField s_battle_field;
+static u32 s_current_battle_id = 0xFFFFFFFF;
+static u16 s_battle_sprite_id = 0;  /* DAT_004d7f74 */
+
+/* LCG random state - DAT_004d7160 */
+static u32 s_lcg_state = 1;
+
+/* Battle sprite tables from DAT_0049ea64, DAT_0049ea70, DAT_0049ea7c, DAT_0049ea88 */
+static const u16 s_battle_sprites_7546[4] = { 0x7184, 0x7185, 0x7186, 0x7182 };
+static const u16 s_battle_sprites_7547[4] = { 0x7182, 0x7183, 0x718a, 0x7187 };
+static const u16 s_battle_sprites_7548[4] = { 0x7187, 0x7188, 0x7189, 0x7181 };
+static const u16 s_battle_sprites_7549[4] = { 0x7181, 0x718b, 0x718c, 0x0000 };
+
+/* Current map ID for sprite selection - DAT_04581190 */
+static u32 s_current_map_id = 0;
+
+/*
+ * LCG random number generator - FUN_00492403
+ * Uses Microsoft C rand() algorithm: state = state * 0x343fd + 0x269ec3
+ */
+static u16 map_lcg_rand(void) {
+    s_lcg_state = s_lcg_state * 0x343fd + 0x269ec3;
+    return (u16)((s_lcg_state >> 16) & 0x7fff);
+}
+
+/*
+ * Initialize map system
+ */
+int map_init(void) {
+    memset(&g_map, 0, sizeof(MapContext));
+    memset(&s_battle_field, 0, sizeof(BattleField));
+    s_lcg_state = 1;  /* Reset LCG state */
+    LOG_INFO("Map system initialized");
+    return 1;
+}
+
+/*
+ * Shutdown map system
+ */
+void map_shutdown(void) {
+    map_unload();
+    LOG_INFO("Map system shutdown");
+}
+
+/*
+ * Unload current map
+ */
+void map_unload(void) {
+    if (g_map.tiles) {
+        free(g_map.tiles);
+        g_map.tiles = NULL;
+    }
+    if (g_map.objects) {
+        free(g_map.objects);
+        g_map.objects = NULL;
+    }
+    if (g_map.map_data) {
+        free(g_map.map_data);
+        g_map.map_data = NULL;
+    }
+    if (g_map.collision_map) {
+        free(g_map.collision_map);
+        g_map.collision_map = NULL;
+    }
+
+    memset(&g_map, 0, sizeof(MapContext));
+}
+
+/*
+ * Load map by ID
+ */
+int map_load(u32 map_id) {
+    char path[260];
+
+    /* Map files are typically in data/map/ */
+    snprintf(path, sizeof(path), "data/map/map%05d.bin", map_id);
+
+    return map_load_from_file(path);
+}
+
+/*
+ * Load map from file
+ */
+int map_load_from_file(const char* path) {
+    HANDLE hFile;
+    DWORD bytes_read;
+    MapHeader header;
+    u32 tile_data_size;
+
+    LOG_INFO("Loading map: %s", path);
+
+    hFile = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+        LOG_ERROR("Failed to open map file: %s", path);
+        return 0;
+    }
+
+    /* Read header */
+    if (!ReadFile(hFile, &header, sizeof(MapHeader), &bytes_read, NULL)) {
+        CloseHandle(hFile);
+        return 0;
+    }
+
+    /* Validate magic */
+    if (header.magic != 0x4D415053) { /* "MAPS" */
+        LOG_ERROR("Invalid map magic: 0x%08X", header.magic);
+        CloseHandle(hFile);
+        return 0;
+    }
+
+    /* Unload previous map */
+    map_unload();
+
+    /* Store dimensions */
+    g_map.width = header.width;
+    g_map.height = header.height;
+    g_map.current_map_id = 0;
+
+    /* Allocate tiles */
+    g_map.tile_count = header.width * header.height;
+    g_map.tiles = (MapTile*)malloc(g_map.tile_count * sizeof(MapTile));
+    if (!g_map.tiles) {
+        CloseHandle(hFile);
+        return 0;
+    }
+
+    /* Read tile data */
+    tile_data_size = g_map.tile_count * sizeof(MapTile);
+    if (!ReadFile(hFile, g_map.tiles, tile_data_size, &bytes_read, NULL)) {
+        map_unload();
+        CloseHandle(hFile);
+        return 0;
+    }
+
+    /* Allocate objects if any */
+    if (header.object_count > 0) {
+        g_map.object_count = header.object_count;
+        g_map.objects = (MapObject*)malloc(header.object_count * sizeof(MapObject));
+        if (g_map.objects) {
+            ReadFile(hFile, g_map.objects, header.object_count * sizeof(MapObject),
+                &bytes_read, NULL);
+        }
+    }
+
+    CloseHandle(hFile);
+    g_map.loaded = 1;
+
+    LOG_INFO("Map loaded: %dx%d, %u objects", g_map.width, g_map.height, g_map.object_count);
+    return 1;
+}
+
+/*
+ * Select battle sprite based on map ID - from FUN_00404850 sprite selection logic
+ * Complex conditional logic for special maps with terrain-based random selection
+ */
+static u16 map_select_battle_sprite(u32 map_id) {
+    u16 terrain_type;
+    u16 variant;
+
+    /* Check for special map IDs that use fixed sprites */
+    /* From FUN_00404850: long chain of map ID checks */
+
+    /* Special maps: 0x331, 0x1f47, 0x1fa5, 0x1fa4, 0x1f5b, 0x1f5c, 0x1f5d, 0x1f4f */
+    /* Also 0x97, 0xa0, 0xa1, 0x7546-0x7549, 0x4e-0x63, 0x1fab-0x1fb0, 0x1fb4-0x1fb8, 0x1fbc-0x1fbe */
+    /* And 0x1d4c, 0x1d6a, 0x1db0 */
+
+    /* Check special dungeon/event maps */
+    if (map_id == 0x331 || map_id == 0x1f47 || map_id == 0x1fa5 || map_id == 0x1fa4 ||
+        map_id == 0x1f5b || map_id == 0x1f5c || map_id == 0x1f5d || map_id == 0x1f4f ||
+        map_id == 0x97 || map_id == 0xa0 || map_id == 0xa1 ||
+        (map_id >= 0x7546 && map_id <= 0x7549) ||
+        (map_id >= 0x4e && map_id <= 0x63) ||
+        (map_id >= 0x1fab && map_id <= 0x1fb0) ||
+        (map_id >= 0x1fb4 && map_id <= 0x1fb8) ||
+        (map_id >= 0x1fbc && map_id <= 0x1fbe) ||
+        map_id == 0x1d4c || map_id == 0x1d6a || map_id == 0x1db0) {
+
+        /* If sprite already set (DAT_004d7f74 != 0), use it */
+        if (s_battle_sprite_id != 0) {
+            return s_battle_sprite_id;
+        }
+
+        /* Special handling for maps 0x7546-0x7549 with sprite tables */
+        if (map_id == 0x7546) {
+            terrain_type = map_lcg_rand();
+            return s_battle_sprites_7546[terrain_type & 3];
+        }
+        else if (map_id == 0x7547) {
+            terrain_type = map_lcg_rand();
+            return s_battle_sprites_7547[terrain_type & 3];
+        }
+        else if (map_id == 0x7548) {
+            terrain_type = map_lcg_rand();
+            return s_battle_sprites_7548[terrain_type & 3];
+        }
+        else if (map_id == 0x7549) {
+            terrain_type = map_lcg_rand();
+            return s_battle_sprites_7549[terrain_type & 3];
+        }
+
+        /* Maps 0x4e-0x63 (78-99) and 0x1fab use indoor variants */
+        if ((map_id >= 0x4e && map_id <= 0x63) || map_id == 0x1fab) {
+            terrain_type = map_lcg_rand();
+            return 0x7192 - (terrain_type & 3);
+        }
+
+        /* Maps 0x1fac-0x1fb0, 0x1fb4-0x1fb8, 0x1fbc-0x1fbe, 0x1d4c, 0x1d6a, 0x1db0 */
+        if ((map_id >= 0x1fac && map_id <= 0x1fb0) ||
+            (map_id >= 0x1fb4 && map_id <= 0x1fb8) ||
+            (map_id >= 0x1fbc && map_id <= 0x1fbe) ||
+            map_id == 0x1d4c || map_id == 0x1d6a || map_id == 0x1db0) {
+            terrain_type = map_lcg_rand();
+            return 0x718e - (terrain_type & 3);
+        }
+
+        /* Return current sprite if set */
+        return s_battle_sprite_id != 0 ? s_battle_sprite_id : BATTLE_SPRITE_DEFAULT;
+    }
+
+    /* Normal map: use terrain-based random selection */
+    /* From FUN_00404850: calls FUN_00492403() twice for terrain type and variant */
+    terrain_type = map_lcg_rand();
+
+    /* Select base sprite based on terrain type (0-4) */
+    switch (terrain_type % 5) {
+        case 0: s_battle_sprite_id = 0x7149; break;  /* Grass */
+        case 1: s_battle_sprite_id = 0x715c; break;  /* Desert */
+        case 2: s_battle_sprite_id = 0x715b; break;  /* Snow */
+        case 3: s_battle_sprite_id = 0x7160; break;  /* Cave */
+        case 4: s_battle_sprite_id = 0x7161; break;  /* Indoor */
+    }
+
+    /* Apply variant from second random call */
+    variant = map_lcg_rand();
+    s_battle_sprite_id = 0x7177 - (variant & 3);
+
+    /* Special map 0x2147 uses fixed sprite */
+    if (map_id == 0x2147) {
+        s_battle_sprite_id = 0x718d;
+    }
+
+    return s_battle_sprite_id;
+}
+
+/*
+ * Load battle map - FUN_00404850
+ * Loads .sab files from data/battleMap/battle###.sab
+ * Each battle field is 20x20 tiles (400 tiles total)
+ * Tiles are read as byte pairs (low byte, high byte)
+ */
+int map_load_battle(u32 battle_id) {
+    char path[260];
+    FILE* fp;
+    int i;
+    u8 low_byte, high_byte;
+
+    /* Max battle ID is 0xdb (219) - from FUN_00404850 check */
+    if (battle_id > MAX_BATTLE_FIELDS - 1) {
+        battle_id = 0;
+    }
+
+    s_current_battle_id = battle_id;
+
+    /* Build path to battle file */
+    snprintf(path, sizeof(path), "data/battleMap/battle%03d.sab", battle_id);
+
+    LOG_INFO("Loading battle field: %s", path);
+
+    /* Open file - FUN_00492394 is fopen with "rb" */
+    fp = fopen(path, "rb");
+    if (fp == NULL) {
+        LOG_ERROR("Failed to open battle file: %s", path);
+        return 0;
+    }
+
+    /* Skip 4-byte header */
+    fseek(fp, 4, SEEK_SET);
+
+    /* Read 400 tiles (20x20) - each tile is 2 bytes */
+    /* From FUN_00404850: reads byte pairs via FUN_00492421 (fgetc) */
+    /* Order: (low << 8) | high */
+    for (i = 0; i < BATTLE_TILE_COUNT; i++) {
+        low_byte = (u8)fgetc(fp);
+        high_byte = (u8)fgetc(fp);
+        s_battle_field.tiles[i] = (u16)low_byte << 8 | (u16)high_byte;
+    }
+
+    fclose(fp);  /* FUN_00492214 */
+
+    /* Select battle sprite based on current map ID */
+    s_battle_sprite_id = map_select_battle_sprite(s_current_map_id);
+
+    LOG_INFO("Battle field %d loaded, sprite 0x%04x", battle_id, s_battle_sprite_id);
+    return 1;
+}
+
+/*
+ * Render battle field - FUN_00404850
+ * Renders 20x20 grid isometrically using sprite render queue
+ * Uses FUN_0047e210 (render_queue_add_sprite) for each tile
+ */
+void map_render_battle(void) {
+    int row, col;
+    int screen_x, screen_y;
+    int base_x, base_y;
+    u16 tile_id;
+    u16* tile_ptr;
+
+    /* Base screen position from FUN_00404850: local_434 = -0x120, local_430 = 0xf0 */
+    /* -0x120 = -288, starting X position */
+    /* 0xf0 = 240, starting Y position */
+    /* These are screen coordinates for the top-left of the isometric grid */
+    base_x = -288;  /* Starting X offset */
+    base_y = 240;   /* Starting Y position */
+
+    /* Render 20x20 battle grid */
+    /* From FUN_00404850: row loop 0x14 (20), col loop 0x14 (20) */
+    /* local_438 = 0x14 (20 rows) */
+    tile_ptr = s_battle_field.tiles;
+
+    for (row = 0; row < BATTLE_FIELD_SIZE; row++) {
+        int row_x = base_x;
+        int row_y = base_y;
+
+        for (col = 0; col < BATTLE_FIELD_SIZE; col++) {
+            tile_id = *tile_ptr++;
+
+            /* Render tile if valid */
+            if (tile_id != 0) {
+                /* FUN_0047e210(screen_x, screen_y, 1, sprite_id, 0) */
+                render_queue_add_sprite(row_x, row_y, 1, tile_id, 0);
+            }
+
+            /* Column step: x += 0x20 (32), y -= 0x18 (24) */
+            row_x += 32;
+            row_y -= 24;
+        }
+
+        /* Row step: base_x += 0x20 (32), base_y += 0x18 (24) */
+        base_x += 32;
+        base_y += 24;
+    }
+}
+
+/*
+ * Get battle map path
+ */
+const char* map_get_battle_path(u32 battle_id) {
+    static char path[260];
+    snprintf(path, sizeof(path), "data/battleMap/battle%03d.sab", battle_id);
+    return path;
+}
+
+/*
+ * Get current battle sprite ID
+ */
+u16 map_get_battle_sprite(void) {
+    return s_battle_sprite_id;
+}
+
+/*
+ * Set battle sprite ID
+ */
+void map_set_battle_sprite(u16 sprite_id) {
+    s_battle_sprite_id = sprite_id;
+}
+
+/*
+ * Set current map ID for sprite selection - DAT_04581190
+ */
+void map_set_current_map_id(u32 map_id) {
+    s_current_map_id = map_id;
+}
+
+/*
+ * Get current map ID
+ */
+u32 map_get_current_map_id(void) {
+    return s_current_map_id;
+}
+
+/*
+ * Render map - FUN_0047dc60 pattern
+ */
+void map_render(void) {
+    if (!g_map.loaded) return;
+
+    /* Calculate visible tile range */
+    int start_x = g_map.camera_x / 32;
+    int start_y = g_map.camera_y / 32;
+    int end_x = start_x + (g_map.width / 32) + 2;
+    int end_y = start_y + (g_map.height / 32) + 2;
+
+    /* Clamp to map bounds */
+    if (start_x < 0) start_x = 0;
+    if (start_y < 0) start_y = 0;
+    if (end_x > g_map.width) end_x = g_map.width;
+    if (end_y > g_map.height) end_y = g_map.height;
+
+    /* Render ground layer */
+    map_render_layer(LAYER_GROUND);
+
+    /* Render objects */
+    map_render_objects();
+
+    /* Render object layer */
+    map_render_layer(LAYER_OBJECT);
+}
+
+/*
+ * Render isometric map - FUN_004412e0 pattern
+ * Uses diamond iteration pattern for correct sprite ordering
+ */
+void map_render_isometric(void) {
+    int row, col;
+    int screen_x, screen_y;
+    int base_x, base_y;
+    int start_row, end_row;
+    int start_col, end_col;
+    u16 tile_id;
+    MapTile* tile;
+
+    if (!g_map.loaded || !g_map.tiles) return;
+
+    /* Calculate starting screen position from camera - FUN_00446df0 */
+    float fx, fy;
+    map_world_to_screen_iso(0.0f, 0.0f, &fx, &fy);
+    screen_x = (int)fx;
+    screen_y = (int)fy;
+
+    /* Calculate visible range based on screen position */
+    /* From FUN_004412e0: visible tiles around screen center */
+    start_row = 0;
+    end_row = g_map.height;
+    start_col = 0;
+    end_col = g_map.width;
+
+    /* Calculate base position for diamond iteration */
+    /* From FUN_004412e0: iVar3 = ((width + height) * 0x40 - 0x40) / 2 + screen_x */
+    base_x = screen_x - ((g_map.width + g_map.height) * 32) / 2;
+    base_y = screen_y - ((g_map.height - g_map.width) * 24) / 2;
+
+    /* Diamond iteration pattern from FUN_004412e0 */
+    /* Outer loop: diagonal strips from top-right to bottom-left */
+    for (row = end_row - 1; row >= start_row; row--) {
+        int row_x = base_x;
+        int row_y = base_y;
+
+        /* Inner loop: along each diagonal strip */
+        for (col = start_col; col < end_col; col++) {
+            int map_x, map_y;
+
+            /* Calculate map coordinates from diamond position */
+            /* Diamond pattern: map_y = row, map_x = col + (row - start_row) */
+            map_y = row;
+            map_x = col + (row - start_row);
+
+            /* Bounds check */
+            if (map_x < 0 || map_x >= g_map.width || map_y < 0 || map_y >= g_map.height) {
+                /* Step to next tile in diagonal */
+                row_x += 32;   /* X step: 0x20 */
+                row_y -= 24;   /* Y step: -0x18 */
+                continue;
+            }
+
+            /* Get tile data */
+            tile = map_get_tile(map_x, map_y);
+            if (!tile) {
+                row_x += 32;
+                row_y -= 24;
+                continue;
+            }
+
+            /* Render ground layer tile */
+            tile_id = tile->ground_tile;
+            if (tile_id > 0 && tile_id < 100) {
+                /* Special tile handling from FUN_004412e0 */
+                if (tile_id >= 0x14 && tile_id <= 0x27) {
+                    /* Animation tiles */
+                } else if (tile_id > 0x27 && tile_id < 0x3c) {
+                    /* Effect tiles */
+                }
+            } else if (tile_id >= 100) {
+                /* Regular sprite tile - render if on screen */
+                if (row_x > -64 && row_x < 640 + 64 && row_y > -64 && row_y < 480 + 64) {
+                    render_queue_add_sprite(row_x, row_y, 1, tile_id, 0);
+                }
+            }
+
+            /* Render object layer tile */
+            tile_id = tile->object_tile;
+            if (tile_id >= 100) {
+                if (row_x > -64 && row_x < 640 + 64 && row_y > -64 && row_y < 480 + 64) {
+                    render_queue_add_sprite(row_x, row_y, 1, tile_id, 0);
+                }
+            }
+
+            /* Step to next tile in diagonal */
+            row_x += 32;   /* X step: 0x20 */
+            row_y -= 24;   /* Y step: -0x18 */
+        }
+
+        /* Step to next row's starting position */
+        base_x += 32;   /* X step: 0x20 */
+        base_y += 24;   /* Y step: 0x18 */
+    }
+}
+
+/*
+ * Render specific layer
+ */
+void map_render_layer(MapLayer layer) {
+    int x, y, tile_x, tile_y;
+    MapTile* tile;
+    u16 tile_id;
+
+    if (!g_map.loaded || !g_map.tiles) return;
+
+    for (y = 0; y < g_map.height; y++) {
+        for (x = 0; x < g_map.width; x++) {
+            tile = map_get_tile(x, y);
+            if (!tile) continue;
+
+            /* Get tile ID based on layer */
+            if (layer == LAYER_GROUND) {
+                tile_id = tile->ground_tile;
+            } else if (layer == LAYER_OBJECT) {
+                tile_id = tile->object_tile;
+            } else {
+                continue;
+            }
+
+            if (tile_id == 0) continue;
+
+            /* Calculate screen position */
+            tile_x = x * 32 - g_map.camera_x;
+            tile_y = y * 32 - g_map.camera_y;
+
+            /* Render tile */
+            render_sprite(tile_id, tile_x, tile_y);
+        }
+    }
+}
+
+/*
+ * Render map objects
+ */
+void map_render_objects(void) {
+    u32 i;
+    MapObject* obj;
+    int screen_x, screen_y;
+
+    if (!g_map.objects) return;
+
+    for (i = 0; i < g_map.object_count; i++) {
+        obj = &g_map.objects[i];
+
+        /* Convert world to screen coordinates */
+        screen_x = obj->x * 32 - g_map.camera_x;
+        screen_y = obj->y * 32 - g_map.camera_y;
+
+        /* Render object sprite */
+        render_sprite(obj->sprite_id, screen_x, screen_y);
+    }
+}
+
+/*
+ * Get tile at position
+ */
+MapTile* map_get_tile(int x, int y) {
+    if (!g_map.tiles) return NULL;
+    if (x < 0 || x >= g_map.width || y < 0 || y >= g_map.height) return NULL;
+
+    return &g_map.tiles[y * g_map.width + x];
+}
+
+/*
+ * Check if position is walkable
+ */
+int map_is_walkable(int x, int y) {
+    MapTile* tile = map_get_tile(x, y);
+    if (!tile) return 0;
+
+    return (tile->flags & 0x01) == 0;
+}
+
+/*
+ * Get tile height
+ */
+int map_get_height(int x, int y) {
+    MapTile* tile = map_get_tile(x, y);
+    if (!tile) return 0;
+
+    return tile->height;
+}
+
+/*
+ * Set camera position
+ */
+void map_set_camera(int x, int y) {
+    g_map.camera_x = x;
+    g_map.camera_y = y;
+
+    /* Clamp to map bounds */
+    if (g_map.camera_x < 0) g_map.camera_x = 0;
+    if (g_map.camera_y < 0) g_map.camera_y = 0;
+}
+
+/*
+ * Set camera target (for smooth scrolling)
+ */
+void map_set_camera_target(int x, int y) {
+    g_map.target_camera_x = x;
+    g_map.target_camera_y = y;
+}
+
+/*
+ * Update camera (smooth movement)
+ */
+void map_update_camera(void) {
+    int dx, dy, speed;
+
+    speed = 4;  /* Camera scroll speed */
+
+    dx = g_map.target_camera_x - g_map.camera_x;
+    dy = g_map.target_camera_y - g_map.camera_y;
+
+    if (abs(dx) > speed) {
+        g_map.camera_x += (dx > 0) ? speed : -speed;
+    } else {
+        g_map.camera_x = g_map.target_camera_x;
+    }
+
+    if (abs(dy) > speed) {
+        g_map.camera_y += (dy > 0) ? speed : -speed;
+    } else {
+        g_map.camera_y = g_map.target_camera_y;
+    }
+}
+
+/*
+ * Isometric coordinate transformation - FUN_00446df0
+ * Converts world coordinates (x, y) to screen coordinates (sx, sy)
+ *
+ * Formula from original binary:
+ *   fVar1 = (world_x - camera_x) * scale
+ *   fVar2 = (world_y - camera_y) * scale
+ *   screen_x = (fVar2 + fVar1) * iso_x_mult + screen_center_x
+ *   screen_y = (fVar2 - fVar1) * iso_y_mult + screen_center_y
+ */
+void map_world_to_screen_iso(float world_x, float world_y, float* screen_x, float* screen_y) {
+    float fvar1, fvar2;
+
+    /* Apply camera offset and scale - matches FUN_00446df0 */
+    fvar1 = (world_x - s_iso_camera_x) * ISO_SCALE_FACTOR;
+    fvar2 = (world_y - s_iso_camera_y) * ISO_SCALE_FACTOR;
+
+    /* Isometric transformation */
+    *screen_x = (fvar2 + fvar1) * ISO_TILE_WIDTH + (float)SCREEN_CENTER_X;
+    *screen_y = (fvar2 - fvar1) * ISO_TILE_HEIGHT + (float)SCREEN_CENTER_Y;
+}
+
+/*
+ * Screen to world coordinate transformation - FUN_00446e40
+ * Inverse of the isometric transformation
+ */
+void map_screen_to_world_iso(float screen_x, float screen_y, float* world_x, float* world_y) {
+    float dx, dy;
+
+    /* Remove screen center offset */
+    dx = screen_x - (float)SCREEN_CENTER_X;
+    dy = screen_y - (float)SCREEN_CENTER_Y;
+
+    /* Inverse isometric transformation - matches FUN_00446e40 */
+    /* Uses 1/32 = 0.03125 for the y component */
+    *world_x = (dx / ISO_TILE_WIDTH + dy / ISO_TILE_HEIGHT) * 64.0f + s_iso_camera_x;
+    *world_y = (dy / ISO_TILE_HEIGHT) + (dx / ISO_TILE_WIDTH) + s_iso_camera_y;
+}
+
+/*
+ * Set isometric camera position
+ */
+void map_set_camera_iso(float world_x, float world_y) {
+    s_iso_camera_x = world_x;
+    s_iso_camera_y = world_y;
+}
+
+/*
+ * Screen to world coordinate conversion
+ */
+void map_screen_to_world(int screen_x, int screen_y, int* world_x, int* world_y) {
+    float wx, wy;
+    map_screen_to_world_iso((float)screen_x, (float)screen_y, &wx, &wy);
+    if (world_x) *world_x = (int)floorf(wx);
+    if (world_y) *world_y = (int)floorf(wy);
+}
+
+/*
+ * World to screen coordinate conversion
+ */
+void map_world_to_screen(int world_x, int world_y, int* screen_x, int* screen_y) {
+    float sx, sy;
+    map_world_to_screen_iso((float)world_x, (float)world_y, &sx, &sy);
+    if (screen_x) *screen_x = (int)floorf(sx);
+    if (screen_y) *screen_y = (int)floorf(sy);
+}
+
+/*
+ * Move player
+ */
+int map_move_player(int dx, int dy) {
+    int new_x = g_map.player_x + dx;
+    int new_y = g_map.player_y + dy;
+
+    if (!map_is_walkable(new_x, new_y)) {
+        return 0;
+    }
+
+    g_map.player_x = new_x;
+    g_map.player_y = new_y;
+
+    /* Update camera to follow player */
+    map_set_camera_target(
+        g_map.player_x * 32 - 320,
+        g_map.player_y * 32 - 240
+    );
+
+    return 1;
+}
+
+/*
+ * Check if can move to position
+ */
+int map_can_move(int x, int y) {
+    return map_is_walkable(x, y);
+}
+
+/*
+ * Add object to map
+ */
+void map_add_object(MapObject* obj) {
+    if (!obj) return;
+
+    /* Reallocate objects array */
+    g_map.objects = (MapObject*)realloc(g_map.objects,
+        (g_map.object_count + 1) * sizeof(MapObject));
+
+    if (g_map.objects) {
+        memcpy(&g_map.objects[g_map.object_count], obj, sizeof(MapObject));
+        g_map.object_count++;
+    }
+}
+
+/*
+ * Remove object from map
+ */
+void map_remove_object(u32 id) {
+    u32 i;
+
+    if (!g_map.objects) return;
+
+    for (i = 0; i < g_map.object_count; i++) {
+        if (g_map.objects[i].id == id) {
+            /* Shift remaining objects */
+            memmove(&g_map.objects[i], &g_map.objects[i + 1],
+                (g_map.object_count - i - 1) * sizeof(MapObject));
+            g_map.object_count--;
+            break;
+        }
+    }
+}
+
+/*
+ * Get object by ID
+ */
+MapObject* map_get_object(u32 id) {
+    u32 i;
+
+    if (!g_map.objects) return NULL;
+
+    for (i = 0; i < g_map.object_count; i++) {
+        if (g_map.objects[i].id == id) {
+            return &g_map.objects[i];
+        }
+    }
+
+    return NULL;
+}
+
+/*
+ * Update map state
+ */
+void map_update(void) {
+    if (!g_map.loaded) return;
+
+    /* Update camera position */
+    map_update_camera();
+
+    /* Update map objects */
+    map_update_objects();
+}
+
+/*
+ * Update map objects
+ */
+void map_update_objects(void) {
+    u32 i;
+
+    if (!g_map.objects) return;
+
+    for (i = 0; i < g_map.object_count; i++) {
+        MapObject* obj = &g_map.objects[i];
+
+        /* Update object animation */
+        if (obj->sprite_id != 0) {
+            /* Update animation state based on time */
+            u32 current_time = timeGetTime();
+            u32 frame_duration = 200;  /* 200ms per frame */
+
+            /* Calculate current frame from animation state */
+            u16 frame = (u16)((current_time / frame_duration) % 8);  /* 8 frames per animation */
+
+            /* Update anim_state with new frame */
+            obj->anim_state = (obj->anim_state & 0xFFF8) | (frame & 0x7);
+        }
+    }
+}
+
+/*
+ * Handle map data from server
+ * Called when server sends PKT_SV_MAP_DATA (0x18)
+ */
+void map_handle_data(void* data, u32 size) {
+    u8* ptr = (u8*)data;
+    u16 map_id;
+    u16 width, height;
+    u32 i;
+
+    if (size < 6) return;
+
+    map_id = *(u16*)ptr; ptr += 2;
+    width = *(u16*)ptr; ptr += 2;
+    height = *(u16*)ptr; ptr += 2;
+
+    /* Update map info */
+    g_map.map_id = map_id;
+    g_map.width = width;
+    g_map.height = height;
+
+    /* Load tile data if present */
+    if (ptr + (width * height * 2) <= (u8*)data + size) {
+        for (i = 0; i < (u32)(width * height) && i < MAP_MAX_SIZE * MAP_MAX_SIZE; i++) {
+            g_map.tiles[i] = *(u16*)(ptr + i * 2);
+        }
+    }
+
+    LOG_INFO("Map data loaded: ID=%u, %ux%u", map_id, width, height);
+}
+
+/*
+ * Change to new map
+ * Called when server sends PKT_SV_MAP_CHANGE (0x1E)
+ */
+void map_change(u32 map_id) {
+    /* Clear current map data */
+    memset(g_map.tiles, 0, sizeof(g_map.tiles));
+    memset(g_map.objects, 0, sizeof(g_map.objects));
+    g_map.object_count = 0;
+
+    /* Set new map ID */
+    g_map.map_id = map_id;
+    g_map.loaded = 0;
+
+    /* Request map data from server */
+    /* network_send_map_request(map_id); */
+
+    LOG_INFO("Changing to map %u", map_id);
+}
+
+/* ========================================
+ * Isometric Field Renderer - FUN_004412e0
+ * ======================================== */
+
+/* Field tile data buffers - from DAT_04581d48, DAT_0456a64c */
+static u16 s_field_tiles_ground[MAP_MAX_SIZE * MAP_MAX_SIZE];
+static u16 s_field_tiles_object[MAP_MAX_SIZE * MAP_MAX_SIZE];
+
+/* Field dimensions */
+static int s_field_width = 0;    /* DAT_045602b0 */
+static int s_field_height = 0;
+
+/* Camera tracking for change detection */
+static int s_last_camera_x = 0;  /* DAT_004bb414 */
+static int s_last_camera_y = 0;  /* DAT_004bb418 */
+
+/* Tile rendering update flag */
+static int s_tile_update_flag = 0;  /* DAT_04ebe270 */
+
+/* Render queue entry for isometric tiles - from FUN_004445e0 */
+typedef struct {
+    void* sprite_data;    /* Sprite pointer */
+    int screen_x;         /* Screen X position */
+    int screen_y;         /* Screen Y position */
+    int width;            /* Sprite width */
+    int height;           /* Sprite height */
+    int base_y;           /* Original Y for sorting */
+    float world_x;        /* World X coordinate */
+    float world_y;        /* World Y coordinate */
+    u16 render_type;      /* 1 = normal, 2 = priority */
+    u16 reserved;
+    int sort_key;
+} IsoRenderEntry;
+
+/* Render queue for isometric tiles - DAT_0456b180 region */
+#define MAX_ISO_QUEUE 2048
+static IsoRenderEntry s_iso_queue[MAX_ISO_QUEUE];
+static int s_iso_queue_count = 0;  /* DAT_0456b17c */
+
+/*
+ * Render tile effect - FUN_00488680
+ * Handles special tile types (0x28-0x3b range)
+ */
+static void map_render_tile_effect(u16 tile_id) {
+    /* Special tiles: 0x28-0x3b trigger effects */
+    if (tile_id >= 0x28 && tile_id <= 0x3b) {
+        /* Effect rendering - would integrate with effect system */
+        LOG_DEBUG("Tile effect: 0x%04x", tile_id);
+    }
+}
+
+/*
+ * Render ground tile - FUN_004888f0
+ * Renders ground layer tiles (0x14-0x27 range)
+ */
+static void map_render_ground_tile(u16 tile_id, int screen_x, int screen_y) {
+    if (tile_id >= 0x14 && tile_id <= 0x27) {
+        /* Ground tile rendering */
+        render_queue_add_sprite(screen_x, screen_y, 1, tile_id, 0);
+    }
+}
+
+/*
+ * Add entry to isometric render queue - FUN_004445e0
+ */
+static void map_add_iso_queue(void* sprite_data, int x, int y, int w, int h,
+                               float world_x, float world_y, int priority) {
+    IsoRenderEntry* entry;
+
+    if (s_iso_queue_count >= MAX_ISO_QUEUE) {
+        return;
+    }
+
+    entry = &s_iso_queue[s_iso_queue_count];
+    entry->sprite_data = sprite_data;
+    entry->screen_x = x;
+    entry->screen_y = y;
+    entry->width = w;
+    entry->height = h;
+    entry->base_y = y;
+    entry->world_x = world_x;
+    entry->world_y = world_y;
+    entry->render_type = (priority == 0) ? 2 : 1;
+    entry->sort_key = 0;
+
+    s_iso_queue_count++;
+}
+
+/*
+ * Check if tile is in screen bounds
+ */
+static int map_tile_on_screen(int screen_x, int screen_y, int width, int height) {
+    /* Screen bounds check with margin */
+    if (screen_x + width < -32) return 0;
+    if (screen_x > 640 + 32) return 0;
+    if (screen_y + height < -24) return 0;
+    if (screen_y > 480 + 24) return 0;
+    return 1;
+}
+
+/*
+ * Render isometric field tiles - FUN_004412e0
+ * Main field renderer that handles camera tracking, isometric transformation,
+ * and tile rendering in diamond pattern
+ *
+ * Memory locations from original:
+ * - DAT_04581d3c, DAT_04581d40: Camera position
+ * - DAT_04560e44, DAT_04560e38: Map tile offsets
+ * - DAT_045602b0: Field width
+ * - DAT_04560e48, DAT_045602ac: Screen coordinates
+ */
+void map_render_field_iso(int camera_x, int camera_y, int map_offset_x, int map_offset_y,
+                           int field_width, int field_height) {
+    float screen_x_f, screen_y_f;
+    int screen_x, screen_y;
+    int base_x, base_y;
+    int delta_x, delta_y;
+    int row, col;
+    int tile_x, tile_y;
+    u16 ground_tile, object_tile;
+    int prev_screen_x, prev_screen_y;
+    int render_start_row, render_start_col;
+    int render_end_row, render_end_col;
+    int sprite_width, sprite_height;
+    void* sprite_data;
+    int i;
+
+    s_tile_update_flag = 0;
+
+    /* Check if camera position changed */
+    if (camera_x != s_last_camera_x || camera_y != s_last_camera_y) {
+        /* Update field data - would call FUN_00440aa0 and FUN_00441b90 in original */
+        /* For now, update tracking variables */
+        s_last_camera_x = camera_x;
+        s_last_camera_y = camera_y;
+        s_tile_update_flag = 1;
+    }
+
+    /* Calculate screen position using isometric transform */
+    if (g_map.camera_x == 0 && g_map.camera_y == 0) {
+        /* Use isometric transformation - FUN_00446df0 */
+        map_world_to_screen_iso(0.0f, 0.0f, &screen_x_f, &screen_y_f);
+        screen_x = (int)screen_x_f;
+        screen_y = (int)screen_y_f;
+    } else {
+        /* Direct calculation with offsets */
+        screen_x = SCREEN_CENTER_X + (camera_y + camera_x) * -ISO_X_STEP / 2;
+        screen_y = SCREEN_CENTER_Y + (camera_y - camera_x) * ISO_Y_STEP / 2;
+    }
+
+    /* Store screen positions for other systems */
+    /* DAT_04560e48 = screen_x, DAT_045602ac = screen_y */
+
+    /* Calculate delta from previous frame */
+    delta_x = screen_x - prev_screen_x;
+    delta_y = screen_y - prev_screen_y;
+
+    /* Calculate starting position for diamond iteration */
+    /* From FUN_004412e0: iVar3 = ((map_offset_x + map_offset_y) * 0x40 - 0x40) / 2 + screen_x */
+    base_x = ((map_offset_x + field_width) * ISO_X_STEP - ISO_X_STEP) / 2 + screen_x;
+    base_y = ((field_height - map_offset_x - 1) * ISO_Y_STEP) / 2 + screen_y;
+
+    /* Render tiles in diamond pattern (isometric) */
+    /* Outer loop: rows from top to bottom */
+    render_start_row = 0;
+    render_end_row = field_height;
+
+    for (row = render_start_row; row < render_end_row; row++) {
+        int row_base_x = base_x;
+        int row_base_y = base_y;
+
+        /* Inner loop: columns in current row */
+        for (col = 0; col < field_width; col++) {
+            int tile_idx = row * field_width + col;
+
+            /* Get tile IDs from buffers */
+            ground_tile = s_field_tiles_ground[tile_idx];
+            object_tile = s_field_tiles_object[tile_idx];
+
+            /* Calculate tile screen position */
+            tile_x = row_base_x;
+            tile_y = row_base_y;
+
+            /* Process ground tile */
+            if (ground_tile < 100) {
+                if (ground_tile < 0x14 || ground_tile > 0x27) {
+                    /* Special tile effects */
+                    if (ground_tile > 0x27 && ground_tile < 0x3c) {
+                        map_render_tile_effect(ground_tile);
+                        s_tile_update_flag = 1;
+                    }
+                } else {
+                    /* Normal ground tile */
+                    map_render_ground_tile(ground_tile, tile_x, tile_y);
+                }
+            } else {
+                /* Ground sprite - add to render queue if on screen */
+                if (map_tile_on_screen(tile_x, tile_y, 64, 32)) {
+                    /* Check delta-based visibility optimization */
+                    int visible = 1;
+
+                    if (delta_x != 0 || delta_y != 0) {
+                        /* Check if tile is in visible range after camera movement */
+                        if (tile_x - delta_x > 607 || tile_x - delta_x < 33) {
+                            visible = 0;
+                        }
+                        if (tile_y - delta_y > 456 || tile_y - delta_y < 24) {
+                            visible = visible != 0;
+                        }
+                    }
+
+                    if (visible) {
+                        render_queue_add_sprite(tile_x, tile_y, 1, ground_tile, 0);
+                    }
+                }
+            }
+
+            /* Process object tile */
+            if (object_tile < 100) {
+                if (object_tile < 0x14 || object_tile > 0x27) {
+                    if (object_tile > 0x27 && object_tile < 0x3c) {
+                        map_render_tile_effect(object_tile);
+                        s_tile_update_flag = 1;
+                    }
+                } else {
+                    map_render_ground_tile(object_tile, tile_x, tile_y);
+                }
+            } else {
+                /* Object sprite - render with dimensions */
+                sprite_data = assets_get_sprite(object_tile);
+                if (sprite_data) {
+                    assets_get_sprite_dimensions(object_tile, &sprite_width, &sprite_height);
+
+                    /* Check if sprite is on screen */
+                    if (map_tile_on_screen(tile_x, tile_y, sprite_width, sprite_height)) {
+                        /* Add to isometric render queue with depth sorting */
+                        float world_x = (float)(col + map_offset_x);
+                        float world_y = (float)(row + map_offset_y);
+
+                        map_add_iso_queue(sprite_data, tile_x, tile_y,
+                                         sprite_width, sprite_height,
+                                         world_x, world_y, 0);
+                    }
+                }
+            }
+
+            /* Move to next column in diamond pattern */
+            /* Column step: x += 32, y -= 24 (from FUN_00404850) */
+            row_base_x += ISO_X_STEP;
+            row_base_y -= ISO_Y_STEP;
+        }
+
+        /* Move to next row */
+        /* Row step alternates direction for diamond pattern */
+        if (row < field_width - 1) {
+            base_x += ISO_X_STEP / 2;  /* 16 pixels */
+        } else {
+            base_x -= ISO_X_STEP / 2;
+        }
+        base_y += ISO_Y_STEP;
+    }
+
+    /* Process isometric render queue with depth sorting */
+    /* Sort by Y position for proper layering */
+    for (i = 0; i < s_iso_queue_count; i++) {
+        IsoRenderEntry* entry = &s_iso_queue[i];
+        /* Render sprite using sprite data - for now use sprite ID from entry */
+        /* In full implementation, this would use the sprite_data pointer */
+        render_sprite((u32)(uintptr_t)entry->sprite_data, entry->screen_x, entry->screen_y);
+    }
+
+    /* Clear queue for next frame */
+    s_iso_queue_count = 0;
+
+    /* Check for tile animations */
+    if (s_tile_update_flag) {
+        /* Update animated tiles */
+        LOG_DEBUG("Field tile update triggered");
+    }
+}
+
+/*
+ * Initialize field tile buffers
+ */
+void map_init_field_buffers(int width, int height) {
+    s_field_width = width;
+    s_field_height = height;
+    memset(s_field_tiles_ground, 0, sizeof(s_field_tiles_ground));
+    memset(s_field_tiles_object, 0, sizeof(s_field_tiles_object));
+}
+
+/*
+ * Set field tile data
+ */
+void map_set_field_tile(int x, int y, u16 ground_tile, u16 object_tile) {
+    int idx = y * s_field_width + x;
+    if (idx >= 0 && idx < MAP_MAX_SIZE * MAP_MAX_SIZE) {
+        s_field_tiles_ground[idx] = ground_tile;
+        s_field_tiles_object[idx] = object_tile;
+    }
+}
+
+/*
+ * Get field tile update flag
+ */
+int map_get_tile_update_flag(void) {
+    return s_tile_update_flag;
+}
+
+/*
+ * Clear field tile update flag
+ */
+void map_clear_tile_update_flag(void) {
+    s_tile_update_flag = 0;
+}
+
+/*
+ * Check collision at position - FUN_0040e8c0 pattern
+ * Returns 1 if position is walkable, 0 if blocked
+ * Mode parameter determines check type (8-way, with range, etc.)
+ */
+int map_check_collision(int x, int y, int mode) {
+    /* Check bounds */
+    if (x < 0 || y < 0 || x >= (int)g_map.width || y >= (int)g_map.height) {
+        return 0;  /* Out of bounds */
+    }
+
+    /* Check tile at position */
+    /* TODO: Implement actual tile collision check based on map data */
+    /* For now, assume all in-bounds positions are walkable */
+    (void)mode;  /* Mode determines collision check type */
+
+    return 1;  /* Walkable */
+}
+
+/*
+ * Set current map ID - FUN_00440dd0
+ * Stores map ID and calls coordinate initialization
+ */
+void map_set_map_id(u32 map_id) {
+    g_map.current_map_id = map_id;
+    /* Coordinate initialization is done separately via map_set_coordinates */
+}
+
+/*
+ * Set player coordinates on map - FUN_00440df0
+ * Initializes camera and view bounds based on coordinates
+ *
+ * Binary analysis:
+ * - Sets DAT_0458118c, DAT_04581d3c to x
+ * - Sets DAT_04581184, DAT_04581d40 to y
+ * - Calculates camera position using _DAT_0049c31c (1/64 scale factor)
+ * - Resets view bounds to 0xFFFFFFFF (invalid)
+ * - Calls FUN_00419a40() and FUN_0041cdd0() for additional setup
+ */
+void map_set_coordinates(int x, int y) {
+    /* Store world coordinates */
+    g_map.player_x = x;
+    g_map.player_y = y;
+
+    /* Set camera position (scaled by 1/64 for isometric) */
+    s_iso_camera_x = (float)x * 0.015625f;  /* 1/64 */
+    s_iso_camera_y = (float)y * 0.015625f;
+
+    /* Initialize view bounds as invalid */
+    g_map.offset_x = 0;
+    g_map.offset_y = 0;
+
+    /* Reset camera state */
+    g_map.camera_x = x * 32;  /* Convert to screen coordinates */
+    g_map.camera_y = y * 24;
+    g_map.target_camera_x = g_map.camera_x;
+    g_map.target_camera_y = g_map.camera_y;
+
+    /* Mark as needing update */
+    g_map.loaded = 1;
+}
+
+/*
+ * Load map data file - FUN_00440530
+ * Opens map/%d.dat file and reads dimensions
+ *
+ * Binary analysis:
+ * - Opens file using format "map/%d.dat"
+ * - If file exists, reads 3 layers of tile data
+ * - Each layer has width * height * 2 bytes (u16 per tile)
+ * - Updates map dimensions
+ */
+void map_load_map_data(u32 map_id, int width, int height) {
+    char path[260];
+    HANDLE hFile;
+    DWORD bytes_read;
+    int layer, row, col;
+    u16 tile_value;
+
+    /* Format path: map/%d.dat */
+    snprintf(path, sizeof(path), "data/map/%d.dat", map_id);
+
+    hFile = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+        /* File doesn't exist - dimensions stay as-is */
+        return;
+    }
+
+    /* Read header: 2 ints for width/height */
+    int file_width, file_height;
+    ReadFile(hFile, &file_width, 4, &bytes_read, NULL);
+    ReadFile(hFile, &file_height, 4, &bytes_read, NULL);
+
+    /* Check if dimensions match expected */
+    if (file_width != width || file_height != height) {
+        /* Dimensions don't match - close and reopen for writing */
+        CloseHandle(hFile);
+        return;
+    }
+
+    /* Initialize field buffers */
+    map_init_field_buffers(width, height);
+
+    /* Read 3 layers of tile data */
+    for (layer = 0; layer < 3; layer++) {
+        for (row = 0; row < height; row++) {
+            for (col = 0; col < width; col++) {
+                if (!ReadFile(hFile, &tile_value, 2, &bytes_read, NULL)) {
+                    break;
+                }
+                map_set_field_tile(col, row, tile_value, 0);
+            }
+        }
+    }
+
+    CloseHandle(hFile);
+}
+
+/*
+ * Clear all pet entities - FUN_0040f650
+ * Iterates through pet slots and frees associated memory
+ *
+ * Binary analysis:
+ * - Loops through pet array at DAT_004e2bdc
+ * - Each entry has sprite pointers at offsets 4, 8, 0x14, 0x10, 0x1c, 0x20, 0x24, 0x28, 0x2c, 0x30
+ * - Calls FUN_004011c0 (free) on each pointer
+ * - Clears slot active flag and other fields
+ * - Sets DAT_004e2b0c = 0 at the end
+ */
+void map_clear_all_pets(void) {
+    /* This function clears all pet entities from the map */
+    /* Pet system is handled in pet.c - this is called during map transition */
+
+    /* Clear pet-related globals */
+    /* In the full implementation, this would iterate through pet slots */
+    /* and free their sprite/animation data */
+
+    g_map.in_battle = 0;
+}

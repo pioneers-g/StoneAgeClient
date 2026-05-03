@@ -1,0 +1,1138 @@
+/*
+ * Stone Age Client - Sprite Rendering Implementation
+ * Reverse engineered from sa_9061.exe (FUN_00414190, FUN_004142f0, FUN_00414420, FUN_0047e970)
+ */
+
+#include <windows.h>
+#include <stdlib.h>
+#include <string.h>
+#include "types.h"
+#include "sprite.h"
+#include "assets.h"
+#include "directx.h"
+#include "logger.h"
+
+/* Global sprite context */
+SpriteContext g_sprite_ctx = {0};
+
+/* Transparent color key (magic pink) */
+#define TRANSPARENT_COLOR_565   0xF81F
+#define TRANSPARENT_COLOR_555   0x7C1F
+
+/* Pixel format detection - from DAT_0054bdec */
+static int g_pixel_format = PIXEL_FORMAT_565;  /* Default to 565 */
+
+/*
+ * Initialize sprite system
+ */
+int sprite_init(void) {
+    memset(&g_sprite_ctx, 0, sizeof(SpriteContext));
+    g_sprite_ctx.pixel_format = PIXEL_FORMAT_565;
+
+    LOG_INFO("Sprite system initialized");
+    return 1;
+}
+
+/*
+ * Shutdown sprite system
+ */
+void sprite_shutdown(void) {
+    memset(&g_sprite_ctx, 0, sizeof(SpriteContext));
+    LOG_INFO("Sprite system shutdown");
+}
+
+/*
+ * Convert RGB to 565 format
+ */
+u16 sprite_color_565(u8 r, u8 g, u8 b) {
+    return ((u16)(r & 0xF8) << 8) | ((u16)(g & 0xFC) << 3) | ((u16)(b & 0xF8) >> 3);
+}
+
+/*
+ * Convert RGB to 555 format
+ */
+u16 sprite_color_555(u8 r, u8 g, u8 b) {
+    return ((u16)(r & 0xF8) << 7) | ((u16)(g & 0xF8) << 2) | ((u16)(b & 0xF8) >> 3);
+}
+
+/*
+ * Split 565 color to RGB
+ */
+void sprite_color_split_565(u16 color, u8* r, u8* g, u8* b) {
+    if (r) *r = (u8)((color >> 8) & 0xF8);
+    if (g) *g = (u8)((color >> 3) & 0xFC);
+    if (b) *b = (u8)((color << 3) & 0xF8);
+}
+
+/*
+ * Split 555 color to RGB
+ */
+void sprite_color_split_555(u16 color, u8* r, u8* g, u8* b) {
+    if (r) *r = (u8)((color >> 7) & 0xF8);
+    if (g) *g = (u8)((color >> 2) & 0xF8);
+    if (b) *b = (u8)((color << 3) & 0xF8);
+}
+
+/*
+ * Alpha blend for 565 format - FUN_0047e970 pattern
+ * This is the core blending function used for semi-transparent sprites
+ *
+ * TODO: Verify alpha blending formula against binary FUN_0047e970
+ * The binary uses SIMD-like operations (psubusw, paddsw, psllw) for parallel processing
+ * - These are MMX/SSE intrinsics for packed unsigned saturation operations
+ * - The exact formula: result = dest + ((src - dest) * alpha) >> 5
+ * - Binary handles odd widths separately (local_5 flag in decompiled code)
+ * - Need to verify the alpha factor calculation (param_8 in binary)
+ */
+void sprite_blend_565(u16* dest, const u16* src, u32 count, u8 alpha) {
+    u32 i;
+    u16 src_pixel, dest_pixel;
+    u32 src_r, src_g, src_b;
+    u32 dest_r, dest_g, dest_b;
+    u32 result_r, result_g, result_b;
+
+    /* Alpha factor: 0-31 range for 565 */
+    u32 alpha_factor = (alpha * 32) / 256;
+
+    for (i = 0; i < count; i++) {
+        src_pixel = src[i];
+        dest_pixel = dest[i];
+
+        /* Skip transparent pixels */
+        if (src_pixel == TRANSPARENT_COLOR_565) {
+            continue;
+        }
+
+        /* Extract source RGB - 565 format */
+        src_r = (src_pixel >> 11) & 0x1F;
+        src_g = (src_pixel >> 5) & 0x3F;
+        src_b = src_pixel & 0x1F;
+
+        /* Extract destination RGB */
+        dest_r = (dest_pixel >> 11) & 0x1F;
+        dest_g = (dest_pixel >> 5) & 0x3F;
+        dest_b = dest_pixel & 0x1F;
+
+        /* Blend: result = src + (dest - src) * alpha / 32 */
+        result_r = dest_r + (((src_r - dest_r) * alpha_factor) >> 5);
+        result_g = dest_g + (((src_g - dest_g) * alpha_factor) >> 5);
+        result_b = dest_b + (((src_b - dest_b) * alpha_factor) >> 5);
+
+        /* Clamp */
+        if (result_r > 0x1F) result_r = 0x1F;
+        if (result_g > 0x3F) result_g = 0x3F;
+        if (result_b > 0x1F) result_b = 0x1F;
+
+        /* Combine */
+        dest[i] = (u16)((result_r << 11) | (result_g << 5) | result_b);
+    }
+}
+
+/*
+ * Alpha blend for 555 format
+ * TODO: Verify against FUN_0047e970 - binary uses DAT_0054bdec to detect pixel format
+ * When DAT_0054bdec != 2, the binary uses 555 format with different bit masks:
+ * - Red: bits 10-14 (mask 0x7C00)
+ * - Green: bits 5-9 (mask 0x03E0)
+ * - Blue: bits 0-4 (mask 0x001F)
+ */
+void sprite_blend_555(u16* dest, const u16* src, u32 count, u8 alpha) {
+    u32 i;
+    u16 src_pixel, dest_pixel;
+    u32 src_r, src_g, src_b;
+    u32 dest_r, dest_g, dest_b;
+    u32 result_r, result_g, result_b;
+
+    /* Alpha factor: 0-31 range for 555 */
+    u32 alpha_factor = (alpha * 32) / 256;
+
+    for (i = 0; i < count; i++) {
+        src_pixel = src[i];
+        dest_pixel = dest[i];
+
+        /* Skip transparent pixels */
+        if (src_pixel == TRANSPARENT_COLOR_555) {
+            continue;
+        }
+
+        /* Extract source RGB - 555 format */
+        src_r = (src_pixel >> 10) & 0x1F;
+        src_g = (src_pixel >> 5) & 0x1F;
+        src_b = src_pixel & 0x1F;
+
+        /* Extract destination RGB */
+        dest_r = (dest_pixel >> 10) & 0x1F;
+        dest_g = (dest_pixel >> 5) & 0x1F;
+        dest_b = dest_pixel & 0x1F;
+
+        /* Blend */
+        result_r = dest_r + (((src_r - dest_r) * alpha_factor) >> 5);
+        result_g = dest_g + (((src_g - dest_g) * alpha_factor) >> 5);
+        result_b = dest_b + (((src_b - dest_b) * alpha_factor) >> 5);
+
+        /* Clamp */
+        if (result_r > 0x1F) result_r = 0x1F;
+        if (result_g > 0x1F) result_g = 0x1F;
+        if (result_b > 0x1F) result_b = 0x1F;
+
+        /* Combine */
+        dest[i] = (u16)((result_r << 10) | (result_g << 5) | result_b);
+    }
+}
+
+/*
+ * Additive blend for 565 format
+ */
+void sprite_blend_additive(u16* dest, const u16* src, u32 count, u8 alpha) {
+    u32 i;
+    u16 src_pixel, dest_pixel;
+    u32 src_r, src_g, src_b;
+    u32 dest_r, dest_g, dest_b;
+    u32 result_r, result_g, result_b;
+
+    u32 alpha_factor = (alpha * 32) / 256;
+
+    for (i = 0; i < count; i++) {
+        src_pixel = src[i];
+        dest_pixel = dest[i];
+
+        if (src_pixel == TRANSPARENT_COLOR_565) {
+            continue;
+        }
+
+        src_r = (src_pixel >> 11) & 0x1F;
+        src_g = (src_pixel >> 5) & 0x3F;
+        src_b = src_pixel & 0x1F;
+
+        dest_r = (dest_pixel >> 11) & 0x1F;
+        dest_g = (dest_pixel >> 5) & 0x3F;
+        dest_b = dest_pixel & 0x1F;
+
+        /* Additive blend */
+        result_r = dest_r + ((src_r * alpha_factor) >> 5);
+        result_g = dest_g + ((src_g * alpha_factor) >> 5);
+        result_b = dest_b + ((src_b * alpha_factor) >> 5);
+
+        /* Clamp */
+        if (result_r > 0x1F) result_r = 0x1F;
+        if (result_g > 0x3F) result_g = 0x3F;
+        if (result_b > 0x1F) result_b = 0x1F;
+
+        dest[i] = (u16)((result_r << 11) | (result_g << 5) | result_b);
+    }
+}
+
+/*
+ * RLE decompression for 8-bit sprites
+ * Format: count byte followed by pixel data
+ * If count & 0x80: repeat next byte (count & 0x7F) times
+ * Otherwise: copy (count) literal bytes
+ */
+int sprite_decode_rle_8bit(const u8* src, u32 src_size, u8* dst, u32 dst_size, u16 width, u16 height) {
+    u32 src_pos = 0;
+    u32 dst_pos = 0;
+    u32 x, y;
+    u8 count, pixel;
+
+    for (y = 0; y < height; y++) {
+        x = 0;
+
+        while (x < width && src_pos < src_size) {
+            count = src[src_pos++];
+
+            if (count & 0x80) {
+                /* Run-length encoded */
+                count &= 0x7F;
+                if (src_pos >= src_size) break;
+
+                pixel = src[src_pos++];
+
+                while (count > 0 && x < width && dst_pos < dst_size) {
+                    dst[dst_pos++] = pixel;
+                    x++;
+                    count--;
+                }
+            } else {
+                /* Literal bytes */
+                while (count > 0 && x < width && src_pos < src_size && dst_pos < dst_size) {
+                    dst[dst_pos++] = src[src_pos++];
+                    x++;
+                    count--;
+                }
+            }
+        }
+
+        /* Skip to next row if needed */
+        while (x < width && dst_pos < dst_size) {
+            dst[dst_pos++] = 0;  /* Pad with transparent */
+            x++;
+        }
+    }
+
+    return (int)dst_pos;
+}
+
+/*
+ * RLE decompression for 16-bit sprites
+ */
+int sprite_decode_rle_16bit(const u8* src, u32 src_size, u16* dst, u32 dst_size, u16 width, u16 height) {
+    u32 src_pos = 0;
+    u32 dst_pos = 0;
+    u32 x, y;
+    u8 count;
+    u16 pixel;
+
+    dst_size /= 2;  /* Convert to pixel count */
+
+    for (y = 0; y < height; y++) {
+        x = 0;
+
+        while (x < width && src_pos + 1 < src_size) {
+            count = src[src_pos++];
+
+            if (count & 0x80) {
+                /* Run-length encoded */
+                count &= 0x7F;
+                if (src_pos + 1 >= src_size) break;
+
+                pixel = src[src_pos] | (src[src_pos + 1] << 8);
+                src_pos += 2;
+
+                while (count > 0 && x < width && dst_pos < dst_size) {
+                    dst[dst_pos++] = pixel;
+                    x++;
+                    count--;
+                }
+            } else {
+                /* Literal pixels */
+                while (count > 0 && x < width && src_pos + 1 < src_size && dst_pos < dst_size) {
+                    pixel = src[src_pos] | (src[src_pos + 1] << 8);
+                    dst[dst_pos++] = pixel;
+                    src_pos += 2;
+                    x++;
+                    count--;
+                }
+            }
+        }
+
+        /* Pad row */
+        while (x < width && dst_pos < dst_size) {
+            dst[dst_pos++] = TRANSPARENT_COLOR_565;
+            x++;
+        }
+    }
+
+    return (int)(dst_pos * 2);
+}
+
+/*
+ * Draw sprite - FUN_00414190 pattern
+ * Renders a sprite with transparency at the specified position
+ */
+int sprite_draw(u32 sprite_id, s16 x, s16 y, u8 flags) {
+    SpriteCacheEntry* entry;
+    u16* src_data;
+    u16* dst_data;
+    s16 src_x, src_y;
+    s16 dst_x, dst_y;
+    u16 width, height;
+    u32 src_pitch, dst_pitch;
+    u16 transparent;
+    DDSURFACEDESC2 ddsd;
+    HRESULT hr;
+    int result = 1;
+
+    entry = sprite_cache_get_entry(sprite_id);
+    if (!entry || !entry->decoded_data) {
+        return 0;
+    }
+
+    src_data = (u16*)entry->decoded_data;
+    width = entry->width;
+    height = entry->height;
+
+    /* Clipping - FUN_00414190 pattern */
+    src_x = 0;
+    src_y = 0;
+    dst_x = x;
+    dst_y = y;
+
+    if (dst_x < 0) {
+        src_x = (s16)-dst_x;
+        width = (u16)(width + dst_x);
+        dst_x = 0;
+    }
+
+    if (dst_y < 0) {
+        src_y = (s16)-dst_y;
+        height = (u16)(height + dst_y);
+        dst_y = 0;
+    }
+
+    if (dst_x + width > g_sprite_ctx.dest_width) {
+        width = (u16)(g_sprite_ctx.dest_width - dst_x);
+    }
+
+    if (dst_y + height > g_sprite_ctx.dest_height) {
+        height = (u16)(g_sprite_ctx.dest_height - dst_y);
+    }
+
+    if (width == 0 || height == 0) {
+        return 1;
+    }
+
+    /* Lock destination surface */
+    memset(&ddsd, 0, sizeof(DDSURFACEDESC2));
+    ddsd.dwSize = sizeof(DDSURFACEDESC2);
+
+    hr = IDirectDrawSurface_Lock(g_graphics.offscreen_surface, NULL, &ddsd, DDLOCK_WAIT, NULL);
+    if (FAILED(hr)) {
+        return 0;
+    }
+
+    dst_data = (u16*)((u8*)ddsd.lpSurface + dst_y * ddsd.lPitch + dst_x * 2);
+    src_pitch = entry->width * 2;
+    dst_pitch = ddsd.lPitch;
+
+    transparent = (g_sprite_ctx.pixel_format == PIXEL_FORMAT_565) ?
+                  TRANSPARENT_COLOR_565 : TRANSPARENT_COLOR_555;
+
+    /* Draw with transparency or alpha */
+    if (flags & RENDER_FLAG_ALPHA) {
+        /* Alpha blending */
+        u8 alpha = 128;  /* Default 50% alpha */
+        for (y = 0; y < height; y++) {
+            if (g_sprite_ctx.pixel_format == PIXEL_FORMAT_565) {
+                sprite_blend_565(dst_data, src_data + src_y * entry->width + src_x, width, alpha);
+            } else {
+                sprite_blend_555(dst_data, src_data + src_y * entry->width + src_x, width, alpha);
+            }
+            dst_data = (u16*)((u8*)dst_data + dst_pitch);
+            src_y++;
+        }
+    } else {
+        /* Simple transparent blit */
+        for (y = 0; y < height; y++) {
+            u16* src_row = src_data + src_y * entry->width + src_x;
+            u16* dst_row = dst_data;
+
+            for (x = 0; x < width; x++) {
+                if (src_row[x] != transparent) {
+                    dst_row[x] = src_row[x];
+                }
+            }
+
+            dst_data = (u16*)((u8*)dst_data + dst_pitch);
+            src_y++;
+        }
+    }
+
+    IDirectDrawSurface_Unlock(g_graphics.offscreen_surface, NULL);
+    return result;
+}
+
+/*
+ * Sprite blit with transparency - FUN_004142f0 pattern
+ */
+int sprite_blit_transparent(void* src, s16 src_x, s16 src_y, u16 src_w, u16 src_h,
+                            void* dst, s16 dst_x, s16 dst_y, u16 transparent_color) {
+    u16* src_ptr;
+    u16* dst_ptr;
+    s16 x, y;
+    u16 src_pitch = src_w * 2;
+    u16 dst_pitch = g_sprite_ctx.dest_pitch;
+
+    /* Bounds checking */
+    if (dst_x < 0) {
+        src_x = (s16)(src_x - dst_x);
+        src_w = (u16)(src_w + dst_x);
+        dst_x = 0;
+    }
+
+    if (dst_y < 0) {
+        src_y = (s16)(src_y - dst_y);
+        src_h = (u16)(src_h + dst_y);
+        dst_y = 0;
+    }
+
+    if (dst_x + src_w > g_sprite_ctx.dest_width) {
+        src_w = (u16)(g_sprite_ctx.dest_width - dst_x);
+    }
+
+    if (dst_y + src_h > g_sprite_ctx.dest_height) {
+        src_h = (u16)(g_sprite_ctx.dest_height - dst_y);
+    }
+
+    if (src_w == 0 || src_h == 0) {
+        return 0;
+    }
+
+    src_ptr = (u16*)((u8*)src + src_y * src_pitch + src_x * 2);
+    dst_ptr = (u16*)((u8*)dst + dst_y * dst_pitch + dst_x * 2);
+
+    for (y = 0; y < src_h; y++) {
+        for (x = 0; x < src_w; x++) {
+            if (src_ptr[x] != transparent_color) {
+                dst_ptr[x] = src_ptr[x];
+            }
+        }
+        src_ptr = (u16*)((u8*)src_ptr + src_pitch);
+        dst_ptr = (u16*)((u8*)dst_ptr + dst_pitch);
+    }
+
+    return 1;
+}
+
+/*
+ * Sprite blit with alpha - FUN_0047e970 pattern
+ */
+int sprite_blit_alpha(void* src, s16 src_x, s16 src_y, u16 src_w, u16 src_h,
+                      void* dst, s16 dst_x, s16 dst_y, u8 alpha) {
+    u16* src_ptr;
+    u16* dst_ptr;
+    s16 x, y;
+    u16 src_pitch = src_w * 2;
+    u16 dst_pitch = g_sprite_ctx.dest_pitch;
+
+    if (alpha == 0) return 1;
+    if (alpha == 255) {
+        return sprite_blit_transparent(src, src_x, src_y, src_w, src_h, dst, dst_x, dst_y, TRANSPARENT_COLOR_565);
+    }
+
+    src_ptr = (u16*)((u8*)src + src_y * src_pitch + src_x * 2);
+    dst_ptr = (u16*)((u8*)dst + dst_y * dst_pitch + dst_x * 2);
+
+    for (y = 0; y < src_h; y++) {
+        if (g_sprite_ctx.pixel_format == PIXEL_FORMAT_565) {
+            sprite_blend_565(dst_ptr, src_ptr, src_w, alpha);
+        } else {
+            sprite_blend_555(dst_ptr, src_ptr, src_w, alpha);
+        }
+        src_ptr = (u16*)((u8*)src_ptr + src_pitch);
+        dst_ptr = (u16*)((u8*)dst_ptr + dst_pitch);
+    }
+
+    return 1;
+}
+
+/*
+ * Animation init
+ */
+void sprite_animation_init(SpriteAnimation* anim, u32 sprite_id, u32 frame_count) {
+    if (!anim) return;
+
+    anim->sprite_id = sprite_id;
+    anim->frame_count = frame_count;
+    anim->current_frame = 0;
+    anim->animation_timer = 0;
+    anim->animation_speed = 100;  /* ms per frame */
+    anim->is_playing = 0;
+    anim->loop = 1;
+    anim->direction = 0;
+}
+
+/*
+ * Animation update
+ */
+void sprite_animation_update(SpriteAnimation* anim, u32 delta_time) {
+    if (!anim || !anim->is_playing) return;
+
+    anim->animation_timer += delta_time;
+
+    while (anim->animation_timer >= anim->animation_speed) {
+        anim->animation_timer -= anim->animation_speed;
+        anim->current_frame++;
+
+        if (anim->current_frame >= anim->frame_count) {
+            if (anim->loop) {
+                anim->current_frame = 0;
+            } else {
+                anim->current_frame = anim->frame_count - 1;
+                anim->is_playing = 0;
+            }
+        }
+    }
+}
+
+/*
+ * Animation play
+ */
+void sprite_animation_play(SpriteAnimation* anim) {
+    if (anim) {
+        anim->is_playing = 1;
+    }
+}
+
+/*
+ * Animation stop
+ */
+void sprite_animation_stop(SpriteAnimation* anim) {
+    if (anim) {
+        anim->is_playing = 0;
+    }
+}
+
+/*
+ * Get current frame
+ */
+u32 sprite_animation_get_frame(SpriteAnimation* anim) {
+    return anim ? anim->current_frame : 0;
+}
+
+/*
+ * Sprite cache functions (data cache, not surface cache)
+ * Note: Surface cache is in directx.c - FUN_00480740
+ */
+#define MAX_SPRITE_DATA_CACHE 1000
+static SpriteCacheEntry g_sprite_data_cache[MAX_SPRITE_DATA_CACHE];
+static u32 g_sprite_data_cache_count = 0;
+
+/*
+ * Get sprite from data cache
+ */
+SpriteCacheEntry* sprite_cache_get(u32 sprite_id) {
+    u32 i;
+
+    for (i = 0; i < g_sprite_data_cache_count; i++) {
+        if (g_sprite_data_cache[i].sprite_id == sprite_id && g_sprite_data_cache[i].is_valid) {
+            return &g_sprite_data_cache[i];
+        }
+    }
+
+    return NULL;
+}
+
+/*
+ * Add sprite to data cache
+ */
+SpriteCacheEntry* sprite_cache_add(u32 sprite_id, void* data, u32 size, u16 width, u16 height) {
+    SpriteCacheEntry* entry;
+
+    if (g_sprite_data_cache_count >= MAX_SPRITE_DATA_CACHE) {
+        /* Find invalid entry to replace */
+        u32 i;
+        for (i = 0; i < MAX_SPRITE_DATA_CACHE; i++) {
+            if (!g_sprite_data_cache[i].is_valid) {
+                entry = &g_sprite_data_cache[i];
+                goto found;
+            }
+        }
+        return NULL;
+    }
+
+    entry = &g_sprite_data_cache[g_sprite_data_cache_count++];
+found:
+    entry->sprite_id = sprite_id;
+    entry->decoded_data = data;
+    entry->data_size = size;
+    entry->width = width;
+    entry->height = height;
+    entry->is_valid = 1;
+    entry->flags = 0;
+
+    return entry;
+}
+
+/*
+ * Invalidate sprite data cache entry
+ */
+void sprite_cache_invalidate(u32 sprite_id) {
+    SpriteCacheEntry* entry = sprite_cache_get(sprite_id);
+    if (entry) {
+        if (entry->decoded_data) {
+            free(entry->decoded_data);
+        }
+        memset(entry, 0, sizeof(SpriteCacheEntry));
+    }
+}
+
+/* ========== Render Queue System Implementation ========== */
+/* Based on FUN_0047e210, FUN_0047e640, FUN_0041fad0, FUN_0041f900 */
+
+/* Global render queue */
+SpriteRenderQueue g_sprite_queue = {0};
+
+/* Sprite data lookup tables - from binary addresses */
+/* DAT_00a04c64: Standard sprite offset table */
+/* DAT_00e8f234: Standard sprite dimension table (0x50 bytes per entry) */
+/* DAT_0081c7f4: High-res sprite dimension table */
+
+/* Placeholder tables - would be loaded from data files */
+static u32* g_sprite_offset_table = NULL;
+static SpriteDimension* g_sprite_dim_table = NULL;
+static SpriteDimension* g_sprite_dim_table_hires = NULL;
+
+/*
+ * Initialize render queue
+ */
+void sprite_queue_clear(void) {
+    memset(&g_sprite_queue, 0, sizeof(SpriteRenderQueue));
+}
+
+/*
+ * Get current queue count
+ */
+u32 sprite_queue_get_count(void) {
+    return g_sprite_queue.count;
+}
+
+/*
+ * Check if sprite is high-res - from FUN_0041fad0
+ */
+int sprite_is_highres(u32 sprite_id) {
+    return (sprite_id >= SPRITE_ID_HIGHRES_BASE && sprite_id <= SPRITE_ID_HIGHRES_MAX);
+}
+
+/*
+ * Get palette group from palette value - FUN_0047e210 pattern
+ * Values 0-9: group 0, 10-19: group 1, 20-29: group 2, etc.
+ */
+int sprite_get_palette_group(int palette) {
+    if (palette < 10) {
+        return 0;
+    } else if (palette < 20) {
+        return 1;
+    } else if (palette < 30) {
+        return 2;
+    } else if (palette < 40) {
+        return 3;
+    } else {
+        return 4;
+    }
+}
+
+/*
+ * Sprite offset lookup - FUN_0041fad0
+ * Returns sprite data offset for given sprite ID
+ */
+int sprite_lookup_offset(u32 sprite_id, u32* offset) {
+    if (sprite_id < SPRITE_ID_HIGHRES_BASE) {
+        /* Standard sprite: lookup in offset table */
+        if (g_sprite_offset_table && offset) {
+            *offset = g_sprite_offset_table[sprite_id];
+            return 1;
+        }
+    } else if (sprite_id <= SPRITE_ID_HIGHRES_MAX) {
+        /* High-res sprite: ID is the offset */
+        if (offset) {
+            *offset = sprite_id;
+            return 1;
+        }
+    }
+
+    if (offset) *offset = 0;
+    return 0;
+}
+
+/*
+ * Sprite dimension lookup - FUN_0041f900
+ * Returns width and height for given sprite ID
+ *
+ * TODO: This function is duplicated at line 920 - consolidate into one
+ * TODO: Verify dimension table loading from actual data files
+ * Binary uses:
+ * - DAT_00e8f23c for standard sprites (stride 0x50 bytes)
+ * - DAT_0081c7fc for high-res sprites
+ */
+int sprite_lookup_dimension(u32 sprite_id, u16* width, u16* height) {
+    if (sprite_id < SPRITE_ID_HIGHRES_BASE) {
+        /* Standard sprite: lookup in dimension table */
+        if (g_sprite_dim_table) {
+            *width = g_sprite_dim_table[sprite_id].width;
+            *height = g_sprite_dim_table[sprite_id].height;
+            return 1;
+        }
+    } else if (sprite_id <= SPRITE_ID_HIGHRES_MAX) {
+        /* High-res sprite: different table */
+        if (g_sprite_dim_table_hires) {
+            u32 index = (sprite_id - SPRITE_ID_HIGHRES_BASE) * 5 + 2500000;
+            u32 offset = index * 8;
+            /* High-res sprites have 8-byte entries */
+            *width = ((SpriteDimension*)((u8*)g_sprite_dim_table_hires + offset))[0].width;
+            *height = ((SpriteDimension*)((u8*)g_sprite_dim_table_hires + offset))[0].height;
+            return 1;
+        }
+    }
+
+    if (width) *width = 0;
+    if (height) *height = 0;
+    return 0;
+}
+
+/*
+ * Add sprite to render queue - FUN_0047e210 implementation
+ * Parameters:
+ *   x, y: Position
+ *   type: Sprite type (0x68=UI, 0x69=Icon, 0x6d=Button, 0x6e=Effect)
+ *   sprite_id: Sprite ID (0-549999)
+ *   palette: Palette/style index
+ * Returns: Queue index on success, -2 on failure
+ */
+int sprite_queue_add(int x, int y, u8 type, int sprite_id, int palette) {
+    SpriteRenderEntry* entry;
+    u32 index;
+    u16 dim_x = 0, dim_y = 0;
+
+    /* Check queue limit - from binary: 0xfff limit */
+    if (g_sprite_queue.count >= SPRITE_QUEUE_MAX - 1) {
+        return -2;
+    }
+
+    /* Validate sprite ID - from FUN_0041fad0 */
+    if (sprite_id < 100 && sprite_id > 99) {
+        /* Special case: negative sprite IDs for system sprites */
+    } else if (sprite_id < 100 && sprite_id >= -1) {
+        /* Sprite IDs 0-99 need lookup */
+        dim_x = 0;
+        dim_y = 0;
+    } else if (sprite_id >= 100) {
+        /* Get dimensions from lookup */
+        sprite_lookup_dimension((u32)sprite_id, &dim_x, &dim_y);
+    } else {
+        return -2;
+    }
+
+    index = g_sprite_queue.count;
+    entry = &g_sprite_queue.entries[index];
+
+    /* Set entry data - from DAT_04633488 region analysis */
+    entry->queue_index = (u16)index;
+    entry->sprite_type = type;
+    entry->x = x + dim_x;   /* Add dimension offset */
+    entry->y = y + dim_y;
+    entry->sprite_id = sprite_id;
+    entry->flags = 0;
+
+    /* Process palette - FUN_0047e210 pattern */
+    if (palette < 10) {
+        entry->palette = palette;
+        entry->palette_group = 0;
+    } else if (palette < 20) {
+        entry->palette_group = 1;
+        entry->palette = palette - 10;
+    } else if (palette < 30) {
+        entry->palette_group = 2;
+        entry->palette = palette - 20;
+    } else if (palette < 40) {
+        entry->palette_group = 3;
+        entry->palette = palette - 30;
+    } else {
+        entry->palette_group = 4;
+        entry->palette = palette - 40;
+    }
+
+    g_sprite_queue.count++;
+    g_sprite_queue.total_queued++;
+
+    return (int)index;
+}
+
+/*
+ * Add scaled sprite to queue - FUN_0047e640 implementation
+ * Parameters:
+ *   x1, y1: Top-left corner
+ *   x2, y2: Bottom-right corner
+ *   type: Sprite type
+ *   sprite_id: Sprite ID
+ *   mode: Render mode (0=normal, 1=additive, 2=subtractive, 3=custom)
+ * Returns: Queue index on success
+ */
+int sprite_queue_scaled(int x1, int y1, int x2, int y2,
+                        u8 type, int sprite_id, SpriteRenderMode mode) {
+    int modified_id;
+    int width, height;
+
+    /* Calculate dimensions */
+    width = x2 - x1;
+    height = y2 - y1;
+
+    /* Encode dimensions in position (FUN_0047e640 pattern) */
+    /* x1 stored in high word of x, x2 in low word */
+    /* Same for y coordinates */
+
+    /* Apply render mode flags to sprite_id */
+    switch (mode) {
+        case RENDER_MODE_ADDITIVE:
+            modified_id = sprite_id | 0xa0000000;
+            break;
+        case RENDER_MODE_SUBTRACTIVE:
+            modified_id = sprite_id | 0x90000000;
+            break;
+        case RENDER_MODE_CUSTOM:
+            modified_id = sprite_id | 0xc0000000;
+            break;
+        default:
+            modified_id = sprite_id;
+            break;
+    }
+
+    return sprite_queue_add(x1, y1, type, modified_id, 0);
+}
+
+/*
+ * Process render queue - simplified version
+ * Full implementation would use DirectDraw surfaces
+ */
+void sprite_queue_process(void* surface, u32 pitch) {
+    u32 i;
+    SpriteRenderEntry* entry;
+    u16* dest = (u16*)surface;
+
+    for (i = 0; i < g_sprite_queue.count; i++) {
+        entry = &g_sprite_queue.entries[i];
+
+        /* Skip invalid entries */
+        if (entry->sprite_id < 0 && entry->sprite_id != -1) {
+            continue;
+        }
+
+        /* Render sprite entry */
+        /* Full implementation would look up sprite data and render */
+        /* For now, this is a placeholder */
+
+        g_sprite_queue.total_rendered++;
+    }
+
+    /* Clear queue after processing */
+    g_sprite_queue.count = 0;
+}
+
+/* ========================================
+ * Sprite Lookup Functions - FUN_0041fad0, FUN_0041f980
+ * ======================================== */
+
+/* Sprite data tables - these would be loaded from data files in the real implementation */
+/* Standard sprites: IDs 0-499999, lookup at 0x00a04c64 (offset) and 0x00e8f23c (dimensions) */
+/* Extended sprites: IDs 500000-549999, special handling */
+
+/*
+ * Get sprite data offset - FUN_0041fad0
+ * Returns the data offset for a sprite ID
+ * Standard sprites: Look up in table
+ * Extended sprites (500000-549999): Return the ID itself
+ */
+int sprite_lookup_offset(u32 sprite_id, u32* offset) {
+    if (sprite_id < SPRITE_ID_HIGHRES_BASE) {
+        /* Standard sprite - look up offset in table */
+        /* Table at DAT_00a04c64, stride 4 bytes */
+        /* In real implementation, this would access the loaded data */
+        *offset = sprite_id * 0x50;  /* Placeholder calculation */
+        return 1;
+    }
+
+    if (sprite_id <= SPRITE_ID_HIGHRES_MAX) {
+        /* Extended sprite - return ID as offset */
+        *offset = sprite_id;
+        return 1;
+    }
+
+    /* Invalid sprite ID */
+    *offset = 0;
+    return 0;
+}
+
+/*
+ * Get sprite dimensions - FUN_0041f980
+ * Returns width and height for a sprite data offset
+ */
+int sprite_lookup_dimension(u32 data_offset, u16* width, u16* height) {
+    if (data_offset < SPRITE_ID_HIGHRES_BASE * 0x50) {
+        /* Standard sprite - look up in dimension table */
+        /* Table at DAT_00e8f23c, stride 0x50 bytes */
+        /* Width at +0x00, Height at +0x04 in each entry */
+        /* Placeholder values */
+        *width = 64;
+        *height = 48;
+        return 1;
+    }
+
+    if (data_offset <= SPRITE_ID_HIGHRES_MAX) {
+        /* Extended sprite - look up in extended table */
+        /* Calculation: (id * 5 - 2500000) * 8 */
+        /* Table at DAT_0081c7fc */
+        /* Placeholder values */
+        *width = 128;
+        *height = 96;
+        return 1;
+    }
+
+    *width = 0;
+    *height = 0;
+    return 0;
+}
+
+/*
+ * Check if sprite is high-res
+ */
+int sprite_is_highres(u32 sprite_id) {
+    return (sprite_id >= SPRITE_ID_HIGHRES_BASE && sprite_id <= SPRITE_ID_HIGHRES_MAX);
+}
+
+/*
+ * Get palette group from palette value
+ */
+int sprite_get_palette_group(int palette) {
+    if (palette < 10) return 0;
+    if (palette < 20) return 1;
+    if (palette < 30) return 2;
+    if (palette < 40) return 3;
+    return 4;
+}
+
+/* ========================================
+ * LCG Random Number Generator - FUN_00492403
+ * ======================================== */
+
+/* LCG state - DAT_004d7160 */
+static u32 g_lcg_state = 0x12345678;
+
+/*
+ * LCG Random - FUN_00492403
+ * Microsoft C/C++ compatible LCG
+ * State = State * 214013 + 2531011
+ * Returns (State >> 16) & 0x7FFF
+ */
+u32 sprite_lcg_random(void) {
+    g_lcg_state = g_lcg_state * 0x343fd + 0x269ec3;
+    return (g_lcg_state >> 16) & 0x7fff;
+}
+
+/*
+ * Seed the LCG
+ */
+void sprite_lcg_seed(u32 seed) {
+    g_lcg_state = seed;
+}
+
+/*
+ * Get current LCG state
+ */
+u32 sprite_lcg_get_state(void) {
+    return g_lcg_state;
+}
+
+/*
+ * Set LCG state (for save/restore)
+ */
+void sprite_lcg_set_state(u32 state) {
+    g_lcg_state = state;
+}
+
+/* ========================================
+ * Background Rendering - FUN_0047cd80
+ * ======================================== */
+
+/* Background surfaces - DAT_046333xx region */
+static IDirectDrawSurface* g_bg_surface1 = NULL;  /* DAT_046333f8 */
+static IDirectDrawSurface* g_bg_surface2 = NULL;  /* DAT_046333fc */
+static IDirectDrawSurface* g_bg_surface3 = NULL;  /* DAT_04633400 */
+
+/* Background dimensions */
+static u16 g_bg_width = 0;      /* DAT_046333b4 */
+static u16 g_bg_height = 0;     /* DAT_046333d4 */
+static s32 g_bg_offset_x = 0;   /* DAT_04633398 */
+static s32 g_bg_offset_y = 0;   /* DAT_046333bc */
+
+/* Background sprite IDs */
+static u32 g_bg_sprite_id = 0;  /* DAT_046333f0 */
+
+/*
+ * Initialize background surfaces - FUN_0047cd80
+ * Creates background layers for field rendering
+ *
+ * TODO: Verify background surface creation logic against FUN_0047cd80
+ * Binary uses:
+ * - DAT_046333f8, DAT_046333fc, DAT_04633400 for surface pointers
+ * - DAT_046333b4, DAT_046333d4 for dimensions
+ * - DAT_0458119c, DAT_04569b70 for offset calculations
+ * - LCG random (FUN_00492403) for sprite selection
+ */
+void sprite_init_background(u32 sprite_id) {
+    u32 data_offset;
+    u16 width, height;
+    u32 random_val;
+    u16 bg_width, bg_height;
+
+    if (sprite_id == 0) {
+        return;
+    }
+
+    g_bg_sprite_id = sprite_id;
+
+    /* Get sprite data offset - FUN_0041fad0 */
+    if (!sprite_lookup_offset(sprite_id & 0xFFFF, &data_offset)) {
+        return;
+    }
+
+    /* Get sprite dimensions - FUN_0041f980 */
+    if (!sprite_lookup_dimension(data_offset, &width, &height)) {
+        return;
+    }
+
+    /* Check if dimensions changed */
+    if (width != g_bg_width || height != g_bg_height) {
+        /* Calculate new offsets */
+        g_bg_offset_x = 0;  /* Would be calculated from DAT_0458119c + DAT_04569b70 */
+        g_bg_offset_y = 0;
+
+        g_bg_width = width;
+        g_bg_height = height;
+
+        /* Release old surface */
+        if (g_bg_surface1) {
+            IDirectDrawSurface_Release(g_bg_surface1);
+            g_bg_surface1 = NULL;
+        }
+
+        /* Create new offscreen surface - FUN_00412af0 */
+        /* In real implementation, this calls DirectDraw CreateSurface */
+        /* g_bg_surface1 = graphics_create_offscreen(width, height, 0x800); */
+    }
+
+    if (g_bg_surface1) {
+        /* Blit sprite to background surface - FUN_0047cb80 */
+        /* sprite_blit_to_surface(data_offset, g_bg_surface1, width, height); */
+
+        /* Initialize secondary background layers if not done */
+        if (!g_bg_surface2) {
+            /* Use LCG random for sprite selection */
+            random_val = sprite_lcg_random();
+            sprite_lookup_offset((random_val & 3) + 0x9e34, &data_offset);
+            sprite_lookup_dimension(data_offset, &bg_width, &bg_height);
+
+            /* Create surface and blit */
+            /* g_bg_surface2 = graphics_create_offscreen(640, 480, 0, 0x800); */
+        }
+
+        if (!g_bg_surface3) {
+            random_val = sprite_lcg_random();
+            sprite_lookup_offset((random_val & 3) + 0x9e34, &data_offset);
+            sprite_lookup_dimension(data_offset, &bg_width, &bg_height);
+
+            /* Create surface and blit */
+            /* g_bg_surface3 = graphics_create_offscreen(640, 480, 0, 0x800); */
+        }
+    }
+}
+
+/*
+ * Shutdown background surfaces
+ */
+void sprite_shutdown_background(void) {
+    if (g_bg_surface1) {
+        IDirectDrawSurface_Release(g_bg_surface1);
+        g_bg_surface1 = NULL;
+    }
+    if (g_bg_surface2) {
+        IDirectDrawSurface_Release(g_bg_surface2);
+        g_bg_surface2 = NULL;
+    }
+    if (g_bg_surface3) {
+        IDirectDrawSurface_Release(g_bg_surface3);
+        g_bg_surface3 = NULL;
+    }
+
+    g_bg_width = 0;
+    g_bg_height = 0;
+    g_bg_sprite_id = 0;
+}

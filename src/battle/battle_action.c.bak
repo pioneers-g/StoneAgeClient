@@ -1,0 +1,1392 @@
+/*
+ * Stone Age Client - Battle Action Handler Implementation
+ * Reverse engineered from sa_9061.exe (FUN_00424b70)
+ *
+ * Battle action dispatcher that handles all battle actions
+ * including attacks, skills, items, escape, capture, etc.
+ */
+
+#include <windows.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "types.h"
+#include "battle_action.h"
+#include "battle.h"
+#include "character.h"
+#include "pet.h"
+#include "render.h"
+#include "logger.h"
+
+/* Global battle action state - matches DAT_004b83ec region */
+BattleActionState g_battle_action = {0};
+
+/* Forward declarations for internal handlers */
+static void action_handle_attack_internal(const ActionContext* ctx, int is_counter);
+static void action_handle_skill_internal(const ActionContext* ctx, u32 skill_type);
+static void action_handle_item_internal(const ActionContext* ctx, u32 item_type);
+static void action_show_effect(u32 effect_id, u32 x, u32 y);
+static void action_play_sound(u32 sound_id);
+
+/*
+ * Initialize battle action system
+ */
+int battle_action_init(void) {
+    memset(&g_battle_action, 0, sizeof(BattleActionState));
+    g_battle_action.escape_max = 80;  /* DAT_0455b370 = 0x50 */
+
+    LOG_INFO("Battle action system initialized");
+    return 1;
+}
+
+/*
+ * Shutdown battle action system
+ */
+void battle_action_shutdown(void) {
+    memset(&g_battle_action, 0, sizeof(BattleActionState));
+    LOG_INFO("Battle action system shutdown");
+}
+
+/*
+ * Main action dispatcher - FUN_00424b70
+ * Dispatches battle actions based on action type
+ */
+void battle_action_dispatch(u32 action, u32 param1, u32 param2, u32 param3, const char* message) {
+    ActionContext ctx = {0};
+
+    /* Store action parameters */
+    g_battle_action.current_action = action;
+    g_battle_action.action_param1 = param1;
+    g_battle_action.action_param2 = param2;
+    g_battle_action.action_param3 = param3;
+
+    /* Build context */
+    ctx.action_type = action;
+    ctx.param1 = param1;
+    ctx.param2 = param2;
+    ctx.param3 = param3;
+    ctx.message = message;
+
+    /* Parse message if provided - FUN_00489f70 pattern */
+    if (message && message[0] != '\0') {
+        battle_action_parse_message(message, &ctx);
+        strncpy(g_battle_action.message_buffer, message, sizeof(g_battle_action.message_buffer) - 1);
+    }
+
+    LOG_DEBUG("Battle action dispatch: type=0x%02x, p1=%d, p2=%d, p3=%d",
+              action, param1, param2, param3);
+
+    /* Main dispatcher switch - matches FUN_00424b70 */
+    switch (action) {
+        /* Normal attack actions */
+        case 0x00:  /* Basic attack */
+        case 0x01:  /* Attack variant */
+        case 0x2d:  /* Special attack */
+            battle_action_attack(&ctx);
+            break;
+
+        /* Skill usage */
+        case 0x02:
+            battle_action_skill(&ctx);
+            break;
+
+        /* Counter attack */
+        case 0x06:
+            battle_action_counter(&ctx);
+            break;
+
+        /* Combo attacks */
+        case 0x07:
+        case 0x08:
+            battle_action_combo(&ctx);
+            break;
+
+        /* Item usage */
+        case 0x09:
+            battle_action_item(&ctx);
+            break;
+
+        /* Wait/Skip turn */
+        case 0x0a:
+        case 0x0b:
+            battle_action_wait(&ctx);
+            break;
+
+        /* Capture pet */
+        case 0x0c:
+            battle_action_capture(&ctx);
+            break;
+
+        /* Battle end */
+        case 0x0d:
+            battle_action_end(&ctx);
+            break;
+
+        /* Pet attack */
+        case 0x0e:
+            battle_action_pet_attack(&ctx);
+            break;
+
+        /* Pet skill */
+        case 0x0f:
+            battle_action_pet_skill(&ctx);
+            break;
+
+        /* Skill type variations */
+        case 0x12:
+            battle_action_skill_type1(&ctx);
+            break;
+
+        case 0x13:
+            battle_action_skill_type2(&ctx);
+            break;
+
+        case 0x14:
+            battle_action_skill_type3(&ctx);
+            break;
+
+        case 0x15:
+            battle_action_skill_type4(&ctx);
+            break;
+
+        /* Summon pet */
+        case 0x16:
+        case 0x2c:
+            battle_action_summon(&ctx);
+            break;
+
+        /* Recall pet */
+        case 0x17:
+        case 0x2b:
+            battle_action_recall(&ctx);
+            break;
+
+        /* Special actions */
+        case 0x19:
+            battle_action_special1(&ctx);
+            break;
+
+        case 0x1a:
+            battle_action_special2(&ctx);
+            break;
+
+        case 0x1b:
+            battle_action_special3(&ctx);
+            break;
+
+        /* Death */
+        case 0x1c:
+            battle_action_death(&ctx);
+            break;
+
+        /* Revive */
+        case 0x1e:
+            battle_action_revive(&ctx);
+            break;
+
+        /* Berserk */
+        case 0x1f:
+            battle_action_berserk(&ctx);
+            break;
+
+        /* Transform */
+        case 0x20:
+            battle_action_transform(&ctx);
+            break;
+
+        /* Chain attack */
+        case 0x22:
+            battle_action_chain(&ctx);
+            break;
+
+        /* Target selection */
+        case 0x24:
+        case 0x25:
+        case 0x26:
+        case 0x27:
+            battle_action_target_select(&ctx);
+            break;
+
+        /* Defend */
+        case 0x29:
+            battle_action_defend(&ctx);
+            break;
+
+        /* Escape */
+        case 0x2a:
+            battle_action_escape(&ctx);
+            break;
+
+        /* Pet escape */
+        case 0x67:
+            battle_action_pet_escape(&ctx);
+            break;
+
+        /* Pet swap */
+        case 0x68:
+            battle_action_pet_swap(&ctx);
+            break;
+
+        default:
+            LOG_WARN("Unknown battle action type: 0x%02x", action);
+            break;
+    }
+
+    /* Clear action state */
+    g_battle_action.action_ended = 1;
+}
+
+/*
+ * Parse pipe-delimited message - FUN_00489f70 pattern
+ * Parses "val1|val2|val3|..." format
+ */
+int battle_action_parse_message(const char* message, ActionContext* ctx) {
+    char buffer[512];
+    char* token;
+    char* saveptr = NULL;
+    int count = 0;
+
+    if (!message || !ctx) return 0;
+
+    strncpy(buffer, message, sizeof(buffer) - 1);
+    buffer[sizeof(buffer) - 1] = '\0';
+
+    ctx->parse_count = 0;
+
+    /* Parse pipe-delimited values - use strtok_r for portability */
+#ifdef _WIN32
+    token = strtok_s(buffer, "|", &saveptr);
+#else
+    token = strtok_r(buffer, "|", &saveptr);
+#endif
+
+    while (token && count < 16) {
+        /* Trim whitespace */
+        while (*token == ' ') token++;
+
+        /* Try to parse as integer */
+        if (token[0] >= '0' && token[0] <= '9') {
+            ctx->parsed_int[count] = atoi(token);
+        } else if (token[0] == '-' && token[1] >= '0' && token[1] <= '9') {
+            ctx->parsed_int[count] = atoi(token);
+        } else {
+            ctx->parsed_int[count] = 0;
+        }
+
+        /* Store as string if slots available */
+        if (count < 8) {
+            strncpy(ctx->parsed_str[count], token, sizeof(ctx->parsed_str[0]) - 1);
+            ctx->parsed_str[count][sizeof(ctx->parsed_str[0]) - 1] = '\0';
+        }
+
+        count++;
+#ifdef _WIN32
+        token = strtok_s(NULL, "|", &saveptr);
+#else
+        token = strtok_r(NULL, "|", &saveptr);
+#endif
+    }
+
+    ctx->parse_count = count;
+    return count;
+}
+
+/*
+ * Attack action handler - Action 0, 1, 0x2d
+ * Based on FUN_00425380
+ *
+ * TODO: Verify attack state values match binary:
+ * - DAT_045541dc should be 7
+ * - DAT_045541a4 should be 5
+ * - DAT_04552fb0 should be 0x28 (40)
+ */
+void battle_action_attack(const ActionContext* ctx) {
+    u32 attacker_id = ctx->param1;
+    u32 target_id = ctx->param2;
+    u16 damage = 0;
+    BattleUnit* attacker;
+    BattleUnit* target;
+
+    LOG_DEBUG("Attack action: attacker=%d, target=%d", attacker_id, target_id);
+
+    attacker = battle_get_unit(attacker_id);
+    target = battle_get_unit(target_id);
+
+    if (!attacker || !target) {
+        LOG_WARN("Invalid attacker or target for attack");
+        return;
+    }
+
+    /* Calculate and apply damage */
+    if (target->is_alive) {
+        damage = battle_calc_damage(attacker, target, NULL);
+        target->hp -= damage;
+
+        /* Show damage effect */
+        action_show_effect(1, target->x, target->y);
+        action_play_sound(1);
+
+        /* Check for death */
+        if (target->hp <= 0) {
+            target->hp = 0;
+            target->is_alive = 0;
+            g_battle_action.death_flag = 1;
+        }
+
+        LOG_DEBUG("Attack dealt %d damage to target %d", damage, target_id);
+    }
+}
+
+/*
+ * Skill action handler - Action 2
+ */
+void battle_action_skill(const ActionContext* ctx) {
+    u32 attacker_id = ctx->param1;
+    u32 target_id = ctx->param2;
+    u32 skill_id = 0;
+    BattleUnit* attacker;
+    BattleUnit* target;
+
+    /* Get skill ID from parsed message or param3 */
+    if (ctx->parse_count > 0) {
+        skill_id = ctx->parsed_int[0];
+    } else {
+        skill_id = ctx->param3;
+    }
+
+    LOG_DEBUG("Skill action: attacker=%d, target=%d, skill=%d", attacker_id, target_id, skill_id);
+
+    g_battle_action.skill_type = skill_id;
+
+    attacker = battle_get_unit(attacker_id);
+    target = battle_get_unit(target_id);
+
+    if (!attacker) {
+        LOG_WARN("Invalid attacker for skill");
+        return;
+    }
+
+    /* Use skill */
+    if (target && target->is_alive) {
+        battle_use_skill(attacker, target, (u16)skill_id);
+
+        /* Show skill effect */
+        action_show_effect(2, target->x, target->y);
+        action_play_sound(2);
+    }
+}
+
+/*
+ * Counter attack handler - Action 6
+ */
+void battle_action_counter(const ActionContext* ctx) {
+    LOG_DEBUG("Counter attack action");
+
+    /* Counter uses same logic as attack but triggered by being attacked */
+    action_handle_attack_internal(ctx, 1);
+}
+
+/*
+ * Combo attack handler - Action 7, 8
+ * Based on FUN_004254e0
+ *
+ * TODO: Verify combo flag behavior from binary:
+ * - Action 0x08 should set DAT_0454f108 = 1
+ * - Action 0x07 should NOT set this flag
+ * - Need to determine what DAT_0454f108 controls
+ */
+void battle_action_combo(const ActionContext* ctx) {
+    g_battle_action.is_combo = 1;
+
+    LOG_DEBUG("Combo attack action: type=%d", ctx->action_type);
+
+    /* Combo attack follows previous attack */
+    action_handle_attack_internal(ctx, 0);
+
+    /* TODO: For action 0x08, set DAT_0454f108 = 1 */
+    if (ctx->action_type == 0x08) {
+        /* g_battle_action.combo_flag = 1; */
+    }
+
+    g_battle_action.is_combo = 0;
+}
+
+/*
+ * Item usage handler - Action 9
+ */
+void battle_action_item(const ActionContext* ctx) {
+    u32 user_id = ctx->param1;
+    u32 item_id = 0;
+    u32 target_id = ctx->param2;
+    BattleUnit* target;
+
+    if (ctx->parse_count > 0) {
+        item_id = ctx->parsed_int[0];
+    }
+
+    LOG_DEBUG("Item action: user=%d, item=%d, target=%d", user_id, item_id, target_id);
+
+    target = battle_get_unit(target_id);
+    if (!target) {
+        target = battle_get_unit(user_id);  /* Self-target */
+    }
+
+    if (target && target->is_alive) {
+        /* Apply item effect based on item type */
+        /* Item IDs 3000-3999 are consumables */
+        if (item_id >= 3000 && item_id < 4000) {
+            /* Healing items */
+            u16 heal_amount = 50;  /* Default heal */
+
+            /* Different heal amounts by item ID range */
+            if (item_id >= 3100 && item_id < 3200) {
+                heal_amount = 100;  /* Medium potion */
+            } else if (item_id >= 3200 && item_id < 3300) {
+                heal_amount = 200;  /* Large potion */
+            } else if (item_id >= 3300 && item_id < 3400) {
+                heal_amount = target->max_hp;  /* Full restore */
+            }
+
+            /* Apply healing */
+            target->hp += heal_amount;
+            if (target->hp > target->max_hp) {
+                target->hp = target->max_hp;
+            }
+
+            action_show_effect(2, target->x, target->y);
+        }
+        else if (item_id >= 4000 && item_id < 5000) {
+            /* MP restore items */
+            u16 mp_restore = 30;
+
+            target->mp += mp_restore;
+            if (target->mp > target->max_mp) {
+                target->mp = target->max_mp;
+            }
+        }
+        else if (item_id >= 5000 && item_id < 6000) {
+            /* Buff items */
+            target->buff_flags |= BUFF_ATTACK_UP;
+            target->buff_turns[0] = 3;
+        }
+    }
+
+    action_play_sound(3);
+}
+
+/*
+ * Defend action handler - Action 0x29
+ */
+void battle_action_defend(const ActionContext* ctx) {
+    u32 unit_id = ctx->param1;
+    BattleUnit* unit = battle_get_unit(unit_id);
+
+    LOG_DEBUG("Defend action: unit=%d", unit_id);
+
+    if (unit && unit->is_alive) {
+        /* Set defense buff for this turn */
+        unit->buff_flags |= BUFF_DEFENSE_UP;
+        unit->buff_turns[0] = 1;
+    }
+}
+
+/*
+ * Escape action handler - Action 0x2a
+ * Based on FUN_0042af40
+ *
+ * TODO: Verify escape logic matches binary:
+ * - DAT_0455b370 should be 0x50 (80) max escape count
+ * - Parse escape message format: field1|player|result|...
+ * - Store player name in DAT_0454b9ac (26 chars max)
+ * - Store result in DAT_0454f604
+ */
+void battle_action_escape(const ActionContext* ctx) {
+    int escape_chance;
+    int escape_result;
+
+    LOG_DEBUG("Escape action");
+
+    g_battle_action.escape_attempt++;
+
+    /* Calculate escape chance */
+    escape_chance = 50;  /* Base 50% */
+
+    /* Reduce chance with each failed attempt - from FUN_0042af40 */
+    escape_chance -= g_battle_action.escape_count * 10;
+
+    /* Cap at escape_max */
+    if (g_battle_action.escape_attempt > g_battle_action.escape_max) {
+        escape_chance = 0;
+    }
+
+    /* Roll for escape */
+    escape_result = (rand() % 100) < escape_chance;
+
+    if (escape_result) {
+        LOG_INFO("Escape successful!");
+        g_battle_action.action_ended = 1;
+        /* Signal battle end - escaped */
+        battle_end();
+    } else {
+        LOG_DEBUG("Escape failed (attempt %d)", g_battle_action.escape_attempt);
+        g_battle_action.escape_count++;
+    }
+}
+
+/*
+ * Wait action handler - Action 10, 0x0b
+ */
+void battle_action_wait(const ActionContext* ctx) {
+    u32 unit_id = ctx->param1;
+
+    LOG_DEBUG("Wait action: unit=%d", unit_id);
+
+    /* Unit skips turn, no action required */
+}
+
+/*
+ * Capture action handler - Action 0x0c
+ * Based on FUN_004262f0
+ *
+ * TODO: Verify capture name parsing matches binary:
+ * - Field 1 (index 1) goes to DAT_045529ec (capturer name, 26 chars max)
+ * - Field 2 (index 2) goes to DAT_0454e000 (pet name, 26 chars max)
+ * - Use strncpy with 0x1a (26) length limit
+ */
+void battle_action_capture(const ActionContext* ctx) {
+    u32 target_id = ctx->param1;
+    BattleUnit* target;
+    int capture_chance;
+
+    LOG_DEBUG("Capture action: target=%d", target_id);
+
+    target = battle_get_unit(target_id);
+
+    if (!target || !target->is_alive) {
+        LOG_WARN("Invalid capture target");
+        return;
+    }
+
+    /* Store capture data - DAT_045529ec, DAT_0454e000 */
+    strncpy(g_battle_action.capture_target, "Enemy", sizeof(g_battle_action.capture_target) - 1);
+
+    /* Calculate capture chance based on HP */
+    capture_chance = 100 - (target->hp * 100 / target->max_hp);
+    capture_chance = capture_chance / 2;  /* Max 50% */
+
+    /* Attempt capture */
+    if ((rand() % 100) < capture_chance) {
+        LOG_INFO("Capture successful! Captured enemy %d", target->char_id);
+
+        /* Add to pet list - pet.c handles this */
+        /* pet_capture(target->char_id); */
+
+        target->is_alive = 0;
+        action_play_sound(4);
+    } else {
+        LOG_DEBUG("Capture failed");
+        action_play_sound(5);
+    }
+}
+
+/*
+ * Battle end action handler - Action 0x0d
+ */
+void battle_action_end(const ActionContext* ctx) {
+    LOG_DEBUG("Battle end action");
+
+    g_battle_action.action_ended = 1;
+    battle_end();
+}
+
+/*
+ * Pet attack handler - Action 0x0e
+ */
+void battle_action_pet_attack(const ActionContext* ctx) {
+    u32 pet_id = ctx->param1;
+    u32 target_id = ctx->param2;
+
+    LOG_DEBUG("Pet attack: pet=%d, target=%d", pet_id, target_id);
+
+    /* Pet uses normal attack logic */
+    action_handle_attack_internal(ctx, 0);
+}
+
+/*
+ * Pet skill handler - Action 0x0f
+ */
+void battle_action_pet_skill(const ActionContext* ctx) {
+    u32 pet_id = ctx->param1;
+    u32 skill_id = 0;
+
+    if (ctx->parse_count > 0) {
+        skill_id = ctx->parsed_int[0];
+    }
+
+    LOG_DEBUG("Pet skill: pet=%d, skill=%d", pet_id, skill_id);
+
+    /* Pet uses skill logic */
+    battle_action_skill(ctx);
+}
+
+/*
+ * Berserk action handler - Action 0x1f
+ */
+void battle_action_berserk(const ActionContext* ctx) {
+    u32 unit_id = ctx->param1;
+    BattleUnit* unit = battle_get_unit(unit_id);
+
+    LOG_DEBUG("Berserk action: unit=%d", unit_id);
+
+    if (unit && unit->is_alive) {
+        /* Berserk increases attack but reduces defense */
+        unit->buff_flags |= BUFF_ATTACK_UP | BUFF_DEFENSE_DOWN;
+        unit->buff_turns[1] = 3;  /* Attack up for 3 turns */
+        unit->buff_turns[2] = 3;  /* Defense down for 3 turns */
+    }
+}
+
+/*
+ * Skill type 1 handler - Action 0x12
+ */
+void battle_action_skill_type1(const ActionContext* ctx) {
+    action_handle_skill_internal(ctx, 1);
+}
+
+/*
+ * Skill type 2 handler - Action 0x13
+ */
+void battle_action_skill_type2(const ActionContext* ctx) {
+    action_handle_skill_internal(ctx, 2);
+}
+
+/*
+ * Skill type 3 handler - Action 0x14
+ */
+void battle_action_skill_type3(const ActionContext* ctx) {
+    action_handle_skill_internal(ctx, 3);
+}
+
+/*
+ * Skill type 4 handler - Action 0x15
+ */
+void battle_action_skill_type4(const ActionContext* ctx) {
+    action_handle_skill_internal(ctx, 4);
+}
+
+/*
+ * Summon pet handler - Action 0x16, 0x2c
+ * Based on FUN_004327b0
+ */
+void battle_action_summon(const ActionContext* ctx) {
+    u32 pet_slot = ctx->param1;
+    PetData* pet;
+    BattleUnit unit;
+
+    LOG_DEBUG("Summon pet: slot=%d", pet_slot);
+
+    pet = pet_get_slot((int)pet_slot);
+    if (!pet) {
+        LOG_WARN("No pet in slot %d", pet_slot);
+        return;
+    }
+
+    /* Create battle unit for pet */
+    memset(&unit, 0, sizeof(BattleUnit));
+    unit.id = 5000 + pet_slot;  /* Pet ID offset */
+    unit.char_id = pet->id;
+    unit.sprite_id = pet->sprite_id;
+    unit.side = 0;  /* Player side */
+    unit.is_pet = 1;
+    unit.is_alive = 1;
+    unit.is_active = 1;
+    unit.level = pet->level;
+    unit.hp = pet->hp;
+    unit.max_hp = pet->max_hp;
+    unit.attack = pet->attack;
+    unit.defense = pet->defense;
+    unit.speed = pet->speed;
+
+    /* Position behind player */
+    {
+        BattleUnit* player = battle_get_unit(g_battle.units[0].id);
+        if (player) {
+            unit.x = player->x - 40;
+            unit.y = player->y + 20;
+        }
+    }
+
+    battle_add_unit(&unit, 0);
+    g_battle_action.summoned_pet_slot = (u8)pet_slot;
+
+    action_play_sound(6);
+}
+
+/*
+ * Recall pet handler - Action 0x17, 0x2b
+ * Based on FUN_00432ec0
+ */
+void battle_action_recall(const ActionContext* ctx) {
+    u32 pet_slot = g_battle_action.summoned_pet_slot;
+
+    LOG_DEBUG("Recall pet from slot %d", pet_slot);
+
+    /* Find and remove pet battle unit */
+    {
+        u32 i;
+        for (i = 0; i < g_battle.unit_count; i++) {
+            if (g_battle.units[i].is_pet && g_battle.units[i].id >= 5000) {
+                g_battle.units[i].is_alive = 0;
+                g_battle.units[i].is_active = 0;
+                break;
+            }
+        }
+    }
+
+    g_battle_action.summoned_pet_slot = 0xFF;  /* No pet summoned */
+
+    action_play_sound(7);
+}
+
+/*
+ * Special action 1 handler - Action 0x19
+ * Combo attack setup
+ */
+void battle_action_special1(const ActionContext* ctx) {
+    u32 unit_id = ctx->param1;
+    BattleUnit* unit = battle_get_unit(unit_id);
+
+    LOG_DEBUG("Special action 1 (combo setup): unit=%d", unit_id);
+
+    if (unit && unit->is_alive) {
+        /* Set combo flag */
+        g_battle_action.combo_unit = unit_id;
+        g_battle.is_combo = 1;
+        unit->buff_flags |= BUFF_ATTACK_UP;  /* Combo bonus */
+    }
+}
+
+/*
+ * Special action 2 handler - Action 0x1a
+ * Combo follow-up attack
+ */
+void battle_action_special2(const ActionContext* ctx) {
+    u32 unit_id = ctx->param1;
+    u32 target_id = ctx->param2;
+    BattleUnit* unit = battle_get_unit(unit_id);
+    BattleUnit* target = battle_get_unit(target_id);
+
+    LOG_DEBUG("Special action 2 (combo follow): unit=%d -> target=%d", unit_id, target_id);
+
+    if (unit && target && unit->is_alive && target->is_alive) {
+        /* Combo attack does extra damage */
+        u16 damage = battle_calc_damage(unit, target, NULL);
+        damage = damage * 150 / 100;  /* 150% damage */
+
+        target->hp -= damage;
+        if (target->hp <= 0) {
+            target->hp = 0;
+            target->is_alive = 0;
+        }
+
+        action_show_effect(1, target->x, target->y);
+
+        /* Clear combo state */
+        g_battle_action.combo_unit = 0;
+        g_battle.is_combo = 0;
+    }
+}
+
+/*
+ * Special action 3 handler - Action 0x1b
+ * Counter attack setup
+ */
+void battle_action_special3(const ActionContext* ctx) {
+    u32 unit_id = ctx->param1;
+    BattleUnit* unit = battle_get_unit(unit_id);
+
+    LOG_DEBUG("Special action 3 (counter setup): unit=%d", unit_id);
+
+    if (unit && unit->is_alive) {
+        /* Set counter stance */
+        g_battle_action.counter_unit = unit_id;
+        unit->buff_flags |= BUFF_DEFENSE_UP;  /* Defense boost while countering */
+    }
+}
+
+/*
+ * Death action handler - Action 0x1c
+ */
+void battle_action_death(const ActionContext* ctx) {
+    u32 unit_id = ctx->param1;
+    BattleUnit* unit = battle_get_unit(unit_id);
+
+    LOG_DEBUG("Death action: unit=%d", unit_id);
+
+    if (unit) {
+        unit->is_alive = 0;
+        unit->hp = 0;
+        g_battle_action.death_flag = 1;
+
+        action_show_effect(3, unit->x, unit->y);
+        action_play_sound(8);
+    }
+}
+
+/*
+ * Revive action handler - Action 0x1e
+ */
+void battle_action_revive(const ActionContext* ctx) {
+    u32 unit_id = ctx->param1;
+    u32 hp_restore = 50;  /* Default HP restore */
+
+    BattleUnit* unit = battle_get_unit(unit_id);
+
+    LOG_DEBUG("Revive action: unit=%d", unit_id);
+
+    if (unit) {
+        unit->is_alive = 1;
+        unit->hp = hp_restore;
+        if (unit->hp > unit->max_hp) {
+            unit->hp = unit->max_hp;
+        }
+
+        action_show_effect(4, unit->x, unit->y);
+        action_play_sound(9);
+    }
+}
+
+/*
+ * Transform action handler - Action 0x20
+ */
+void battle_action_transform(const ActionContext* ctx) {
+    u32 unit_id = ctx->param1;
+    u32 new_sprite = ctx->param2;
+    BattleUnit* unit = battle_get_unit(unit_id);
+
+    LOG_DEBUG("Transform action: unit=%d, sprite=%d", unit_id, new_sprite);
+
+    if (unit) {
+        unit->sprite_id = new_sprite;
+        action_show_effect(5, unit->x, unit->y);
+    }
+}
+
+/*
+ * Chain attack handler - Action 0x22
+ */
+void battle_action_chain(const ActionContext* ctx) {
+    LOG_DEBUG("Chain attack action");
+
+    g_battle_action.is_combo = 1;
+    action_handle_attack_internal(ctx, 0);
+    g_battle_action.is_combo = 0;
+}
+
+/*
+ * Target selection handler - Action 0x24, 0x25, 0x26, 0x27
+ */
+void battle_action_target_select(const ActionContext* ctx) {
+    u32 unit_id = ctx->param1;
+    u32 target_id = ctx->param2;
+
+    LOG_DEBUG("Target select: unit=%d, target=%d, type=0x%02x",
+              unit_id, target_id, ctx->action_type);
+
+    /* Update unit's target */
+    BattleUnit* unit = battle_get_unit(unit_id);
+    if (unit) {
+        unit->target_id = target_id;
+    }
+}
+
+/*
+ * Pet escape handler - Action 0x67
+ * Pet flees from battle
+ */
+void battle_action_pet_escape(const ActionContext* ctx) {
+    u32 pet_id = ctx->param1;
+    u32 i;
+
+    LOG_DEBUG("Pet escape action: pet=%d", pet_id);
+
+    /* Find pet unit in battle */
+    for (i = 0; i < g_battle.unit_count; i++) {
+        if (g_battle.units[i].is_pet &&
+            (g_battle.units[i].id == pet_id || g_battle.units[i].char_id == pet_id)) {
+
+            /* Remove pet from battle */
+            g_battle.units[i].is_alive = 0;
+            g_battle.units[i].is_active = 0;
+
+            LOG_INFO("Pet %d escaped from battle", pet_id);
+            break;
+        }
+    }
+}
+
+/*
+ * Pet swap handler - Action 0x68
+ * Swap active pet in battle
+ */
+void battle_action_pet_swap(const ActionContext* ctx) {
+    u32 old_pet_slot = ctx->param1;
+    u32 new_pet_slot = ctx->param2;
+    PetData* new_pet;
+    u32 i;
+
+    LOG_DEBUG("Pet swap: old_slot=%d, new_slot=%d", old_pet_slot, new_pet_slot);
+
+    /* Remove old pet from battle */
+    for (i = 0; i < g_battle.unit_count; i++) {
+        if (g_battle.units[i].is_pet && g_battle.units[i].id >= 5000) {
+            g_battle.units[i].is_alive = 0;
+            g_battle.units[i].is_active = 0;
+            break;
+        }
+    }
+
+    /* Summon new pet */
+    new_pet = pet_get_slot((int)new_pet_slot);
+    if (new_pet) {
+        BattleUnit unit;
+        memset(&unit, 0, sizeof(BattleUnit));
+        unit.id = 5000 + new_pet_slot;
+        unit.char_id = new_pet->id;
+        unit.sprite_id = new_pet->sprite_id;
+        unit.side = 0;
+        unit.is_pet = 1;
+        unit.is_alive = 1;
+        unit.is_active = 1;
+        unit.level = new_pet->level;
+        unit.hp = new_pet->hp;
+        unit.max_hp = new_pet->max_hp;
+        unit.attack = new_pet->attack;
+        unit.defense = new_pet->defense;
+        unit.speed = new_pet->speed;
+
+        battle_add_unit(&unit, 0);
+        g_battle_action.summoned_pet_slot = (u8)new_pet_slot;
+
+        LOG_INFO("Swapped to pet in slot %d", new_pet_slot);
+    }
+}
+
+/*
+ * Internal attack handler
+ */
+static void action_handle_attack_internal(const ActionContext* ctx, int is_counter) {
+    u32 attacker_id = ctx->param1;
+    u32 target_id = ctx->param2;
+    BattleUnit* attacker;
+    BattleUnit* target;
+    u16 damage;
+
+    attacker = battle_get_unit(attacker_id);
+    target = battle_get_unit(target_id);
+
+    if (!attacker || !target || !target->is_alive) {
+        return;
+    }
+
+    /* Calculate damage */
+    damage = battle_calc_damage(attacker, target, NULL);
+
+    /* Counter attacks do reduced damage */
+    if (is_counter) {
+        damage = damage * 7 / 10;
+    }
+
+    /* Apply damage */
+    target->hp -= damage;
+    if (target->hp <= 0) {
+        target->hp = 0;
+        target->is_alive = 0;
+        g_battle_action.death_flag = 1;
+    }
+
+    /* Show effects */
+    action_show_effect(1, target->x, target->y);
+    action_play_sound(1);
+}
+
+/*
+ * Internal skill handler
+ */
+static void action_handle_skill_internal(const ActionContext* ctx, u32 skill_type) {
+    g_battle_action.skill_type = skill_type;
+
+    LOG_DEBUG("Skill type %d action", skill_type);
+
+    /* Route to main skill handler */
+    battle_action_skill(ctx);
+}
+
+/*
+ * Internal item handler
+ */
+static void action_handle_item_internal(const ActionContext* ctx, u32 item_type) {
+    LOG_DEBUG("Item type %d action", item_type);
+
+    /* Route to main item handler */
+    battle_action_item(ctx);
+}
+
+/*
+ * Show visual effect
+ * Effect IDs: 1=hit, 2=heal, 3=death, 4=revive, 5=skill, 6=summon, 7=recall
+ */
+static void action_show_effect(u32 effect_id, u32 x, u32 y) {
+    BattleEffect* effect;
+
+    if (g_battle_action.effect_count >= MAX_BATTLE_EFFECTS) {
+        return;  /* Effect queue full */
+    }
+
+    effect = &g_battle_action.effects[g_battle_action.effect_count++];
+    effect->id = (u16)effect_id;
+    effect->x = (u16)x;
+    effect->y = (u16)y;
+    effect->timer = 30;  /* Default 30 frames */
+    effect->frame = 0;
+    effect->active = 1;
+
+    LOG_DEBUG("Effect %d at (%d, %d)", effect_id, x, y);
+}
+
+/*
+ * Play sound effect
+ * Sound IDs: 1=attack, 2=skill, 3=item, 4=escape, 5=capture, 6=summon, 7=recall, 8=death, 9=revive
+ */
+static void action_play_sound(u32 sound_id) {
+    /* Integrate with sound system */
+    /* For now, just log - actual implementation would call audio_play_sound() */
+
+    /* Sound file mapping:
+     * 1 -> hit.wav
+     * 2 -> skill.wav
+     * 3 -> item.wav
+     * 4 -> escape.wav
+     * 5 -> capture.wav
+     * 6 -> summon.wav
+     * 7 -> recall.wav
+     * 8 -> death.wav
+     * 9 -> revive.wav
+     */
+
+    LOG_DEBUG("Play sound %d", sound_id);
+}
+
+/*
+ * Set player position during action
+ */
+void battle_action_set_player_pos(u16 x, u16 y) {
+    g_battle_action.player_x = x;
+    g_battle_action.player_y = y;
+}
+
+/*
+ * Clear action state
+ */
+void battle_action_clear_state(void) {
+    g_battle_action.current_action = 0;
+    g_battle_action.action_param1 = 0;
+    g_battle_action.action_param2 = 0;
+    g_battle_action.action_param3 = 0;
+    g_battle_action.is_combo = 0;
+    g_battle_action.action_ended = 0;
+    g_battle_action.death_flag = 0;
+    g_battle_action.escape_attempt = 0;
+    g_battle_action.message_buffer[0] = '\0';
+}
+
+/*
+ * Check if action is active
+ */
+int battle_action_is_active(void) {
+    return g_battle_action.current_action != 0 && !g_battle_action.action_ended;
+}
+
+/*
+ * Get current action type
+ */
+u32 battle_action_get_current(void) {
+    return g_battle_action.current_action;
+}
+
+/*
+ * Get current message
+ */
+const char* battle_action_get_message(void) {
+    return g_battle_action.message_buffer;
+}
+
+/*
+ * Check if current action is combo
+ */
+int battle_action_is_combo(void) {
+    return g_battle_action.is_combo;
+}
+
+/* ========================================
+ * Action Execution - FUN_00424f50
+ * ======================================== */
+
+/* Include battle render functions */
+#include "battle_render.h"
+
+/* Position data - matches DAT_045528c8, DAT_0454fe98, DAT_04581d3c, DAT_04581d40 */
+extern u16 g_player_x, g_player_y;
+
+/* Death message - matches DAT_04554270 */
+static char s_death_message[256] = {0};
+
+/*
+ * Check if player position is close to action position - FUN_00424f50 position check
+ */
+int battle_action_check_position(void) {
+    int dx = g_battle_action.player_x - g_player_x;
+    int dy = g_battle_action.player_y - g_player_y;
+
+    if (dx < 0) dx = -dx;
+    if (dy < 0) dy = -dy;
+
+    /* If within 2 tiles, position is valid */
+    if (dx >= 2 || dy >= 2) {
+        return 0;  /* Position too far */
+    }
+
+    return 1;  /* Position valid */
+}
+
+/*
+ * Action execution dispatcher - FUN_00424f50
+ * Executes the rendering/animation for the current battle action
+ */
+void battle_action_execute(void) {
+    u32 action = g_battle_action.current_action;
+
+    /* Check death flag - if set, send death message */
+    if (g_battle_action.death_flag != 0) {
+        g_battle_action.death_flag = 0;
+        /* FUN_00464ac0: Send death message packet
+         * Format: 0, 1, -1, -1, message
+         */
+        LOG_DEBUG("Death flag set, sending death message");
+        /* In full implementation: network_send_death_message(s_death_message); */
+    }
+
+    /* Check if action is valid (not negative/terminated) */
+    if ((s32)action < 0) {
+        return;
+    }
+
+    /* Position check - set flag if player moved */
+    if (!battle_action_check_position()) {
+        /* DAT_0455ef9c = 1: Player has moved */
+        LOG_DEBUG("Player position changed during action");
+    }
+
+    /* Main switch - matches FUN_00424f50 exactly */
+    switch (action) {
+        /* Actions 0, 10, 0x2d: Basic attack variants */
+        case 0:
+        case 10:
+            battle_render_action_0(0);
+            break;
+
+        case 1:
+        case 0x0b:
+            battle_render_action_0(1);
+            break;
+
+        case 0x2d:
+            battle_render_action_0(2);
+            break;
+
+        /* Action 2: Skill use */
+        case 2:
+            battle_render_action_2();
+            break;
+
+        /* Action 3: Counter attack */
+        case 3:
+            battle_render_action_3();
+            break;
+
+        /* Action 4: Defend */
+        case 4:
+            battle_render_action_4();
+            break;
+
+        /* Action 5: Charge */
+        case 5:
+            battle_render_action_5();
+            break;
+
+        /* Actions 6, 7, 8: Combo attacks */
+        case 6:
+        case 7:
+        case 8:
+            battle_render_action_678();
+            break;
+
+        /* Action 9: Item use */
+        case 9:
+            battle_render_action_9();
+            break;
+
+        /* Actions 0xc, 0xd: Capture related */
+        case 0x0c:
+        case 0x0d:
+            battle_render_action_cd();
+            break;
+
+        /* Action 0xe: Pet attack */
+        case 0x0e:
+            battle_render_action_e();
+            break;
+
+        /* Action 0xf: Pet skill */
+        case 0x0f:
+            battle_render_action_f();
+            break;
+
+        /* Action 0x12: Special skill 1 */
+        case 0x12:
+            battle_render_action_12();
+            break;
+
+        /* Actions 0x13, 0x14: Special skills 2, 3 */
+        case 0x13:
+        case 0x14:
+            battle_render_action_1314();
+            break;
+
+        /* Action 0x15: Special skill 4 */
+        case 0x15:
+            battle_render_action_15();
+            break;
+
+        /* Action 0x16: Summon pet */
+        case 0x16:
+            battle_render_action_16(0);
+            break;
+
+        /* Action 0x17: Recall pet */
+        case 0x17:
+            battle_render_action_17(0);
+            break;
+
+        /* Action 0x18: Gold display */
+        case 0x18:
+            battle_render_action_18();
+            break;
+
+        /* Action 0x19: Combo setup */
+        case 0x19:
+            battle_render_action_19(0);
+            break;
+
+        /* Action 0x1a: Combo follow-up */
+        case 0x1a:
+            battle_render_action_1a(0);
+            break;
+
+        /* Action 0x1b: Combo finish */
+        case 0x1b:
+            battle_render_action_1b(0);
+            break;
+
+        /* Action 0x1d: Unknown */
+        case 0x1d:
+            battle_render_action_1d();
+            break;
+
+        /* Action 0x1e: Revive */
+        case 0x1e:
+            battle_render_action_1e();
+            break;
+
+        /* Action 0x1f: Berserk */
+        case 0x1f:
+            battle_render_action_1f();
+            break;
+
+        /* Action 0x20: Transform */
+        case 0x20:
+            battle_render_action_20();
+            break;
+
+        /* Action 0x21: Status effect */
+        case 0x21:
+            battle_render_action_21();
+            break;
+
+        /* Action 0x22: Chain attack */
+        case 0x22:
+            battle_render_action_22();
+            break;
+
+        /* Action 0x23: Unknown */
+        case 0x23:
+            battle_render_action_23();
+            break;
+
+        /* Actions 0x24, 0x27: Target select A */
+        case 0x24:
+        case 0x27:
+            battle_render_action_2427();
+            break;
+
+        /* Actions 0x25, 0x26: Target select B */
+        case 0x25:
+        case 0x26:
+            battle_render_action_2526();
+            break;
+
+        /* Action 0x28: Unknown */
+        case 0x28:
+            battle_render_action_28();
+            break;
+
+        /* Action 0x29: Defend stance */
+        case 0x29:
+            battle_render_action_29();
+            break;
+
+        /* Action 0x2a: Escape */
+        case 0x2a:
+            battle_render_action_2a();
+            break;
+
+        /* Action 0x2b: Recall pet variant */
+        case 0x2b:
+            battle_render_action_17(1);
+            break;
+
+        /* Action 0x2c: Summon pet variant */
+        case 0x2c:
+            battle_render_action_16(1);
+            break;
+
+        /* Action 0x67: Pet escape */
+        case 0x67:
+            battle_render_action_67();
+            break;
+
+        /* Action 0x68: Pet swap */
+        case 0x68:
+            battle_render_action_68();
+            break;
+
+        /* Action 0x69: Pet action */
+        case 0x69:
+            battle_render_action_69();
+            break;
+
+        default:
+            LOG_DEBUG("Unknown action render type: 0x%02x", action);
+            break;
+    }
+}
