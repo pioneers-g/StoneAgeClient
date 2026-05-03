@@ -12,6 +12,9 @@ extern u32 DAT_04630df0;
 extern s32 DAT_04630df8;
 extern u32 DAT_04630de8;
 
+/* Forward declarations */
+void FUN_00479c40(void);  /* Game state machine - defined below */
+
 /*
  * FUN_00479bc0 - Set Game State
  *
@@ -22,6 +25,118 @@ extern u32 DAT_04630de8;
 void FUN_00479bc0(int param_1) {
     DAT_04630df0 = 0;
     DAT_04630dd8 = param_1;
+}
+
+/*
+ * FUN_00479c20 - Set Game State with Sub-state
+ *
+ * Binary analysis:
+ * - Sets game state and sub-state together
+ */
+void FUN_00479c20(int state, int substate) {
+    DAT_04630dd8 = state;
+    DAT_04630df0 = substate;
+}
+
+/*
+ * FUN_004799b0 - Main Game State Dispatcher
+ *
+ * Binary analysis:
+ * - Main dispatcher for game states (11 states)
+ * - First checks for pending state from DAT_04630df8
+ * - Switches on DAT_04630dd8 for current game state
+ *
+ * States:
+ * - 0: Title/Logo screen
+ * - 1: Login screen
+ * - 2: Character select screen
+ * - 3: Unknown/unused
+ * - 4: Unknown/unused
+ * - 5: Game initialization
+ * - 6: Unknown
+ * - 7: Unknown
+ * - 9: Game sub-state machine (calls FUN_00479c40)
+ * - 10: Battle state (calls FUN_0040a1a0)
+ * - 11: Logout/exit transition
+ */
+void FUN_004799b0(void) {
+    /* Check for pending state transition */
+    if (DAT_04630df8 >= 0) {
+        DAT_04630dd8 = DAT_04630df8;
+        DAT_04630df8 = -1;
+        DAT_04630df0 = DAT_04630de8;
+    }
+
+    switch (DAT_04630dd8) {
+    case 0:
+        /* Title/Logo screen */
+        /* FUN_0041f3c0(); */
+        /* FUN_00444e60(1); */
+        break;
+
+    case 1:
+        /* Login screen */
+        /* FUN_00420590(); - login state machine */
+        /* FUN_004394f0(); */
+        /* FUN_00401170(); - entity update */
+        /* FUN_0047e440(); - render */
+        /* FUN_00410b00(); */
+        /* FUN_0041f1e0(); */
+        break;
+
+    case 2:
+        /* Character select screen */
+        /* FUN_00421110(); - char select state machine */
+        /* FUN_0047bfc0(); - animation */
+        /* FUN_00401170(); */
+        /* FUN_0047e440(); */
+        break;
+
+    case 3:
+    case 4:
+        /* Unknown states */
+        break;
+
+    case 5:
+        /* Game initialization */
+        /* FUN_00440280(); */
+        /* FUN_00477890(); - game data init */
+        /* FUN_0040f600(); - reset entities */
+        /* FUN_00424b50(); */
+        /* FUN_00418260(); */
+        /* FUN_00444e60(0); */
+        /* FUN_0044a630(); */
+        /* FUN_0047ccd0(); */
+        FUN_00479bc0(6);
+        break;
+
+    case 6:
+    case 7:
+        /* Unknown states */
+        break;
+
+    case 9:
+        /* Game sub-state machine */
+        FUN_00479c40();
+        break;
+
+    case 10:
+        /* Battle state */
+        /* FUN_0040a1a0(); - battle state machine */
+        break;
+
+    case 11:
+        /* Logout/exit transition */
+        /* if (DAT_04630df0 == 0) {
+            FUN_00477b90();
+            FUN_0040f600();
+            FUN_004011f0();
+            DAT_004cf830 = 1;
+            FUN_0047a6e0();
+            DAT_005ab6fc = 2;
+        } */
+        break;
+    }
 }
 
 /*
@@ -115,47 +230,6 @@ void FUN_00477890(void) {
 int FUN_0041db40(void) {
     /* Main game loop implementation in gameloop.c */
     return 1;
-}
-
-/*
- * FUN_004799b0 - Main Game State Dispatcher
- *
- * Binary analysis:
- * - Main game state machine dispatcher
- * - Handles state transitions via DAT_04630df8 (pending state)
- * - Switch on DAT_04630dd8 (current game state)
- *
- * Game states (DAT_04630dd8):
- * - 0: Initialize - Load resources, init sprites
- * - 1: Login screen - FUN_00420590, render, update
- * - 2: Character select - FUN_00421110
- * - 3: Character create - FUN_00421c00
- * - 4: Server select - FUN_00422aa0
- * - 5: Pre-game setup - Clear entities, init field
- * - 6: Main menu/lobby - FUN_00424610
- * - 7: Settings/config - FUN_00424880
- * - 9: Main game loop - FUN_00479c40 (state machine)
- * - 10: Battle - FUN_0040a1a0
- * - 11 (0xb): Logout/transition - Fade out, cleanup
- *
- * State transition:
- * - If DAT_04630df8 >= 0: transition to pending state
- * - Sets DAT_04630dd8 = DAT_04630df8
- * - Sets DAT_04630df0 = DAT_04630de8
- * - Resets DAT_04630df8 to -1
- *
- * Called each frame from FUN_0041db40 main loop
- */
-void FUN_004799b0(void) {
-    /* Check for pending state transition */
-    if (DAT_04630df8 >= 0) {
-        DAT_04630dd8 = DAT_04630df8;
-        DAT_04630df8 = -1;
-        DAT_04630df0 = DAT_04630de8;
-    }
-
-    /* State dispatch - each state has its own handler */
-    /* TODO: Full implementation with all state handlers */
 }
 
 /* FUN_0047bfc0 is defined in stubs_char.c */

@@ -374,3 +374,13 @@ u32 DAT_04633300 = 0;          /* Pixel dissolve state flag */
 
 u32 DAT_0466b7d4 = 0;          /* Current sprite width */
 u32 DAT_0466b7d0 = 0;          /* Current sprite height */
+
+/* ========================================
+ * IME (Input Method Editor) Variables
+ * ======================================== */
+
+HIMC DAT_04ec08e4 = NULL;      /* IME context handle */
+char* DAT_04ec08cc = NULL;     /* IME composition string buffer */
+char* DAT_04ec08d0 = NULL;     /* IME candidate string buffer */
+DWORD DAT_04ec0900 = 0;        /* IME status flags */
+void* DAT_04ec08c4 = NULL;     /* IME context data */

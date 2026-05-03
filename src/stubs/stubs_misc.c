@@ -193,3 +193,72 @@ void FUN_0047cb00(void) {}
  * - DAT_04633344 byte 2 = DAT_045f1948
  */
 void FUN_0047cb60(void) {}
+
+/* ========================================
+ * IME (Input Method Editor) Functions
+ * ======================================== */
+
+/*
+ * FUN_00491b50 - IME Reset
+ *
+ * Binary analysis:
+ * - Resets the IME input state
+ * - Checks if IME is open via ImmGetOpenStatus
+ * - If open, toggles it off then on
+ * - Clears the composition buffer
+ */
+void FUN_00491b50(void) {
+    extern HIMC DAT_04ec08e4;
+    extern char* DAT_04ec08cc;
+    BOOL is_open;
+
+    is_open = ImmGetOpenStatus(DAT_04ec08e4);
+    if (is_open) {
+        ImmSetOpenStatus(DAT_04ec08e4, FALSE);
+        ImmSetOpenStatus(DAT_04ec08e4, TRUE);
+        *DAT_04ec08cc = '\0';
+    }
+}
+
+/*
+ * FUN_00491b90 - Get IME Composition String
+ *
+ * Binary analysis:
+ * - Returns current IME composition string
+ * - Checks IME open status first
+ * - If flag & 4: returns DAT_04ec08d0
+ * - If flag & 2 and composition not empty: returns DAT_04ec08cc
+ * - Returns NULL if no composition available
+ */
+char* FUN_00491b90(void) {
+    extern HIMC DAT_04ec08e4;
+    extern char* DAT_04ec08cc;
+    extern char* DAT_04ec08d0;
+    extern DWORD DAT_04ec0900;
+    BOOL is_open;
+
+    is_open = ImmGetOpenStatus(DAT_04ec08e4);
+    if (is_open) {
+        if ((DAT_04ec0900 & 4) != 0) {
+            if (*DAT_04ec08d0 != '\0') {
+                return DAT_04ec08d0;
+            }
+        } else if ((DAT_04ec0900 & 2) != 0) {
+            if (*DAT_04ec08cc != '\0') {
+                return DAT_04ec08cc;
+            }
+        }
+    }
+    return NULL;
+}
+
+/*
+ * FUN_00491bd0 - Get IME Context
+ *
+ * Binary analysis:
+ * - Returns the IME context handle
+ */
+void* FUN_00491bd0(void) {
+    extern void* DAT_04ec08c4;
+    return DAT_04ec08c4;
+}
