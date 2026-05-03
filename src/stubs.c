@@ -2379,6 +2379,71 @@ void FUN_0045ffb0(int param_1, unsigned char* param_2) {
     /* Dispatch binary packet to handler based on opcode */
 }
 
+/* FUN_0045ec80 - Append Data to Receive Buffer
+ * Appends received data to the protocol buffer
+ *
+ * Parameters:
+ * - param_1: Source data pointer
+ * - param_2: Number of bytes to append
+ *
+ * Buffer: DAT_0461b41c (16KB)
+ * Current position: DAT_0461b408
+ * Max size: 0x4000 (16384 bytes)
+ *
+ * Processing:
+ * - Check if DAT_0461b3fc != 0 (connection active)
+ * - Check if new size would exceed 0x4000
+ * - Copy data in 4-byte chunks, then remaining bytes
+ * - Update DAT_0461b408 with new position
+ *
+ * Returns: 0 on success, -1 on buffer overflow, -100 on not connected
+ */
+int FUN_0045ec80(void* param_1, unsigned int param_2) {
+    /* Append data to receive buffer */
+    return 0;
+}
+
+/* FUN_0045ee40 - Extract Line from Buffer
+ * Extracts a newline-terminated line from receive buffer
+ *
+ * Parameters:
+ * - param_1: Output buffer for extracted line
+ * - param_2: Maximum output size
+ *
+ * Processing:
+ * - Search for '\n' in buffer
+ * - Copy data up to newline to output
+ * - Null-terminate output
+ * - Strip trailing '\r' if present
+ * - Remove extracted data from buffer via FUN_0045ed80
+ *
+ * Returns: 0 on success, -1 if no newline found or buffer empty
+ */
+int FUN_0045ee40(void* param_1, int param_2) {
+    /* Extract line from receive buffer */
+    return -1;
+}
+
+/* FUN_0045ede0 - Remove Sent Data from Send Buffer
+ * Advances send buffer position after successful send
+ *
+ * Parameter: param_1 - Number of bytes sent
+ *
+ * Buffer: gBuffer (global send buffer)
+ * Length: len (global variable)
+ *
+ * Processing:
+ * - If bytes_sent < total_length: Shift remaining data to front
+ * - Decrease len by bytes_sent
+ * - If bytes_sent >= total_length: Just clear length
+ *
+ * Returns: 0 on success, -1 if bytes_sent > total_length
+ */
+int FUN_0045ede0(int param_1) {
+    /* Remove sent bytes from send buffer */
+    return 0;
+}
+
 /* Network functions */
 void network_send_action_complete(void) {}
 void network_send_action_response(int r) { (void)r; }
