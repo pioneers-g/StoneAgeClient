@@ -100,6 +100,7 @@ set(TEST_SOURCES
     test_ui_input_system_comprehensive.c
     test_ui_render_system_comprehensive.c
     test_mempool_comprehensive.c
+    test_serialize_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
