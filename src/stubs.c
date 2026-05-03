@@ -660,6 +660,56 @@ const char* FUN_0043dd70(const char* source) {
     return "";
 }
 
+/*
+ * FUN_0043e1b0 - String Field Copy
+ *
+ * Binary analysis:
+ * - Simple wrapper for FUN_0043dc40
+ * - param_1: destination buffer
+ * - param_2: buffer size
+ * - param_3: source string
+ * - Returns param_1
+ */
+char* FUN_0043e1b0(char* dest, int size, const char* src) {
+    (void)dest; (void)size; (void)src;
+    /* TODO: Full implementation */
+    return dest;
+}
+
+/*
+ * FUN_0048a170 - String Unescape Processing
+ *
+ * Binary analysis:
+ * - Processes escape sequences in protocol strings
+ * - param_1: string to process (in-place)
+ * - Returns pointer to processed string
+ *
+ * Escape sequences (backslash-prefixed):
+ * - DAT_004d5829 contains escape characters to find
+ * - DAT_004d5828 contains replacement characters
+ * - Table has 4 entries (8 bytes total)
+ *
+ * Process:
+ * 1. Calculate string length
+ * 2. Iterate through characters
+ * 3. For DBCS lead bytes: copy both bytes as-is
+ * 4. For backslash: look up next char in escape table
+ *    - If found: replace with corresponding character from DAT_004d5828
+ *    - If not found: copy the character as-is
+ * 5. Null-terminate the result
+ *
+ * Common escape sequences:
+ * - \n -> newline
+ * - \t -> tab
+ * - \\ -> backslash
+ * - \| -> pipe (field delimiter)
+ */
+char* FUN_0048a170(char* str) {
+    (void)str;
+    /* TODO: Full implementation with escape sequence processing */
+    return str;
+}
+
 /* Additional UI render functions */
 void FUN_0043b980(int param_1, int param_2, int param_3, int param_4) {
     (void)param_1; (void)param_2; (void)param_3; (void)param_4;
