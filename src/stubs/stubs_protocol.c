@@ -7,6 +7,10 @@
 #include <string.h>
 #include "types.h"
 
+/* Forward declarations */
+int string_to_int(const char* str);  /* implemented in protocol_util.c */
+void FUN_0043dc40(char* dest, const char* src, int max_size);  /* implemented below */
+
 /*
  * FUN_0043bf90 - Text Protocol Dispatcher
  *
@@ -94,8 +98,23 @@ int FUN_0048d3e0(int param_1) {
  * - Otherwise: set output to 0 and copy default string from DAT_004e220c
  */
 void FUN_0043dbe0(int* output, char* dest, int dest_size, int* source) {
-    (void)output; (void)dest; (void)dest_size; (void)source;
-    /* TODO: Full implementation */
+    static const char* default_string = "";  /* DAT_004e220c */
+
+    if (output == NULL || dest == NULL || dest_size <= 0) {
+        return;
+    }
+
+    if (source && source[0] != 0 && source[1] != 0) {
+        const char* src_str = (const char*)(intptr_t)source[1];
+        /* Parse integer from source string */
+        *output = string_to_int(src_str);
+        /* Copy string to destination */
+        FUN_0043dc40(dest, src_str, dest_size);
+    } else {
+        /* Use default values */
+        *output = 0;
+        FUN_0043dc40(dest, default_string, dest_size);
+    }
 }
 
 /*
@@ -110,8 +129,23 @@ void FUN_0043dbe0(int* output, char* dest, int dest_size, int* source) {
  * - Always null-terminates the result
  */
 void FUN_0043dc40(char* dest, const char* src, int max_size) {
-    (void)dest; (void)src; (void)max_size;
-    /* TODO: Full implementation with safe string copy */
+    int i = 0;
+
+    if (max_size <= 1) {
+        if (max_size == 1) {
+            dest[0] = '\0';
+        }
+        return;
+    }
+
+    /* Copy characters until null or max_size-1 */
+    while (i < max_size - 1 && src[i] != '\0') {
+        dest[i] = src[i];
+        i++;
+    }
+
+    /* Always null-terminate */
+    dest[i] = '\0';
 }
 
 /*
@@ -148,6 +182,79 @@ void FUN_0043dc90(char* dest, const char* src, int max_size) {
 }
 
 /*
+ * FUN_0043ded0 - String Extract with Escape Handling
+ *
+ * Binary analysis:
+ * - Extracts string with escape sequence handling
+ * - param_1: source string
+ * - Returns pointer to static buffer DAT_004b9ff8
+ * - Handles DBCS characters and escape sequences
+ *
+ * Escape sequences:
+ * - \S -> space (0x20)
+ * - \n -> newline (0x0A)
+ * - \r -> carriage return (0x0D)
+ * - \\ -> backslash (0x5C)
+ */
+char* FUN_0043ded0(const char* source) {
+    static char result_buffer[4096];  /* DAT_004b9ff8 - static result buffer */
+    int src_idx = 0;
+    int dst_idx = 0;
+    char c;
+
+    result_buffer[0] = '\0';
+
+    if (!source || !*source) {
+        return result_buffer;
+    }
+
+    while ((c = source[src_idx]) != '\0') {
+        /* Check for DBCS lead byte */
+        if (IsDBCSLeadByte((unsigned char)c)) {
+            /* Copy DBCS character as-is */
+            result_buffer[dst_idx] = c;
+            if (source[src_idx + 1] == '\0') {
+                result_buffer[dst_idx] = '\0';
+                return result_buffer;
+            }
+            result_buffer[dst_idx + 1] = source[src_idx + 1];
+            src_idx += 2;
+            dst_idx += 2;
+        } else if (c == '\\') {
+            /* Escape sequence */
+            char next = source[src_idx + 1];
+            if (next == '\0') {
+                result_buffer[dst_idx] = '\\';
+                result_buffer[dst_idx + 1] = '\0';
+                return result_buffer;
+            }
+            switch (next) {
+                case 'S': result_buffer[dst_idx] = ' '; break;   /* Space */
+                case 'n': result_buffer[dst_idx] = '\n'; break;  /* Newline */
+                case 'r': result_buffer[dst_idx] = '\r'; break;  /* Carriage return */
+                case '\\': result_buffer[dst_idx] = '\\'; break; /* Backslash */
+                default: result_buffer[dst_idx] = '\\'; break;   /* Unknown escape */
+            }
+            src_idx += 2;
+            dst_idx++;
+        } else {
+            /* Normal character */
+            result_buffer[dst_idx] = c;
+            src_idx++;
+            dst_idx++;
+        }
+
+        if (source[src_idx] == '\0') {
+            result_buffer[dst_idx] = '\0';
+            return result_buffer;
+        }
+    }
+
+    result_buffer[dst_idx] = '\0';
+    return result_buffer;
+}
+
+/*
  * FUN_0043dd50 - Parse String Field
  *
  * Binary analysis:
@@ -158,9 +265,15 @@ void FUN_0043dc90(char* dest, const char* src, int max_size) {
  * - Otherwise: calls FUN_0043ded0 to extract field
  */
 const char* FUN_0043dd50(const char* source) {
-    (void)source;
-    /* TODO: Full implementation */
-    return "";
+    static char default_buffer[256];  /* DAT_004b9ff8 */
+
+    if (source == NULL || *source == '\0') {
+        /* Return empty string */
+        default_buffer[0] = '\0';
+        return default_buffer;
+    }
+
+    return FUN_0043ded0(source);
 }
 
 /*
@@ -174,9 +287,14 @@ const char* FUN_0043dd50(const char* source) {
  * - Otherwise: extracts via FUN_0043ded0
  */
 const char* FUN_0043dd70(const char* source) {
-    (void)source;
-    /* TODO: Full implementation */
-    return "";
+    static char default_buffer[256];
+
+    if (source == NULL || *source == '\0') {
+        default_buffer[0] = '\0';
+        return default_buffer;
+    }
+
+    return FUN_0043ded0(source);
 }
 
 /*
@@ -203,8 +321,9 @@ void FUN_0043e170(char* dest, const char* src) {
  * - Returns param_1
  */
 char* FUN_0043e1b0(char* dest, int size, const char* src) {
-    (void)dest; (void)size; (void)src;
-    /* TODO: Full implementation */
+    if (dest && src && size > 0) {
+        FUN_0043dc40(dest, src, size);
+    }
     return dest;
 }
 
@@ -226,9 +345,38 @@ char* FUN_0043e1b0(char* dest, int size, const char* src) {
  * Used for bitmask encoding in protocol messages
  */
 int FUN_0048a0a0(const char* str) {
-    (void)str;
-    /* TODO: Full Base-62 decode implementation */
-    return 0;
+    const char* ptr;
+    int result;
+    int sign;
+    char c;
+
+    if (!str || !*str) {
+        return 0;
+    }
+
+    ptr = str;
+    result = 0;
+    sign = 1;
+
+    while ((c = *ptr) != '\0') {
+        result = result * 62;  /* 0x3e = 62 */
+
+        if (c >= '0' && c <= '9') {
+            result += c - '0';      /* 0-9 map to 0-9 */
+        } else if (c >= 'a' && c <= 'z') {
+            result += c - 'a' + 10; /* a-z map to 10-35 */
+        } else if (c >= 'A' && c <= 'Z') {
+            result += c - 'A' + 36; /* A-Z map to 36-61 */
+        } else if (c == '-') {
+            sign = -1;
+        } else {
+            return 0;  /* Invalid character */
+        }
+
+        ptr++;
+    }
+
+    return result * sign;
 }
 
 /*
@@ -260,8 +408,69 @@ int FUN_0048a0a0(const char* str) {
  * - \| -> pipe (field delimiter)
  */
 char* FUN_0048a170(char* str) {
-    (void)str;
-    /* TODO: Full implementation with escape sequence processing */
+    /* Escape table from DAT_004d5829 (chars to find) and DAT_004d5828 (replacement) */
+    static const char escape_find[] = { 'n', 'r', 't', '\\', '"', '\'', '|', '\0' };
+    static const char escape_repl[] = { '\n', '\r', '\t', '\\', '"', '\'', '|', '\0' };
+
+    char* src;
+    char* dst;
+    char c;
+    int i;
+    int len;
+
+    if (!str || !*str) {
+        *str = '\0';
+        return str;
+    }
+
+    /* Calculate string length first (binary does this) */
+    len = 0;
+    while (str[len] != '\0') {
+        len++;
+    }
+
+    if (len < 1) {
+        *str = '\0';
+        return str;
+    }
+
+    src = str;
+    dst = str;
+
+    while (*src) {
+        /* Check for DBCS lead byte */
+        if (IsDBCSLeadByte((unsigned char)*src)) {
+            /* Copy DBCS character as-is */
+            *dst++ = *src++;
+            if (*src) {
+                *dst++ = *src++;
+            }
+            continue;
+        }
+
+        c = *src++;
+
+        if (c == '\\' && *src) {
+            /* Escape sequence - look up in table */
+            char next = *src++;
+
+            for (i = 0; escape_find[i] != '\0'; i++) {
+                if (escape_find[i] == next) {
+                    *dst++ = escape_repl[i];
+                    break;
+                }
+            }
+
+            if (escape_find[i] == '\0') {
+                /* Unknown escape - copy as-is */
+                *dst++ = next;
+            }
+        } else {
+            *dst++ = c;
+        }
+    }
+
+    *dst = '\0';
     return str;
 }
 
@@ -275,13 +484,75 @@ void protocol_send_text_command(const char* cmd) { (void)cmd; }
  * - Extracts a field and converts to integer
  * - param_1: source string
  * - param_2: delimiter character
- * - param_3: field index (0-based)
+ * - param_3: field index (1-based)
  * - Returns: integer value, or -1 if field empty/not found
  * - Uses FUN_00489f70 for extraction, FUN_004929fe for conversion
  */
 int FUN_0048a050(const char* str, char delimiter, int field_index) {
-    (void)str; (void)delimiter; (void)field_index;
-    return -1;
+    char buffer[128];
+    const char* ptr;
+    int current_field;
+    unsigned char c;
+    int i;
+
+    if (!str || field_index < 1) {
+        return -1;
+    }
+
+    /* Skip to the desired field (field_index is 1-based) */
+    ptr = str;
+    current_field = 1;
+
+    while (current_field < field_index && *ptr) {
+        c = (unsigned char)*ptr;
+
+        if (c < 0x80) {
+            /* Single-byte character */
+            if (c == (unsigned char)delimiter) {
+                current_field++;
+            }
+            ptr++;
+        } else {
+            /* Double-byte character */
+            if (ptr[1] == '\0') {
+                break;
+            }
+            ptr += 2;
+        }
+    }
+
+    if (!*ptr) {
+        return -1;  /* Field not found */
+    }
+
+    /* Extract field content until delimiter */
+    i = 0;
+    while (i < 127 && *ptr) {
+        c = (unsigned char)*ptr;
+
+        if (c < 0x80) {
+            if (c == (unsigned char)delimiter) {
+                break;
+            }
+            buffer[i++] = *ptr++;
+        } else {
+            /* DBCS character */
+            if (i + 1 >= 127 || ptr[1] == '\0') {
+                break;
+            }
+            buffer[i++] = *ptr++;
+            buffer[i++] = *ptr++;
+        }
+    }
+
+    buffer[i] = '\0';
+
+    if (buffer[0] == '\0') {
+        return -1;  /* Empty field */
+    }
+
+    /* Convert to integer */
+    return string_to_int(buffer);
 }
 
 /*
