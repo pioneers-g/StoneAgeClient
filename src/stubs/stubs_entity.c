@@ -112,6 +112,36 @@ void FUN_00401170(void) {
 }
 
 /*
+ * FUN_004011f0 - Mark All Entities for Deletion
+ *
+ * Binary analysis:
+ * - Terminates explorer process if DAT_0455f8f8 is set
+ * - Uses Process32First/Process32Next to find process
+ * - Checks if module name contains "explorer.exe"
+ * - Terminates process with TerminateProcess if found
+ * - Iterates through entity list at DAT_004d7e3c
+ * - Sets deletion flag (offset 0x24) to 1 for each entity
+ * - Clears DAT_0455f8f8 after cleanup
+ */
+void FUN_004011f0(void) {
+    /* TODO: Full implementation with process handling and entity list */
+}
+
+/*
+ * FUN_004012d0 - Full Entity Cleanup
+ *
+ * Binary analysis:
+ * - Complete cleanup of entity system
+ * - Calls FUN_004011f0 to mark all entities for deletion
+ * - Calls FUN_00401170 to update/remove entities
+ * - Frees entity list globals DAT_004d7e3c and DAT_004d7e38
+ */
+void FUN_004012d0(void) {
+    /* TODO: Full implementation with global cleanup */
+    extern void FUN_00491fed(void* ptr);
+}
+
+/*
  * FUN_0040ddd0 - Entity Action Dispatcher
  *
  * Binary analysis:
