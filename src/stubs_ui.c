@@ -532,3 +532,60 @@ int FUN_0047b9f0(int param_1) {
     DAT_04633300 = 0;
     return 1;
 }
+
+/*
+ * FUN_0047bb30 - Vertical Blind Transition
+ *
+ * Binary analysis:
+ * - Creates vertical blind/slit effect (like window blinds turned sideways)
+ * - param_1: direction (positive = close blinds, negative = open blinds)
+ * - Progress tracked in DAT_04630e00 (0-480 range)
+ * - Each frame adds 8 pixels to blind width
+ * - Full screen: 640x480 (0x280 x 0x1e0)
+ * - Blind strips drawn from left to right progressively
+ * - State flag: DAT_04633300 (0 = not initialized, 1 = running)
+ * - Same pattern as FUN_0047b9f0 but vertical orientation
+ */
+int FUN_0047bb30(int param_1) {
+    extern u32 DAT_04630e00;
+    extern u32 DAT_04633300;
+    extern u32 DAT_005ab710;
+    extern u32 DAT_004cf830;
+
+    if (DAT_004cf830 == 1) {
+        DAT_004cf830 = 0;
+    } else if (DAT_04633300 == 0) {
+        DAT_04633300 = 1;
+        DAT_04630e00 = (param_1 >= 0) ? 0 : 480;
+    }
+
+    if (param_1 < 0) {
+        /* Open blinds (decrease blind width) */
+        if (DAT_04630e00 > 0) {
+            DAT_04630e00 -= 8;
+            return 0;
+        }
+        if (DAT_005ab710 == 2) {
+            DAT_04633300 = 0;
+            DAT_005ab710 = 3;
+            return 1;
+        }
+    } else {
+        /* Close blinds (increase blind width) */
+        if (DAT_04630e00 < 480) {
+            DAT_04630e00 += 8;
+            return 0;
+        }
+        if (DAT_005ab710 == 2) {
+            DAT_04633300 = 0;
+            DAT_005ab710 = 3;
+            return 1;
+        }
+    }
+
+    if (DAT_005ab710 == 3) {
+        DAT_005ab710 = 4;
+    }
+    DAT_04633300 = 0;
+    return 1;
+}

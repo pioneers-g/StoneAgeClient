@@ -436,3 +436,91 @@ int FUN_0047e210(int x, int y, int flags, unsigned int sprite_id, int unused) {
 
     return (int)DAT_0464f488++;
 }
+
+/*
+ * FUN_00414420 - Clipped Surface Blit
+ *
+ * Binary analysis:
+ * - Blits a rectangular region from source to destination with clipping
+ * - param_1: destination X position
+ * - param_2: destination Y position
+ * - param_3: source rectangle [left, top, right, bottom]
+ * - param_4: surface/texture handle
+ * - Performs clipping against screen bounds at DAT_0054a90c+0x88/0x8c
+ * - Returns 0 if completely outside screen bounds
+ * - Adjusts source rectangle when partially clipped
+ */
+int FUN_00414420(short dest_x, short dest_y, int* src_rect, u32 surface_handle) {
+    extern u32 DAT_0054a90c;
+
+    int src_w = src_rect[2] - src_rect[0];
+    int src_h = src_rect[3] - src_rect[1];
+    int screen_w = *(int*)(DAT_0054a90c + 0x88);
+    int screen_h = *(int*)(DAT_0054a90c + 0x8c);
+
+    /* Check if completely outside screen */
+    if (dest_x >= screen_w) return 0;
+    if (dest_x + src_w <= 0) return 0;
+    if (dest_y >= screen_h) return 0;
+    if (dest_y + src_h <= 0) return 0;
+
+    /* Clip left edge */
+    if (dest_x < 0) {
+        src_rect[0] -= dest_x;
+        dest_x = 0;
+    }
+
+    /* Clip right edge */
+    if (dest_x + src_w > screen_w) {
+        src_rect[2] = src_rect[0] + (screen_w - dest_x);
+    }
+
+    /* Clip top edge */
+    if (dest_y < 0) {
+        src_rect[1] -= dest_y;
+        dest_y = 0;
+    }
+
+    /* Clip bottom edge */
+    if (dest_y + src_h > screen_h) {
+        src_rect[3] = src_rect[1] + (screen_h - dest_y);
+    }
+
+    /* Call actual blit function */
+    /* TODO: Implement surface blit via function pointer at DAT_0054a90c+0xc+0x1c */
+    (void)surface_handle;
+    return 1;
+}
+
+/*
+ * FUN_004142f0 - Sprite Blit with Clipping
+ *
+ * Binary analysis:
+ * - Blits sprite to screen at position with automatic clipping
+ * - param_1: screen X position
+ * - param_2: screen Y position
+ * - param_3: surface handle
+ * - Uses sprite dimensions from DAT_0466b7d4 (width) and DAT_0466b7d0 (height)
+ * - Creates source rectangle based on clipping needs
+ * - Calls blit function at DAT_0054a90c+0xc+0x14
+ */
+int FUN_004142f0(short screen_x, short screen_y, u32 surface_handle) {
+    extern u32 DAT_0054a90c;
+    extern u32 DAT_0466b7d4;  /* Sprite width */
+    extern u32 DAT_0466b7d0;  /* Sprite height */
+
+    int screen_w = *(int*)(DAT_0054a90c + 0x88);
+    int screen_h = *(int*)(DAT_0054a90c + 0x8c);
+    int sprite_w = DAT_0466b7d4;
+    int sprite_h = DAT_0466b7d0;
+
+    /* Check bounds */
+    if (screen_x >= screen_w) return 0;
+    if (screen_x + sprite_w <= 0) return 0;
+    if (screen_y >= screen_h) return 0;
+    if (screen_y + sprite_h <= 0) return 0;
+
+    /* TODO: Full implementation with source rectangle calculation */
+    (void)surface_handle;
+    return 1;
+}

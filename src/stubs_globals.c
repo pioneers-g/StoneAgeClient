@@ -365,3 +365,10 @@ s32 DAT_004cf83c = -1;         /* Block dissolve init flag */
 s32 DAT_046311c0[464] = {0};   /* X positions for pixel dissolve grid */
 u32 DAT_04630e00 = 0;          /* Progress counter (0-64 scale) */
 u32 DAT_04633300 = 0;          /* Pixel dissolve state flag */
+
+/* ========================================
+ * Sprite Blit Variables (FUN_004142f0)
+ * ======================================== */
+
+u32 DAT_0466b7d4 = 0;          /* Current sprite width */
+u32 DAT_0466b7d0 = 0;          /* Current sprite height */
