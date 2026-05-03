@@ -177,6 +177,17 @@ void FUN_0044adc0(void) {}
 void FUN_00405080(void) {}
 
 /*
+ * FUN_004051c0 - Clear Unit Action Flags
+ *
+ * Binary analysis:
+ * - Clears action flag (bit 6, 0x40) from all units
+ * - Iterates through unit array at DAT_04ebe428
+ * - Modifies offset 0xa0: flags &= ~0x40
+ * - Used after action processing completes
+ */
+void FUN_004051c0(void) {}
+
+/*
  * FUN_00405120 - Check Multiple Active Units
  *
  * Binary analysis:

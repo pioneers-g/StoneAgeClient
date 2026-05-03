@@ -160,3 +160,36 @@ int map_get_current_map_id(void) { return 0; }
 
 /* Render function */
 void FUN_0047d8c0(void) {}
+
+/*
+ * FUN_0047c9d0 - Animation State Initialization
+ *
+ * Binary analysis:
+ * - Initializes animation state from config arrays
+ * - param_1: state index (0 or 1 only)
+ * - Copies 5 entries from DAT_04633326[param_1*5] to DAT_0462bf34
+ * - Sets DAT_0462bf32 to 0xffff
+ * - Finds first entry with bit 2 set and stores index in DAT_0462bf3e
+ */
+void FUN_0047c9d0(int state_index) {
+    (void)state_index;
+}
+
+/*
+ * FUN_0047cb00 - Copy UI Colors
+ *
+ * Binary analysis:
+ * - Copies UI color configuration from global data
+ * - DAT_04633343 = DAT_0054a4d0
+ * - DAT_04633344 bytes 0-1 = DAT_004a2674/78
+ */
+void FUN_0047cb00(void) {}
+
+/*
+ * FUN_0047cb60 - Copy UI Color 3
+ *
+ * Binary analysis:
+ * - Copies third UI color value
+ * - DAT_04633344 byte 2 = DAT_045f1948
+ */
+void FUN_0047cb60(void) {}
