@@ -756,6 +756,61 @@ void FUN_004799b0(void) {
     /* TODO: Full implementation with all state handlers */
 }
 
+/*
+ * FUN_0047bfc0 - Character Select Screen Animation
+ *
+ * Binary analysis:
+ * - Animates character selection screen with 8 character slots
+ * - param_1: float parameter (unused?)
+ *
+ * Animation phases (DAT_04633304):
+ * - 0: Initialize - Clear arrays, load sprites 0x714a-0x715a
+ * - 1: Start animation - Set phase to 2
+ * - 2: Animate - Update positions, move sprites
+ * - 3: Complete - Finalize animation, show character slots
+ *
+ * Animation data (8 slots):
+ * - DAT_0463118c: Animation phase per slot (0-4)
+ * - DAT_04631038: Position/velocity per slot
+ * - DAT_04631010: Target position per slot
+ * - DAT_046330c0: Counter for slot activation
+ * - DAT_046311ac: Number of active slots
+ * - DAT_046331c8: Completion counter
+ *
+ * Process:
+ * 1. Load 17 sprites (0x714a-0x715a) for character slots
+ * 2. Animate each slot independently
+ * 3. Render using FUN_0047e210
+ * 4. When all 8 slots complete, show final character
+ */
+void FUN_0047bfc0(float param_1) {
+    (void)param_1;
+    /* TODO: Full character select animation implementation */
+}
+
+/*
+ * FUN_0048a0a0 - Base-62 String to Integer
+ *
+ * Binary analysis:
+ * - Converts Base-62 encoded string to integer
+ * - param_1: null-terminated string
+ * - Returns: decoded integer value
+ *
+ * Base-62 character set:
+ * - '0'-'9': values 0-9
+ * - 'a'-'z': values 10-35
+ * - 'A'-'Z': values 36-61
+ * - '-': negative sign (only at start)
+ *
+ * Formula: result = result * 62 + digit_value
+ * Used for bitmask encoding in protocol messages
+ */
+int FUN_0048a0a0(const char* str) {
+    (void)str;
+    /* TODO: Full Base-62 decode implementation */
+    return 0;
+}
+
 /* Additional UI render functions */
 void FUN_0043b980(int param_1, int param_2, int param_3, int param_4) {
     (void)param_1; (void)param_2; (void)param_3; (void)param_4;
