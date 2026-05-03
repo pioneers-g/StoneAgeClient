@@ -102,6 +102,7 @@ set(TEST_SOURCES
     test_mempool_comprehensive.c
     test_serialize_comprehensive.c
     test_threadpool_comprehensive.c
+    test_performance_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
