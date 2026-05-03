@@ -130,6 +130,20 @@ u32 DAT_045829d8 = 0;
 u32 DAT_045829dc = 0;
 u32 DAT_004b83ec = 0;
 
+/* State check globals for FUN_0044b030 */
+s32 DAT_045e19b0 = 0;    /* Battle active flag */
+s32 DAT_004e21dc = 0;    /* Dialog active flag */
+s32 DAT_045e8ce0 = 0;    /* Menu active flag */
+char DAT_045f1a3b = 0;   /* State override 1 */
+char DAT_045f1a3a = 0;   /* State override 2 */
+
+/* Search globals for FUN_00421080 */
+u32 DAT_045f1b90 = 0;    /* Search target value */
+u32 DAT_045f1bc4 = 0;    /* Search enabled flag */
+
+/* VIP level for gold limit */
+u32 DAT_0462e3b4 = 0;    /* VIP level */
+
 /* ========================================
  * Missing Function Implementations
  * ======================================== */
@@ -278,25 +292,46 @@ void FUN_00418370(void) {
 }
 
 /* FUN_0044b030 - Check Game/Battle State
- * Returns current game state flags for UI updates
+ * Returns non-zero if any UI/menu/battle is active
+ * Binary: checks DAT_045e19b0, DAT_004e21dc, DAT_045e8ce0
+ * Also checks DAT_045f1a3b and DAT_045f1a3a for override
  */
 char FUN_0044b030(void) {
-    /* Check game/battle state flags */
-    return 0;
+    extern s32 DAT_045e19b0;   /* Battle active flag */
+    extern s32 DAT_004e21dc;   /* Dialog active flag */
+    extern s32 DAT_045e8ce0;   /* Menu active flag */
+    extern char DAT_045f1a3b;  /* State override 1 */
+    extern char DAT_045f1a3a;  /* State override 2 */
+    char result = (DAT_045e19b0 > 0) || (DAT_004e21dc > 0) || (DAT_045e8ce0 != 0);
+    if (DAT_045f1a3b != 0) result = DAT_045f1a3b;
+    if (DAT_045f1a3a != 0) result = DAT_045f1a3a;
+    return result;
 }
 
 /* FUN_004792c0 - Calculate Gold Limit
  * Returns maximum gold based on VIP level
+ * Binary: return DAT_0462e3b4 * 1800000 + 1000000
+ * VIP 0 = 1M limit, VIP 1 = 2.8M, VIP 2 = 4.6M, etc.
  */
 int FUN_004792c0(void) {
-    /* Calculate gold limit from VIP level */
-    return 1000000;
+    extern u32 DAT_0462e3b4;  /* VIP level */
+    return DAT_0462e3b4 * 1800000 + 1000000;
 }
 
-/* FUN_00421080 - Find Index by Value in Array */
+/* FUN_00421080 - Find Index by Value in Array
+ * Searches for DAT_045f1b90 value in array
+ * param_1: array pointer
+ * param_2: array size
+ * Returns: index if found, -1 if not found
+ */
 int FUN_00421080(int* param_1, int param_2) {
-    /* Find index by matching DAT_045f1b90 */
-    (void)param_1; (void)param_2;
+    extern u32 DAT_045f1b90;  /* Search target value */
+    extern u32 DAT_045f1bc4;  /* Enabled flag */
+    int i;
+    if ((DAT_045f1bc4 & 1) == 0) return -1;
+    for (i = 0; i < param_2; i++) {
+        if (param_1[i] == (int)DAT_045f1b90) return i;
+    }
     return -1;
 }
 
@@ -304,17 +339,34 @@ int FUN_00421080(int* param_1, int param_2) {
  * Memory Functions
  * ======================================== */
 
-/* FUN_00491f70 - Memory Allocation */
+/* FUN_00491f70 - Memory Allocation (16-byte aligned)
+ * param_1: count
+ * param_2: size per element
+ * Returns: allocated and zero-initialized memory, or NULL on failure
+ * Binary: tries pool allocator first, falls back to HeapAlloc
+ */
 void* FUN_00491f70(int param_1, int param_2) {
-    /* Allocate aligned memory */
-    (void)param_1; (void)param_2;
+    u32 size = (u32)(param_1 * param_2);
+    void* ptr;
+    if (size < 0xffffffe1) {
+        u32 aligned_size = (size == 0) ? 16 : (size + 0xf) & 0xfffffff0;
+        ptr = HeapAlloc(GetProcessHeap(), 8, aligned_size);
+        if (ptr) {
+            memset(ptr, 0, size);
+            return ptr;
+        }
+    }
     return NULL;
 }
 
-/* FUN_00491fed - Free Memory */
+/* FUN_00491fed - Free Memory
+ * param_1: pointer to free
+ * Binary: checks if in pool first, otherwise HeapFree
+ */
 void FUN_00491fed(void* param_1) {
-    /* Free allocated memory */
-    (void)param_1;
+    if (param_1) {
+        HeapFree(GetProcessHeap(), 0, param_1);
+    }
 }
 
 /* ========================================
