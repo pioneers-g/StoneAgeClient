@@ -397,12 +397,12 @@ void FUN_0040bb50(void* entity) {
  */
 void FUN_0040bd00(void* entity) {
     float vel_x, vel_y;
-    
+
     if (entity == NULL) return;
-    
+
     vel_x = *(float*)((char*)entity + ENTITY_OFFSET_VEL_X);
     vel_y = *(float*)((char*)entity + ENTITY_OFFSET_VEL_Y);
-    
+
     /* Check if stopped */
     if (vel_x == _DAT_0049c318 && vel_y == _DAT_0049c318) {
         if (*(short*)((char*)entity + ENTITY_OFFSET_MOVE_FLAG) != 0) {
@@ -415,7 +415,60 @@ void FUN_0040bd00(void* entity) {
         *(float*)((char*)entity + ENTITY_OFFSET_FLOAT_Y) += vel_y;
         *(int*)((char*)entity + 0x148) = 4;  /* State: moving */
     }
-    
+
+    /* Update integer positions from float */
+    *(int*)((char*)entity + 0xb0) = (int)(*(float*)((char*)entity + ENTITY_OFFSET_FLOAT_X));
+    *(int*)((char*)entity + 0xb4) = (int)(*(float*)((char*)entity + ENTITY_OFFSET_FLOAT_Y));
+}
+
+/*
+ * FUN_0040be60 - Entity Movement Update with Distance Check
+ *
+ * Binary analysis:
+ * - Updates entity movement with distance-based velocity check
+ * - param_1: entity pointer
+ * - Uses FUN_00447370 for distance calculation
+ * - If velocity near zero: sets state to 3 (idle)
+ * - Otherwise: updates position and sets state to 4 (moving)
+ * - Position stored at offsets 0xb0-b4 (integer) and 0x114-118 (float)
+ * - Velocity at offsets 0x11c-120
+ */
+void FUN_0040be60(void* entity) {
+    extern float _DAT_0456a640;  /* Movement scale factor */
+
+    float target_x, target_y;
+    float vel_x, vel_y;
+
+    if (entity == NULL) return;
+
+    /* Calculate target position */
+    target_x = (float)(*(int*)((char*)entity + ENTITY_OFFSET_CURRENT_X)) * _DAT_0049c31c;
+    target_y = (float)(*(int*)((char*)entity + ENTITY_OFFSET_CURRENT_Y)) * _DAT_0049c31c;
+
+    vel_x = *(float*)((char*)entity + ENTITY_OFFSET_VEL_X);
+    vel_y = *(float*)((char*)entity + ENTITY_OFFSET_VEL_Y);
+
+    /* Check if velocity is near zero */
+    if (vel_x == _DAT_0049c318 && vel_y == _DAT_0049c318) {
+        /* Stopped - set idle state */
+        if (*(short*)((char*)entity + ENTITY_OFFSET_MOVE_FLAG) != 0) {
+            *(int*)((char*)entity + 0x148) = 3;  /* State: idle */
+        }
+        *(short*)((char*)entity + ENTITY_OFFSET_MOVE_FLAG) = 0;
+    } else {
+        /* Moving - update position */
+        /* TODO: Call FUN_00447370 for distance calculation */
+        vel_x = _DAT_0456a640 * vel_x;
+        vel_y = _DAT_0456a640 * vel_y;
+
+        /* Check if we've reached target */
+        /* For now, just update position */
+        *(float*)((char*)entity + ENTITY_OFFSET_FLOAT_X) += vel_x;
+        *(float*)((char*)entity + ENTITY_OFFSET_FLOAT_Y) += vel_y;
+
+        *(int*)((char*)entity + 0x148) = 4;  /* State: moving */
+    }
+
     /* Update integer positions from float */
     *(int*)((char*)entity + 0xb0) = (int)(*(float*)((char*)entity + ENTITY_OFFSET_FLOAT_X));
     *(int*)((char*)entity + 0xb4) = (int)(*(float*)((char*)entity + ENTITY_OFFSET_FLOAT_Y));

@@ -404,3 +404,13 @@ char* DAT_04ec08cc = NULL;     /* IME composition string buffer */
 char* DAT_04ec08d0 = NULL;     /* IME candidate string buffer */
 DWORD DAT_04ec0900 = 0;        /* IME status flags */
 void* DAT_04ec08c4 = NULL;     /* IME context data */
+
+/* ========================================
+ * Entity Flag Array
+ * ======================================== */
+
+/* Entity flags array - stride 0x43 (67 dwords) per entity, max 1500 entities */
+u32 DAT_004e2b4c[1500 * 67] = {0};
+
+/* Entity movement constant */
+float _DAT_0456a640 = 1.0f;    /* Movement scale factor */
