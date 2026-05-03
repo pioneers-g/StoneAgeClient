@@ -280,6 +280,61 @@ void FUN_0040f180(int entity_id, int type, int x, int y, int extra, int param_6,
 }
 
 /*
+ * FUN_0040f490 - Remove Entity by ID
+ *
+ * Binary analysis:
+ * - Removes an entity from the slot array and frees its resources
+ * - param_1: entity ID to remove
+ * - Checks if ID matches DAT_0462be90 (special player entity)
+ * - Uses FUN_0040e830 to find slot
+ * - Frees entity extra data at offsets 4, 8, 0x14, 0x10, 0x1c, 0x20, 0x24-0x30
+ * - Calls FUN_004011c0 for each extra data pointer
+ * - Clears slot in DAT_004e2bdc array
+ * - Decrements DAT_004e2b14 (entity count)
+ * - Updates DAT_004e2b10 (next free slot)
+ * - Updates DAT_00544d70 (highest used slot)
+ */
+void FUN_0040f490(int entity_id) {
+    /* TODO: Full implementation with entity arrays */
+    (void)entity_id;
+}
+
+/*
+ * FUN_0040f600 - Clear All Entity Slots
+ *
+ * Binary analysis:
+ * - Initializes/resets all entity slot arrays to empty state
+ * - Sets DAT_004e2b14 (count), DAT_00544d70 (high water), DAT_004e2b10 (next free) to 0
+ * - Iterates through all slots (up to 0x544e2c)
+ * - Clears each slot's:
+ *   - offset -0xbc: active flag (short)
+ *   - offset 0x00: entity pointer
+ *   - offset -0x90: unknown field
+ *   - offset -0xb8: unknown field
+ *   - offset -0xa0: -1 (field ID)
+ *   - offset -0x84: 0 (byte)
+ * - Sets DAT_004e2b0c (cache) to 0
+ */
+void FUN_0040f600(void) {
+    /* TODO: Full implementation with entity arrays */
+}
+
+/*
+ * FUN_0040f650 - Clear All Entities with Cleanup
+ *
+ * Binary analysis:
+ * - Clears all entities and frees their resources
+ * - Same as FUN_0040f600 but also frees entity data
+ * - Iterates through all slots
+ * - For each active slot, frees extra data at multiple offsets
+ * - Calls FUN_004011c0 for each extra data pointer
+ * - Clears slot after freeing
+ */
+void FUN_0040f650(void) {
+    /* TODO: Full implementation with entity arrays */
+}
+
+/*
  * FUN_0040b5e0 - Create Field Entity
  *
  * Binary analysis:
@@ -305,25 +360,6 @@ int FUN_0040b5e0(int model_id, int world_x, int world_y, int extra_data) {
     (void)model_id; (void)world_x; (void)world_y; (void)extra_data;
     return 0;
 }
-
-/*
- * FUN_0040f600 - Reset All Field Entities
- *
- * Binary analysis:
- * - Clears all field entity data
- * - Sets DAT_004e2b14, DAT_00544d70, DAT_004e2b10 to 0 (counters)
- * - Iterates through entity array at DAT_004e2bdc
- * - Clears each entity entry (0x43 dwords = 268 bytes per entry):
- *   - offset -0xBC: state (2 bytes) = 0
- *   - offset 0x00: pointer = 0
- *   - offset -0x90: flags = 0
- *   - offset -0xB8: index = 0
- *   - offset -0xA0: value = -1
- *   - offset -0x84: type (1 byte) = 0
- * - Array ends at 0x544e2c
- * - Sets DAT_004e2b0c to 0
- */
-void FUN_0040f600(void) {}
 
 /*
  * FUN_0040f7a0 - Clear Entity References
