@@ -492,6 +492,97 @@ void FUN_00418370(void) {
     /* Complex state machine - see Ghidra decompilation for full logic */
 }
 
+/* FUN_0040a1a0 - Battle State Machine (Main Loop)
+ * Central state machine managing all battle phases and transitions
+ *
+ * State machine (DAT_04630df0):
+ * - State 0: Initialize battle - cleanup, load map, set BGM
+ * - State 1: Fade transition
+ * - State 2: Wait for action input, process packets
+ * - State 3: Execute actions, update entities
+ * - State 4: Process special modes
+ * - State 5: Handle results, display outcomes
+ * - State 6: Show battle result UI
+ * - State 7: Fade out, cleanup
+ * - State 8: Exit battle, return to field
+ *
+ * State 0 initialization:
+ * - Clears handles: DAT_0461c2c0, DAT_0461c680, DAT_0461c684
+ * - Calls: FUN_004011f0, FUN_00419ac0, FUN_00419a40, FUN_0040daf0
+ * - Loads battle map via FUN_00404850
+ * - Initializes render queue (DAT_0464f488 = 0, DAT_005ab6f8 = 0)
+ *
+ * BGM selection (based on DAT_04581190 map ID):
+ * - Special maps (0x331, 0x1f47, 0x1fa5, etc.): BGM 0x18
+ * - Arena map (0x2147): BGM 0x0e
+ * - Day time (15-21 hours): BGM 0x0d or 0x0c
+ * - Night/other: BGM 0x06 or 0x05
+ *
+ * Special map IDs for arena battles:
+ * - 0x331, 0x1f47, 0x1fa5, 0x1fa4, 0x1f5b-0x1f5d, 0x1f4f, 0x1fb1, 0x1fb2
+ *
+ * Entity counter: DAT_04ebe31c (incremented each frame)
+ * Frame counter: DAT_004d7f7c (0-63 circular)
+ */
+void FUN_0040a1a0(void) {
+    /* Battle state machine - 9 states */
+}
+
+/* FUN_00424b70 - Battle Action Dispatcher
+ * Processes incoming battle action and sets up appropriate state
+ *
+ * Parameters:
+ * - param_1: Action type (0-0x68)
+ * - param_2: Action parameter bitmask
+ * - param_3: X coordinate or secondary parameter
+ * - param_4: Y coordinate or tertiary parameter
+ * - param_5: String parameter (target name, skill name, etc.)
+ *
+ * Special action types:
+ * - 0x65: Observation mode (sets DAT_00564e70, copies string to DAT_00564e74)
+ *   - With param_3=0x208: Sets target coordinates in DAT_0054ccd8
+ *
+ * Global state changes:
+ * - DAT_004b83ec: Current action type
+ * - DAT_0455ef94: Action parameter bitmask
+ * - DAT_04558c34: X/secondary parameter
+ * - DAT_0455b5ac: Y/tertiary parameter
+ * - DAT_045528c8, DAT_0454fe98: Player coordinates
+ *
+ * Action type to handler mapping:
+ * - 0,1,0x2d: Attack (FUN_00425380)
+ * - 2: Skill (FUN_004253d0)
+ * - 6: Pet summon (FUN_00425420)
+ * - 7,8: Pet action (FUN_004254e0)
+ * - 9: Capture (FUN_00425bb0)
+ * - 0xa,0xb: Multi-target (FUN_00425b50)
+ * - 0xc: Item (FUN_004262f0)
+ * - 0xd: Capture data (FUN_00425dc0)
+ * - 0xe: Pet skill 1 (FUN_0042e870)
+ * - 0xf: Pet skill 2 (FUN_0042f130)
+ * - 0x12: Special action (FUN_00430700)
+ * - 0x15: Team action (FUN_00431ad0)
+ * - 0x16,0x2c: Formation (FUN_004327b0)
+ * - 0x17,0x2b: Extended action (FUN_00432ec0)
+ * - 0x18: Gold adjustment (parses param_5 as int)
+ * - 0x19: Wait (FUN_00433700)
+ * - 0x1a: Defend (FUN_00433fb0)
+ * - 0x1b: Counter (FUN_004344c0)
+ * - 0x1c: Pet name storage (copies to DAT_04554270)
+ * - 0x1e: Pet recall (FUN_00435450)
+ * - 0x1f: Pet switch (FUN_004364e0)
+ * - 0x20: Extended UI (FUN_00435a00)
+ * - 0x21: Close UI (FUN_00436190)
+ * - 0x22-0x27: Ride/dismount state setup
+ * - 0x67: Duel request (FUN_00439810)
+ * - 0x68: Duel response (FUN_0043a020)
+ *
+ * Cleanup: Calls FUN_0044aff0 if battle state active
+ */
+void FUN_00424b70(int param_1, int param_2, int param_3, int param_4, char* param_5) {
+    /* Dispatch battle action to appropriate handler */
+}
+
 /* FUN_00424f50 - Battle action executor dispatcher
  * Routes battle actions to specific UI/action handlers based on DAT_004b83ec
  *
