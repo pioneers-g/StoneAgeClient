@@ -206,6 +206,8 @@ u32 DAT_04ebe270 = 0;
 u32 DAT_04ebe278 = 0;
 u32 DAT_04630df0 = 0;
 u32 DAT_04630dd8 = 0;
+s32 DAT_04630df8 = -1;  /* Pending game state (-1 = no pending transition) */
+u32 DAT_04630de8 = 0;   /* Pending sub-state for transition */
 u32 DAT_04630de4 = 0;
 u32 DAT_04630df4 = 0;
 u32 DAT_0049c3e0 = 0;

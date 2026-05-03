@@ -710,6 +710,52 @@ char* FUN_0048a170(char* str) {
     return str;
 }
 
+/*
+ * FUN_004799b0 - Main Game State Dispatcher
+ *
+ * Binary analysis:
+ * - Main game state machine dispatcher
+ * - Handles state transitions via DAT_04630df8 (pending state)
+ * - Switch on DAT_04630dd8 (current game state)
+ *
+ * Game states (DAT_04630dd8):
+ * - 0: Initialize - Load resources, init sprites
+ * - 1: Login screen - FUN_00420590, render, update
+ * - 2: Character select - FUN_00421110
+ * - 3: Character create - FUN_00421c00
+ * - 4: Server select - FUN_00422aa0
+ * - 5: Pre-game setup - Clear entities, init field
+ * - 6: Main menu/lobby - FUN_00424610
+ * - 7: Settings/config - FUN_00424880
+ * - 9: Main game loop - FUN_00479c40 (state machine)
+ * - 10: Battle - FUN_0040a1a0
+ * - 11 (0xb): Logout/transition - Fade out, cleanup
+ *
+ * State transition:
+ * - If DAT_04630df8 >= 0: transition to pending state
+ * - Sets DAT_04630dd8 = DAT_04630df8
+ * - Sets DAT_04630df0 = DAT_04630de8
+ * - Resets DAT_04630df8 to -1
+ *
+ * Called each frame from FUN_0041db40 main loop
+ */
+void FUN_004799b0(void) {
+    extern s32 DAT_04630df8;
+    extern u32 DAT_04630dd8;
+    extern u32 DAT_04630de8;
+    extern u32 DAT_04630df0;
+
+    /* Check for pending state transition */
+    if (DAT_04630df8 >= 0) {
+        DAT_04630dd8 = DAT_04630df8;
+        DAT_04630df8 = -1;
+        DAT_04630df0 = DAT_04630de8;
+    }
+
+    /* State dispatch - each state has its own handler */
+    /* TODO: Full implementation with all state handlers */
+}
+
 /* Additional UI render functions */
 void FUN_0043b980(int param_1, int param_2, int param_3, int param_4) {
     (void)param_1; (void)param_2; (void)param_3; (void)param_4;
