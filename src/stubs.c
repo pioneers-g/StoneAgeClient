@@ -148,6 +148,14 @@ u32 DAT_0462e3b4 = 0;    /* VIP level */
 /* Render queue count for FUN_0047e210 */
 u32 DAT_0464f488 = 0;    /* Render queue count (max 4096) */
 
+/* Network buffer globals for FUN_0045ec80/0045ee40 */
+u32 DAT_0461b408 = 0;    /* Receive buffer position */
+void* DAT_0461b41c = NULL; /* Receive buffer pointer (16KB) */
+u32 DAT_0461b3fc = 0;    /* Buffer initialized flag */
+
+/* Forward declarations */
+int FUN_0045ede0(int param_1);
+
 /* ========================================
  * Missing Function Implementations
  * ======================================== */
@@ -831,12 +839,116 @@ int FUN_00449510(int param_1, int param_2, int param_3, int param_4) {
  * Network I/O Functions
  * ======================================== */
 
-void FUN_0045e880(void) {}
+/* FUN_0045e880 - Main Network I/O Loop
+ * Handles select/recv/send for socket communication
+ * Binary: Uses select() with zero timeout, recv() into buffer, send() queued data
+ * Also handles 30-second heartbeat timeout
+ */
+void FUN_0045e880(void) {
+    /* TODO: Full implementation would:
+     * - Check gSocket validity
+     * - Use select() to check for readable/writable socket
+     * - recv() data into buffer at DAT_045f1bf8 (max 0x1fff bytes)
+     * - Call FUN_0045ec80 to append to receive buffer
+     * - Process lines with FUN_0045ee40
+     * - send() queued data from gBuffer
+     * - Send heartbeat if 30 seconds since last activity
+     */
+}
+
+/* FUN_0045f4d0 - Connection Handler
+ * Handles connection state machine
+ * Binary: Returns 0 normally, manages connection state
+ */
 int FUN_0045f4d0(void) { return 0; }
-void FUN_0045ffb0(int param_1, unsigned char* param_2) { (void)param_1; (void)param_2; }
-int FUN_0045ec80(void* param_1, unsigned int param_2) { (void)param_1; (void)param_2; return 0; }
-int FUN_0045ee40(void* param_1, int param_2) { (void)param_1; (void)param_2; return -1; }
-int FUN_0045ede0(int param_1) { (void)param_1; return 0; }
+
+/* FUN_0045ffb0 - Binary Packet Dispatcher
+ * param_1: socket
+ * param_2: packet data (first byte is opcode)
+ * Binary: Switch on opcode (0x42, etc.) with 14+ cases
+ */
+void FUN_0045ffb0(int param_1, unsigned char* param_2) {
+    (void)param_1; (void)param_2;
+}
+
+/* FUN_0045ec80 - Receive Buffer Append
+ * param_1: source data pointer
+ * param_2: number of bytes to append
+ * Returns: 0 on success, error code on failure
+ * Binary: Appends data to global buffer at DAT_0461b41c
+ * Max buffer size: 0x4000 (16KB)
+ */
+int FUN_0045ec80(void* param_1, unsigned int param_2) {
+    extern u32 DAT_0461b408;  /* Current buffer position */
+    extern void* DAT_0461b41c; /* Buffer pointer */
+    extern u32 DAT_0461b3fc;  /* Buffer initialized flag */
+
+    if (!DAT_0461b3fc) return -100;  /* Buffer not initialized */
+    if (DAT_0461b408 + param_2 > 0x4000) return -1;  /* Buffer overflow */
+
+    /* Copy data to buffer (word-aligned copy + byte remainder) */
+    memcpy((char*)DAT_0461b41c + DAT_0461b408, param_1, param_2);
+    DAT_0461b408 += param_2;
+    return 0;
+}
+
+/* FUN_0045ee40 - Line Extraction from Buffer
+ * param_1: output buffer for extracted line
+ * param_2: max output size
+ * Returns: 0 on success, -1 if no complete line
+ * Binary: Scans for '\n' delimiter, copies line to output, strips '\r'
+ */
+int FUN_0045ee40(void* param_1, int param_2) {
+    extern u32 DAT_0461b408;  /* Current buffer position */
+    extern void* DAT_0461b41c; /* Buffer pointer */
+    extern u32 DAT_0461b3fc;  /* Buffer initialized flag */
+
+    char* buf;
+    u32 i, len;
+
+    if (!DAT_0461b3fc) return -100;
+    if (DAT_0461b408 < 1) return -1;
+
+    buf = (char*)DAT_0461b41c;
+
+    /* Find newline */
+    for (i = 0; i < DAT_0461b408; i++) {
+        if (buf[i] == '\n') {
+            len = i;
+            if (len >= (u32)param_2) len = param_2 - 1;
+
+            /* Copy line to output */
+            memcpy(param_1, buf, len);
+            ((char*)param_1)[len] = '\0';
+
+            /* Strip trailing CR */
+            while (len > 0 && ((char*)param_1)[len-1] == '\r') {
+                ((char*)param_1)[--len] = '\0';
+            }
+
+            /* Shift remaining buffer */
+            FUN_0045ede0(i + 1);
+            return 0;
+        }
+    }
+    return -1;
+}
+
+/* FUN_0045ede0 - Buffer Shift
+ * param_1: number of bytes to remove from front
+ * Returns: 0 on success
+ * Binary: Moves remaining data to front of buffer
+ */
+int FUN_0045ede0(int param_1) {
+    extern u32 DAT_0461b408;  /* Current buffer position */
+    extern void* DAT_0461b41c; /* Buffer pointer */
+
+    if (param_1 <= 0 || (u32)param_1 > DAT_0461b408) return -1;
+
+    memmove(DAT_0461b41c, (char*)DAT_0461b41c + param_1, DAT_0461b408 - param_1);
+    DAT_0461b408 -= param_1;
+    return 0;
+}
 
 /* ========================================
  * Additional Utility Functions
