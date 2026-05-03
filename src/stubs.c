@@ -145,6 +145,9 @@ u32 DAT_045f1bc4 = 0;    /* Search enabled flag */
 /* VIP level for gold limit */
 u32 DAT_0462e3b4 = 0;    /* VIP level */
 
+/* Render queue count for FUN_0047e210 */
+u32 DAT_0464f488 = 0;    /* Render queue count (max 4096) */
+
 /* ========================================
  * Missing Function Implementations
  * ======================================== */
@@ -610,8 +613,32 @@ void FUN_0040b740(int entity, int x, int y) { (void)entity; (void)x; (void)y; }
  * Render Functions
  * ======================================== */
 
+/* FUN_00448610 - Window Widget Creation
+ * Creates a 9-sprite grid window UI element
+ * param_1: x position
+ * param_2: y position
+ * param_3: width
+ * param_4: height
+ * param_5: param for widget
+ * param_6: window style (0-4)
+ *   - 0: Standard window with top-left corner sprite
+ *   - 1: Window with different corner sprite
+ *   - 2: Standard window variant
+ *   - 3: Another variant
+ *   - 4: Special window with all corner sprites set to -2
+ * Returns: entity pointer on success, 0 on failure
+ * Binary: allocates entity with FUN_010a0, sets render callback to FUN_00448270
+ */
 int FUN_00448610(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6) {
-    (void)param_1; (void)param_2; (void)param_3; (void)param_4; (void)param_5; (void)param_6;
+    /* TODO: Full implementation would:
+     * - Call FUN_004010a0(3, 0x40) to allocate entity
+     * - Set entity render callback to FUN_00448270
+     * - Configure 9-sprite grid based on param_6 style
+     * - Store position and dimensions in entity data
+     * - Calculate anchor points for centering
+     */
+    (void)param_1; (void)param_2; (void)param_3; (void)param_4;
+    (void)param_5; (void)param_6;
     return 0;
 }
 
@@ -630,9 +657,39 @@ int FUN_0044aba0(int param_1, int param_2, int param_3, int param_4, int param_5
     return 0;
 }
 
+/* FUN_0047e210 - Sprite Render Queue Add
+ * Adds a sprite to the render queue for later rendering
+ * param_1: x position
+ * param_2: y position
+ * param_3: layer (z-order)
+ * param_4: sprite ID (must be >= 100 or -1 to -99 for valid)
+ * param_5: render mode (0-9: normal, 10-19: mode 1, 20-29: mode 2, etc.)
+ * Returns: queue index on success, -2 on error
+ * Binary: max 4096 entries (0xFFF), uses global arrays at 0x0464b488
+ */
 int FUN_0047e210(int param_1, int param_2, int param_3, int param_4, int param_5) {
-    (void)param_1; (void)param_2; (void)param_3; (void)param_4; (void)param_5;
-    return -2;
+    /* Check queue limit */
+    if (DAT_0464f488 > 0xFFF) {
+        return -2;
+    }
+
+    /* Validate sprite ID */
+    if (param_4 >= -1 && param_4 < 100) {
+        return -2;
+    }
+
+    /* TODO: Full implementation would:
+     * - Call FUN_0041fad0 to get sprite image index
+     * - Call FUN_0041f900 to get sprite dimensions
+     * - Store in render queue arrays at:
+     *   - DAT_04633488: x positions
+     *   - DAT_0463348c: y positions
+     *   - DAT_04633490: sprite IDs
+     *   - DAT_04633498: render modes
+     *   - DAT_0463349c: blend modes
+     */
+
+    return (int)DAT_0464f488++;
 }
 
 void FUN_0047e640(int param_1, int param_2, unsigned int param_3, unsigned int param_4,
