@@ -1953,6 +1953,42 @@ void* FUN_00491f70(int param_1, int param_2) {
     return NULL;
 }
 
+/* FUN_00491fed - Free Memory
+ * Frees memory allocated by FUN_00491f70
+ *
+ * Parameter: param_1 - Memory pointer to free
+ *
+ * Processing:
+ * - NULL check: returns immediately if pointer is NULL
+ * - Try pool deallocator FUN_004938fd first
+ * - If not from pool, use HeapFree on DAT_04ec0f9c
+ */
+void FUN_00491fed(void* param_1) {
+    /* Free allocated memory */
+}
+
+/* FUN_0044b030 - Check Game/Battle State
+ * Returns current game state flags for UI updates
+ *
+ * Checks multiple state variables:
+ * - DAT_045e19b0: Battle counter (active if > 0)
+ * - DAT_004e21dc: Secondary counter (active if > 0)
+ * - DAT_045e8ce0: Battle state flag
+ * - DAT_045f1a3b: Override state flag
+ * - DAT_045f1a3a: Primary state flag
+ *
+ * Priority:
+ * 1. If DAT_045f1a3a != 0, return its value
+ * 2. If DAT_045f1a3b != 0, return its value
+ * 3. Otherwise return combined flags
+ *
+ * Returns: State value (0 = normal, non-zero = special state)
+ */
+char FUN_0044b030(void) {
+    /* Check game/battle state flags */
+    return 0;
+}
+
 /* FUN_004011c0 - Mark Entity for Deletion
  * Sets the delete flag on an entity for cleanup
  *
@@ -1974,23 +2010,24 @@ void FUN_0041d860(int param_1, int param_2, int param_3, int param_4, int param_
     /* FUN_0041d7c0(param_1, param_2, param_3, param_4, param_5, param_6, 0); */
 }
 
-/* FUN_00421080 - Find character index by ID
- * Searches character array for matching ID
- * Returns index if found, -1 otherwise
+/* FUN_00421080 - Find Index by Value in Array
+ * Searches integer array for matching value
+ *
+ * Parameters:
+ * - param_1: Integer array to search
+ * - param_2: Array length
+ *
+ * Search value: DAT_045f1b90 (current selection/target ID)
+ * Search condition: (DAT_045f1bc4 & 1) must be set
+ *
+ * Returns: Index of match, or -1 if not found or disabled
  */
-int FUN_00421080(int* char_array, int count) {
-    int i;
-    /* Check if search enabled (DAT_045f1bc4 & 1) */
-    for (i = 0; i < count; i++) {
-        /* if (char_array[i] == DAT_045f1b90) return i; */
-    }
+int FUN_00421080(int* param_1, int param_2) {
+    /* Find index by matching DAT_045f1b90 */
     return -1;
 }
 
-/* FUN_0044b030 - Battle UI active check
- * Returns non-zero if battle UI is active (menus, dialogs, etc.)
- */
-int FUN_0044b030(void) {
+/* FUN_0044b030 - Battle UI active check (duplicate - see earlier definition) */
     /* Check: DAT_045e19b0 > 0 || DAT_004e21dc > 0 || DAT_045e8ce0 != 0 */
     /* Also checks DAT_045f1a3b and DAT_045f1a3a flags */
     return 0;  /* TODO: Implement with proper global checks */
