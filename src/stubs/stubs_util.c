@@ -176,3 +176,5 @@ int FUN_00492973(const char* str) {
 
     return result * sign;
 }
+
+/* FUN_004777e0 is defined in stubs_ui.c */

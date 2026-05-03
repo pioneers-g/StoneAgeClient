@@ -61,6 +61,25 @@ void FUN_00479c40(void) {
 }
 
 /*
+ * FUN_00477890 - Game Data Initialization
+ *
+ * Binary analysis:
+ * - Clears multiple global data regions on game start
+ * - Clears: DAT_0462be88 (0x1299 dwords), DAT_04627458 (0xdde dwords),
+ *           DAT_0462ac10 (0xfc dwords), DAT_046308f0 (0x3c dwords),
+ *           DAT_0462b000 (0x39f dwords), DAT_04624040 (0x4e0 dwords)
+ * - Calls FUN_0047c9d0 for additional initialization
+ * - Loads map BGM data from "map/bgm.d.dat"
+ * - Parses BGM index from file into DAT_04633308
+ * - Resets various game state counters and flags
+ */
+void FUN_00477890(void) {
+    /* TODO: Full initialization with file loading */
+}
+
+/* FUN_004779d0 and FUN_00477b20 are defined in stubs_ui.c */
+
+/*
  * FUN_0041db40 - Main Game Loop
  *
  * Binary analysis:
