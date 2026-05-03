@@ -101,6 +101,7 @@ set(TEST_SOURCES
     test_craft_comprehensive.c
     test_social_comprehensive.c
     test_config_module_comprehensive.c
+    test_util_random_comprehensive.c
 )
 
 # Create test executables
