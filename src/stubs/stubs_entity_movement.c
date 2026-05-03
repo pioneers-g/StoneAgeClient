@@ -295,3 +295,128 @@ void FUN_0040b9e0(void* entity, float target_x, float target_y) {
         *(short*)((char*)entity + ENTITY_OFFSET_MOVE_FLAG) = 1;
     }
 }
+
+/*
+ * FUN_0040bfc0 - Entity Immediate Move
+ *
+ * Binary analysis:
+ * - Sets entity position immediately without animation
+ * - param_1: entity pointer
+ * - param_2: target X coordinate
+ * - param_3: target Y coordinate
+ * - Sets both integer and float positions
+ * - Clears velocity to zero
+ * - Uses _DAT_0049c31c (1.0f) as scale factor
+ */
+void FUN_0040bfc0(void* entity, int target_x, int target_y) {
+    extern float _DAT_0049c31c;
+    
+    if (entity == NULL) return;
+    
+    /* Set integer position at offset 0xb0-b4 (render position) */
+    *(int*)((char*)entity + 0xb0) = target_x;
+    *(int*)((char*)entity + 0xb4) = target_y;
+    
+    /* Set integer position at offset 0xb8-bc (logical position) */
+    *(int*)((char*)entity + ENTITY_OFFSET_CURRENT_X) = target_x;
+    *(int*)((char*)entity + ENTITY_OFFSET_CURRENT_Y) = target_y;
+    
+    /* Set float position at offset 0x114-118 */
+    *(float*)((char*)entity + ENTITY_OFFSET_FLOAT_X) = (float)target_x * _DAT_0049c31c;
+    *(float*)((char*)entity + ENTITY_OFFSET_FLOAT_Y) = (float)target_y * _DAT_0049c31c;
+    
+    /* Clear velocity */
+    *(float*)((char*)entity + ENTITY_OFFSET_VEL_X) = 0.0f;
+    *(float*)((char*)entity + ENTITY_OFFSET_VEL_Y) = 0.0f;
+}
+
+/*
+ * FUN_0040bb50 - Entity Update Movement with Queue
+ *
+ * Binary analysis:
+ * - Updates entity movement, processing queue
+ * - param_1: entity pointer
+ * - Checks if reached destination, processes next queue entry
+ * - Uses FUN_00447370 for distance calculation
+ * - State transitions: state 3 (idle), state 4 (moving)
+ * - Offset 0x148: entity state
+ * - Offset 0x112: movement flag
+ */
+void FUN_0040bb50(void* entity) {
+    float target_x, target_y, cur_x, cur_y;
+    float vel_x, vel_y, dist_sq;
+    short queue_count;
+    
+    if (entity == NULL) return;
+    
+    cur_x = *(int*)((char*)entity + ENTITY_OFFSET_CURRENT_X) * 1.0f; /* _DAT_0049c31c */
+    cur_y = *(int*)((char*)entity + ENTITY_OFFSET_CURRENT_Y) * 1.0f;
+    
+    /* Check if at destination and queue has entries */
+    queue_count = *(short*)((char*)entity + ENTITY_OFFSET_QUEUE_COUNT);
+    if (cur_x == *(float*)((char*)entity + ENTITY_OFFSET_FLOAT_X) &&
+        cur_y == *(float*)((char*)entity + ENTITY_OFFSET_FLOAT_Y) &&
+        queue_count > 0) {
+        /* Get next target from queue */
+        int* x_queue = (int*)((char*)entity + ENTITY_OFFSET_X_QUEUE);
+        int* y_queue = (int*)((char*)entity + ENTITY_OFFSET_Y_QUEUE);
+        FUN_0040b880(entity, (float)x_queue[0], (float)y_queue[0]);
+        FUN_0040bb00(entity);
+    }
+    
+    vel_x = *(float*)((char*)entity + ENTITY_OFFSET_VEL_X);
+    vel_y = *(float*)((char*)entity + ENTITY_OFFSET_VEL_Y);
+    
+    /* Check if stopped */
+    if (vel_x == _DAT_0049c318 && vel_y == _DAT_0049c318) {
+        if (*(short*)((char*)entity + ENTITY_OFFSET_MOVE_FLAG) != 0) {
+            *(int*)((char*)entity + 0x148) = 3;  /* State: idle */
+        }
+        *(short*)((char*)entity + ENTITY_OFFSET_MOVE_FLAG) = 0;
+    } else {
+        /* Update position */
+        /* TODO: Add proper distance check with FUN_00447370 */
+        *(float*)((char*)entity + ENTITY_OFFSET_FLOAT_X) += vel_x;
+        *(float*)((char*)entity + ENTITY_OFFSET_FLOAT_Y) += vel_y;
+        *(int*)((char*)entity + 0x148) = 4;  /* State: moving */
+    }
+    
+    /* Update integer positions from float */
+    *(int*)((char*)entity + 0xb0) = (int)(*(float*)((char*)entity + ENTITY_OFFSET_FLOAT_X));
+    *(int*)((char*)entity + 0xb4) = (int)(*(float*)((char*)entity + ENTITY_OFFSET_FLOAT_Y));
+}
+
+/*
+ * FUN_0040bd00 - Entity Update Movement Simple
+ *
+ * Binary analysis:
+ * - Updates entity movement without queue processing
+ * - param_1: entity pointer
+ * - Similar to FUN_0040bb50 but doesn't process queue
+ * - State transitions: state 3 (idle), state 4 (moving)
+ */
+void FUN_0040bd00(void* entity) {
+    float vel_x, vel_y;
+    
+    if (entity == NULL) return;
+    
+    vel_x = *(float*)((char*)entity + ENTITY_OFFSET_VEL_X);
+    vel_y = *(float*)((char*)entity + ENTITY_OFFSET_VEL_Y);
+    
+    /* Check if stopped */
+    if (vel_x == _DAT_0049c318 && vel_y == _DAT_0049c318) {
+        if (*(short*)((char*)entity + ENTITY_OFFSET_MOVE_FLAG) != 0) {
+            *(int*)((char*)entity + 0x148) = 3;  /* State: idle */
+        }
+        *(short*)((char*)entity + ENTITY_OFFSET_MOVE_FLAG) = 0;
+    } else {
+        /* Update position */
+        *(float*)((char*)entity + ENTITY_OFFSET_FLOAT_X) += vel_x;
+        *(float*)((char*)entity + ENTITY_OFFSET_FLOAT_Y) += vel_y;
+        *(int*)((char*)entity + 0x148) = 4;  /* State: moving */
+    }
+    
+    /* Update integer positions from float */
+    *(int*)((char*)entity + 0xb0) = (int)(*(float*)((char*)entity + ENTITY_OFFSET_FLOAT_X));
+    *(int*)((char*)entity + 0xb4) = (int)(*(float*)((char*)entity + ENTITY_OFFSET_FLOAT_Y));
+}
