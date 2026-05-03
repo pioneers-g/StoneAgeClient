@@ -335,3 +335,48 @@ int FUN_00476860(void) {
 void FUN_004768e0(void* dest_struct, int field_selector) {
     (void)dest_struct; (void)field_selector;
 }
+
+/*
+ * FUN_00476980 - Extract Extended String Field
+ *
+ * Binary analysis:
+ * - Similar to FUN_004768e0 but uses offset 0x194
+ * - param_1: destination structure
+ * - Extracts string from DAT_004e1118 at position DAT_0461c678
+ * - Reads until null or '|' delimiter
+ * - Handles DBCS characters
+ * - Calls FUN_0048a170 to process extracted string
+ */
+void FUN_00476980(void* dest_struct) {
+    (void)dest_struct;
+}
+
+/*
+ * FUN_00476a00 - Character Spawn Protocol Handler
+ *
+ * Binary analysis:
+ * - Main protocol handler for spawning characters on field
+ * - Parses complex spawn data from DAT_004e1118
+ * - Position starts at 3 (skips header)
+ * - Data flow:
+ *   1. Parse flags -> DAT_0461c674+0xa0
+ *   2. For each character entry:
+ *      - Parse unit index via FUN_00476860
+ *      - Get entity pointer from DAT_04ebe428[index]
+ *      - Parse name via FUN_004768e0 (two fields)
+ *      - Parse model ID -> offset 0x140
+ *      - Parse HP -> offset 0x8c
+ *      - Parse X coordinate -> offset 0x78
+ *      - Parse Y coordinate -> offset 0x80
+ *      - Store DAT_0462bea4 -> offset 0x88
+ *      - If DAT_0461b658 != 0: parse additional data
+ *      - Set state based on flags (uVar7)
+ *   3. Handle special model IDs (0x18872-77, 0x3bdb, 0x2a3c, etc.)
+ *   4. Set animation state via FUN_00477240
+ *   5. Determine character type from flags:
+ *      - Bit 0x8: type 1, Bit 0x10: type 2, etc.
+ *      - Higher bits (0x800-0x40000000): types 7-34
+ * - Calls FUN_00468150 for character type setup
+ * - Sets DAT_04ebe484 = 3 on protocol end if type != 3
+ */
+void FUN_00476a00(void) {}
