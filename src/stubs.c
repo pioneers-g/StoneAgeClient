@@ -247,6 +247,121 @@ void* item_get(int item_id) {
     return NULL;
 }
 
+/*
+ * FUN_0043dc90 - Safe String Append with Buffer Limit
+ *
+ * Binary analysis:
+ * - Appends source string to destination with buffer size limit
+ * - param_1: destination buffer
+ * - param_2: source string
+ * - param_3: buffer size (including null terminator)
+ * - Finds end of destination string first
+ * - Appends source until buffer limit reached or source exhausted
+ * - Always null-terminates the result
+ */
+void FUN_0043dc90(char* dest, const char* src, int max_size) {
+    int dest_len = 0;
+    int i;
+
+    if (max_size <= 1) return;
+
+    max_size--;
+
+    /* Find end of destination */
+    while (dest[dest_len] != '\0') {
+        dest_len++;
+        if (dest_len >= max_size) return;
+    }
+
+    /* Append source */
+    for (i = 0; i < max_size - dest_len && src[i] != '\0'; i++) {
+        dest[dest_len + i] = src[i];
+    }
+    dest[dest_len + i] = '\0';
+}
+
+/*
+ * FUN_0043e170 - String Copy
+ *
+ * Binary analysis:
+ * - Copies formatted string to destination
+ * - Uses FUN_0043e0f0 to process format string
+ * - Uses FUN_004923a7 for string formatting
+ */
+void FUN_0043e170(char* dest, const char* src) {
+    (void)dest; (void)src;
+    /* TODO: Full implementation */
+}
+
+/*
+ * FUN_0049b108 - Integer to String Conversion
+ *
+ * Binary analysis:
+ * - Converts integer to string representation
+ * - param_1: integer value to convert
+ * - param_2: output buffer
+ * - param_3: radix (usually 10 for decimal)
+ * - Handles negative numbers for radix 10
+ * - Returns pointer to output buffer
+ */
+char* FUN_0049b108(int value, char* buffer, int radix) {
+    (void)value; (void)radix;
+    if (buffer) buffer[0] = '0';
+    return buffer;
+}
+
+/*
+ * FUN_004923a7 - Printf-Style String Formatting
+ *
+ * Binary analysis:
+ * - Formats string similar to sprintf
+ * - param_1: output buffer
+ * - param_2: format string with %u, %s, %d etc.
+ * - Returns formatted string length
+ */
+int FUN_004923a7(char* buffer, const char* format, ...) {
+    (void)buffer; (void)format;
+    return 0;
+}
+
+/*
+ * FUN_00492973 - String to Integer Conversion
+ *
+ * Binary analysis:
+ * - Locale-aware string to integer conversion
+ * - Skips leading whitespace (character type & 8)
+ * - Handles + and - signs
+ * - Parses decimal digits (character type & 4)
+ * - Uses DAT_004d786c to determine locale handling mode
+ * - Uses PTR_DAT_004d7660 character type lookup table
+ */
+int FUN_00492973(const char* str) {
+    const unsigned char* ptr = (const unsigned char*)str;
+    int result = 0;
+    int sign = 1;
+
+    /* Skip whitespace */
+    while (*ptr == ' ' || *ptr == '\t' || *ptr == '\n' || *ptr == '\r') {
+        ptr++;
+    }
+
+    /* Handle sign */
+    if (*ptr == '-') {
+        sign = -1;
+        ptr++;
+    } else if (*ptr == '+') {
+        ptr++;
+    }
+
+    /* Parse digits */
+    while (*ptr >= '0' && *ptr <= '9') {
+        result = result * 10 + (*ptr - '0');
+        ptr++;
+    }
+
+    return result * sign;
+}
+
 /* Sound/bgm function */
 void FUN_00488190(int param_1, int param_2, int param_3) {
     (void)param_1; (void)param_2; (void)param_3;
@@ -272,9 +387,7 @@ void FUN_0048a200(const char* param_1, ...) {
     (void)param_1;
 }
 
-void FUN_004923a7(char* param_1, const char* param_2, ...) {
-    (void)param_1; (void)param_2;
-}
+/* FUN_004923a7 is defined above with documentation */
 
 /* Battle text handlers */
 void battle_handle_start_text(const char* param_1) { (void)param_1; }
