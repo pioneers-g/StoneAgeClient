@@ -1231,6 +1231,108 @@ int FUN_0044aba0(int param_1, int param_2, int param_3, int param_4, int param_5
     return 0;
 }
 
+/* FUN_0047e210 - Add Sprite to Render Queue
+ * Core sprite rendering function, adds sprite to display queue
+ *
+ * Parameters:
+ * - param_1: X position (pixel coordinate)
+ * - param_2: Y position (pixel coordinate)
+ * - param_3: Layer/depth (affects render order)
+ * - param_4: Sprite ID (negative values are special)
+ * - param_5: Additional flags/mode
+ *
+ * Queue management:
+ * - Maximum queue size: 0x1000 (4096) entries
+ * - Returns -2 if queue is full
+ * - Returns queue index on success
+ *
+ * Queue entry size: 0x18 (24) bytes per entry
+ * - Offset 0x00: Layer (param_3)
+ * - Offset 0x04: X position
+ * - Offset 0x08: Y position
+ * - Offset 0x0c: Sprite ID
+ * - Offset 0x10: Flags
+ * - Offset 0x14: Layer mode (for sorting)
+ *
+ * Layer processing:
+ * - Values -1 to 99: Reserved/error range
+ * - Values 100+: Sprite lookup via FUN_0041fad0 and FUN_0041f900
+ *   - Returns sprite dimensions (width, height)
+ *
+ * Layer mode categorization (param_5):
+ * - 0-9: Mode 0 (normal)
+ * - 10-19: Mode 1, adjusted to 0-9
+ * - 20-29: Mode 2, adjusted to 0-9
+ * - 30-39: Mode 3, adjusted to 0-9
+ * - 40-49: Mode 4, adjusted to 0-9
+ * - 50+: Mode 0 (default)
+ *
+ * Global state:
+ * - DAT_0464f488: Queue counter
+ * - DAT_0464b488: Queue index array
+ * - DAT_0464b48a: Layer array
+ * - DAT_04633488: X position array
+ * - DAT_0463348c: Y position array
+ * - DAT_04633490: Sprite ID array
+ * - DAT_04633494: Unknown (always 0)
+ * - DAT_04633498: Flags array
+ * - DAT_0463349c: Layer mode array
+ *
+ * Returns: Queue index on success, -2 on failure
+ */
+int FUN_0047e210(int param_1, int param_2, int param_3, int param_4, int param_5) {
+    /* Add sprite to render queue */
+    return -2;
+}
+
+/* FUN_0041d860 - Draw Text String
+ * Renders text string at specified position with color
+ *
+ * Parameters:
+ * - param_1: X position
+ * - param_2: Y position
+ * - param_3: Layer/depth
+ * - param_4: Color/style
+ * - param_5: Text string pointer
+ * - param_6: Additional flags
+ *
+ * This is a wrapper that calls FUN_0041d7c0 with last parameter 0
+ */
+void FUN_0041d860(int param_1, int param_2, int param_3, int param_4, const char* param_5, int param_6) {
+    /* Draw text string - wrapper for FUN_0041d7c0 */
+}
+
+/* FUN_0048a200 - Escape String for Protocol
+ * Escapes special characters in string for network transmission
+ *
+ * Parameters:
+ * - param_1: Source string
+ * - param_2: Destination buffer
+ * - param_3: Buffer size
+ *
+ * Escape table at DAT_004d5828:
+ * - Characters that need escaping (source bytes)
+ * - Mapped to escape sequences at DAT_004d5829
+ *
+ * Processing:
+ * - Iterates through source string
+ * - Uses IsDBCSLeadByte for DBCS awareness
+ * - For SBCS: Check if character needs escaping
+ *   - If match found: output backslash (0x5c) + escape char
+ *   - Otherwise: copy character as-is
+ * - For DBCS: Copy both bytes unchanged
+ *
+ * Buffer management:
+ * - Stops if buffer would overflow (param_3 check)
+ * - Null-terminates result
+ *
+ * Escape sequences (from DAT_004d5828/DAT_004d5829):
+ * - Specific characters mapped to protocol-safe equivalents
+ */
+void FUN_0048a200(const char* param_1, char* param_2, int param_3) {
+    /* Escape string for protocol transmission */
+}
+
 /* FUN_0047e640 - Render Sprite with Blend Mode
  * Renders sprite with specified blending/transparency mode
  *
