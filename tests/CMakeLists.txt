@@ -98,6 +98,7 @@ set(TEST_SOURCES
     test_ui_skin_system_comprehensive.c
     test_ui_element_system_comprehensive.c
     test_ui_input_system_comprehensive.c
+    test_ui_render_system_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
