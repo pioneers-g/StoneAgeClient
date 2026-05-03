@@ -374,19 +374,38 @@ void FUN_00440e90(void) {
      */
 }
 
-/* FUN_00410850 - Game state update */
+/* FUN_00410850 - Game state flag processing
+ * Handles various game state flags from DAT_04ebe494
+ * - Bit 25: Call FUN_00410bf0
+ * - Bit 23: Call FUN_004119a0
+ * - Bit 31: Clear UI state, set fade flag
+ * - Bits 0-7: Process UI elements based on context
+ */
 void FUN_00410850(void) {
-    /* TODO: Implementation needed */
+    /* Complex state machine handling:
+     * - Checks DAT_04ebe494 bitmask
+     * - Processes UI context (DAT_0054a4f4)
+     * - Handles message log scrolling
+     */
 }
 
-/* FUN_004117e0 - State transition */
+/* FUN_004117e0 - Chat/message log update
+ * Updates scrolling message display
+ * Uses DAT_0054a4f8 for position, DAT_0054a500 for counter
+ */
 void FUN_004117e0(void) {
-    /* TODO: Implementation needed */
+    /* Iterates through message entries (20 max)
+     * - Each entry is 0x10c bytes at DAT_00544d88
+     * - Calculates scroll position and timing
+     * - Calls FUN_0041d7c0 for rendering
+     */
 }
 
-/* FUN_0047d8c0 - Render queue init */
+/* FUN_0047d8c0 - Render queue initialization
+ * Initializes sprite render queue via FUN_0049320c
+ */
 void FUN_0047d8c0(void) {
-    /* TODO: Implementation needed */
+    /* FUN_0049320c(&DAT_0464b488, DAT_0464f488, 4, &LAB_0047e6e0); */
 }
 
 /* FUN_00412a40 - Animation update */
