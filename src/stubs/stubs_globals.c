@@ -172,6 +172,20 @@ u32 DAT_045f1bc4 = 0;    /* Search enabled flag */
 /* VIP level for gold limit */
 u32 DAT_0462e3b4 = 0;    /* VIP level */
 
+/* Player entity globals */
+void* DAT_0462e3ac = NULL;  /* Player entity pointer */
+u32 DAT_0462bf2c = 0;       /* Player flags (bit 8 = riding) */
+char DAT_0462bef8[18] = {0}; /* Player name buffer */
+char DAT_0462bf09[34] = {0}; /* Player title buffer */
+int DAT_0462be98 = 0;       /* Player HP */
+int DAT_0462be9c = 0;       /* Player MP */
+int DAT_0462bec0 = 0;       /* Player level */
+
+/* Pet/special entity globals */
+void* DAT_004e2b18 = NULL;  /* Pet/special entity pointer */
+char DAT_00544d74 = 0;      /* Pet spawn flag 1 */
+char DAT_00544d75 = 0;      /* Pet spawn flag 2 */
+
 /* Render queue count for FUN_0047e210 */
 u32 DAT_0464f488 = 0;    /* Render queue count (max 4096) */
 
