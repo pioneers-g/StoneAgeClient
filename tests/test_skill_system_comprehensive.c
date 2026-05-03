@@ -556,6 +556,7 @@ static int test_skill_cooldown(void) {
     test_setup();
 
     skill_add(1001, "Fireball", SKILL_TYPE_ATTACK, TARGET_SINGLE_ENEMY);
+    Skill* skill = skill_get(1001);
     skill->mp_cost = 10;
     skill_learn(1001);
 
