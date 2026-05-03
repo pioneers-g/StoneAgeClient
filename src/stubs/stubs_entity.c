@@ -408,6 +408,79 @@ int entity_get_position(void* entity, int* x, int* y) {
 }
 
 /*
+ * FUN_0040e830 - Find Entity Slot by ID
+ *
+ * Binary analysis:
+ * - Searches for entity with matching ID in entity array
+ * - param_1: entity ID to find
+ * - Returns: slot index (0-1500) or -1 if not found
+ * - Uses cache at DAT_004e2b0c for optimization
+ * - Entity array at DAT_004e2b24 (stride 0x43 = 67 dwords)
+ */
+int FUN_0040e830(int entity_id) {
+    /* TODO: Full implementation with entity array */
+    (void)entity_id;
+    return -1;
+}
+
+/*
+ * FUN_0040f310 - Allocate Entity Slot
+ *
+ * Binary analysis:
+ * - Finds next available entity slot
+ * - Returns: slot index (0-1500) or -1 if full
+ * - Max 1500 entities (0x5dc)
+ * - Updates DAT_004e2b14 (count) and DAT_004e2b10 (next free)
+ * - Entity array at DAT_004e2b20 (stride 0x86 = 134 shorts)
+ */
+int FUN_0040f310(void) {
+    /* TODO: Full implementation with entity array */
+    return -1;
+}
+
+/*
+ * FUN_0040f460 - Get Entity Pointer by ID
+ *
+ * Binary analysis:
+ * - Returns entity pointer for given ID
+ * - param_1: entity ID
+ * - Uses FUN_0040e830 to find slot
+ * - Returns pointer from DAT_004e2bdc[slot * 0x43] or 0 if not found
+ */
+void* FUN_0040f460(int entity_id) {
+    int slot = FUN_0040e830(entity_id);
+    if (slot < 0) {
+        return NULL;
+    }
+    /* TODO: Return actual pointer from entity array */
+    (void)slot;
+    return NULL;
+}
+
+/*
+ * FUN_0040f3c0 - Get Entity Type Flags
+ *
+ * Binary analysis:
+ * - Returns flags based on entity type
+ * - param_1: entity type
+ * - Returns:
+ *   - type 1: 0x100
+ *   - type 3: 0x200
+ *   - type 0x20: 0x100
+ *   - default: 0x1000
+ */
+int FUN_0040f3c0(int entity_type) {
+    if (entity_type == 1) {
+        return 0x100;
+    } else if (entity_type == 3) {
+        return 0x200;
+    } else if (entity_type == 0x20) {
+        return 0x100;
+    }
+    return 0x1000;
+}
+
+/*
  * FUN_0040b5e0 - Create Field Entity
  *
  * Binary analysis:
