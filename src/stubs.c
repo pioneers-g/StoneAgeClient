@@ -1660,12 +1660,189 @@ void FUN_00401170(void) {
     /* Entity list iteration with callback dispatch */
 }
 
-/* FUN_00448610 - Window widget creation (9-sprite grid) */
-void FUN_00448610(void) {
-    /* Implemented in ui_window.c - window_create() */
+/* FUN_004010a0 - Entity Allocation and List Insertion
+ * Allocates a new entity and inserts it into the sorted linked list
+ *
+ * Parameters:
+ * - param_1: Entity type/priority (determines sort order)
+ * - param_2: Extra data size (0 for no extra allocation)
+ *
+ * Entity structure (500 bytes base):
+ * - Offset 0x00: prev pointer
+ * - Offset 0x04: next pointer
+ * - Offset 0x08: callback function pointer
+ * - Offset 0x0c: extra data pointer (if param_2 != 0)
+ * - Offset 0x10: unknown
+ * - Offset 0x14: entity type (param_1)
+ * - Offset 0x18-0x1c: position data
+ * - Offset 0x24: delete flag (0=active, 1=delete)
+ * - Offset 0x27: current state (-1 initially)
+ *
+ * Memory allocation:
+ * - Base: 500 bytes via FUN_00491f70(1, 500)
+ * - Extra: param_2 bytes if specified
+ * - Shows error MessageBox on failure
+ *
+ * List insertion:
+ * - Inserts in sorted order by entity type (param_1)
+ * - Lower type values inserted earlier in list
+ * - List head at DAT_004d7e3c, tail at DAT_004d7e38
+ *
+ * Returns: Entity pointer or NULL on failure
+ */
+int* FUN_004010a0(unsigned char param_1, int param_2) {
+    /* Allocate entity and insert into sorted list */
+    return NULL;
 }
 
-/* FUN_004011c0 - Set entity delete flag */
+/* FUN_00448610 - Window Widget Creation (9-Sprite Grid)
+ * Creates a window widget with 9-sprite grid layout for UI
+ *
+ * Parameters:
+ * - param_1: X position (left edge)
+ * - param_2: Y position (top edge)
+ * - param_3: Width in tiles
+ * - param_4: Height in tiles
+ * - param_5: Sprite ID for window skin
+ * - param_6: Window style/mode (0-4 or -1)
+ *
+ * Entity creation:
+ * - Calls FUN_004010a0(3, 0x40) for 64-byte extra data
+ * - Sets callback to FUN_00448270
+ * - Entity type flag: *(entity + 0xa0) |= 6
+ *
+ * Window modes (param_6):
+ * - 0: Standard window with DAT_0054b194 skin
+ * - 1: Alternate window with DAT_0054c208 skin
+ * - 2: Standard window (same as 0)
+ * - 3: Alternate window (same as 1)
+ * - 4: Special mode with 0x6d sprite, no borders
+ * - -1: Custom window with param_5 sprite
+ *
+ * Window dimensions:
+ * - Width in pixels: param_3 << 6 (tiles * 64)
+ * - Half-width used for centering: (width) / 2
+ * - Height scaled by 0x30 for certain modes
+ *
+ * Extra data layout (64 bytes at entity+0xc):
+ * - [0]: Width (param_3)
+ * - [1]: Height (param_4)
+ * - [2]: Sprite ID (param_5)
+ * - [3]: X position right edge
+ * - [4]: Y position bottom edge
+ * - [5]: Center X
+ * - [6]: Center Y
+ * - [10]: Window skin sprite
+ * - [11]: Draw mode (1 or 0)
+ * - [14]: Corner sprite ID (0x68 or 0x6d)
+ * - [15]: Always -1
+ *
+ * Returns: Entity handle or 0 on failure
+ */
+int FUN_00448610(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6) {
+    /* Create window widget with 9-sprite grid */
+    return 0;
+}
+
+/* FUN_00448270 - Window Render Callback
+ * Renders a window widget using 9-sprite grid system
+ *
+ * Parameter: param_1 - Entity pointer
+ *
+ * State machine (entity + 0xa8):
+ * - State 0: Opening animation (expand from center)
+ * - State 1: Complete/hidden
+ * - State 2: Normal render (9-sprite grid)
+ * - State 3: Minimal mode (close button only)
+ *
+ * State 0 - Opening Animation:
+ * - Uses FUN_0047e640 to render expanding rectangle
+ * - Expands by offsets at entity+0x28 (x) and entity+0x2c (y)
+ * - Animation counter at extra_data[9]
+ * - After 10 steps, transitions to state 1 or 2
+ *
+ * State 2 - 9-Sprite Grid Render:
+ * Sprite offsets from base (piVar1[10]):
+ * - +0: Top-left corner
+ * - +1: Top edge
+ * - +2: Top-right corner
+ * - +3: Left edge
+ * - +4: Center fill
+ * - +5: Right edge
+ * - +6: Bottom-left corner
+ * - +7: Bottom edge
+ * - +8: Bottom-right corner
+ *
+ * Grid positions:
+ * - Tile size: 0x40 (64) pixels wide, 0x30 (48) pixels tall
+ * - Row 0: Corners at offsets 0, 1, 2
+ * - Row 1-(n-1): Edges at offsets 3, 4, 5
+ * - Row (n-1): Corners at offsets 6, 7, 8
+ *
+ * Alpha mode (DAT_0054c83c):
+ * - Affects sprite selection for transparency effects
+ * - Uses different skin variants from DAT_0054b194 or DAT_0054c208
+ *
+ * Extra data access:
+ * - piVar1[0]: Width in tiles
+ * - piVar1[1]: Height in tiles
+ * - piVar1[2]: Optional sprite overlay
+ * - piVar1[5-6]: Center position
+ * - piVar1[7-8]: Animation offsets
+ * - piVar1[10]: Base skin sprite
+ * - piVar1[11]: Draw mode
+ * - piVar1[12-13]: Button sprite handles (state 3)
+ * - piVar1[14]: Corner sprite (0x68 or 0x6d)
+ * - piVar1[15]: Hover state
+ */
+void FUN_00448270(int param_1) {
+    /* Window render callback - 9-sprite grid */
+}
+
+/* FUN_004011d0 - Free Entity
+ * Frees an entity and its extra data
+ *
+ * Parameter: param_1 - Entity pointer
+ *
+ * If entity has extra data (offset 0xc != 0):
+ * - Frees extra data via FUN_00491fed
+ * - Then frees entity itself via FUN_00491fed
+ */
+void FUN_004011d0(int param_1) {
+    /* Free entity and extra data */
+}
+
+/* FUN_00491f70 - Memory Allocation
+ * Allocates memory with 16-byte alignment
+ *
+ * Parameters:
+ * - param_1: Count of elements
+ * - param_2: Size of each element
+ *
+ * Total size calculation:
+ * - If size < 0xffffffe1: Round up to 16-byte boundary
+ * - If size == 0: Use minimum 1 byte
+ *
+ * Allocation strategy:
+ * 1. If size <= DAT_004d7414 threshold: Try pool allocator (FUN_00493c53)
+ * 2. Otherwise: Use HeapAlloc with HEAP_ZERO_MEMORY (flag 8)
+ * 3. On failure: Call garbage collector (FUN_00493868) and retry
+ *
+ * Returns: Pointer to zero-initialized memory, or NULL on failure
+ */
+void* FUN_00491f70(int param_1, int param_2) {
+    /* Allocate aligned memory */
+    return NULL;
+}
+
+/* FUN_004011c0 - Mark Entity for Deletion
+ * Sets the delete flag on an entity for cleanup
+ *
+ * Parameter: param_1 - Entity pointer
+ *
+ * Simply sets *(entity + 0x24) = 1
+ * Entity will be freed on next FUN_00401170 iteration
+ */
 void FUN_004011c0(intptr_t entity) {
     if (entity != 0) {
         *(int*)(entity + 0x24) = 1;  /* Mark for deletion */
