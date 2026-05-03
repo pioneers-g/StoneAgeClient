@@ -638,3 +638,34 @@ int FUN_0047bb30(int param_1) {
     DAT_04633300 = 0;
     return 1;
 }
+
+/*
+ * FUN_00447e40 - Process Chat Message
+ *
+ * Binary analysis:
+ * - Processes incoming chat message string
+ * - param_1: chat message string
+ * - Checks if battle active (DAT_045e19b8) or chat active (DAT_04583240)
+ * - Formats message with timestamp and sender info
+ * - Splits long messages at 44 characters
+ * - Scrolls chat history (moves entries up)
+ * - Stores in chat history array at DAT_045e60a4 (max 15 entries)
+ */
+void FUN_00447e40(char* message) {
+    /* TODO: Full implementation with chat history array */
+    (void)message;
+}
+
+/*
+ * FUN_00447fd0 - Confirm Dialog Handler
+ *
+ * Binary analysis:
+ * - Handles confirmation dialog response
+ * - Checks game state (DAT_04630878): 1=asking, 2=confirmed, 3=asking_alt, 4=confirmed_alt
+ * - Validates player selection (DAT_045f1bf0 matches DAT_04583248 or DAT_0458f4b0)
+ * - Transitions state on confirmation
+ * - Used for trade confirm, party invite accept, etc.
+ */
+void FUN_00447fd0(void) {
+    /* TODO: Full implementation with dialog state machine */
+}
