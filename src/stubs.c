@@ -582,11 +582,45 @@ void FUN_0043b490(void* param_1, int param_2) { (void)param_1; (void)param_2; }
  * Entity Functions
  * ======================================== */
 
+/* FUN_004010a0 - Entity Allocation with Sorted List Insert
+ * param_1: entity type (used for sorted list ordering)
+ * param_2: extra data buffer size (0 = no extra buffer)
+ * Returns: entity pointer on success, NULL on failure
+ * Binary: allocates 500-byte entity, inserts into sorted linked list
+ * Entity structure size: 500 bytes (0x1F4)
+ *   - Offset 0x00: prev pointer
+ *   - Offset 0x04: next pointer
+ *   - Offset 0x08: flags
+ *   - Offset 0x0C: extra data pointer
+ *   - Offset 0x14: entity type
+ *   - Offset 0x24: delete flag
+ *   - Offset 0x9C: entity id (init to -1)
+ *   - Offset 0x20: entity index (init to -2)
+ */
 int* FUN_004010a0(unsigned char param_1, int param_2) {
-    (void)param_1; (void)param_2; return NULL;
+    /* TODO: Full implementation would:
+     * - Call FUN_00491f70(1, 500) to allocate entity
+     * - Optionally allocate extra data buffer
+     * - Insert into sorted linked list by entity type
+     * - Initialize entity fields
+     */
+    (void)param_1; (void)param_2;
+    return NULL;
 }
 
-void FUN_004011d0(int param_1) { (void)param_1; }
+/* FUN_004011d0 - Entity Free
+ * param_1: entity pointer to free
+ * Binary: frees extra data buffer at offset 0x0C, then frees entity
+ */
+void FUN_004011d0(intptr_t param_1) {
+    if (param_1) {
+        void* extra_data = *(void**)(param_1 + 0x0C);
+        if (extra_data) {
+            FUN_00491fed(extra_data);
+        }
+        FUN_00491fed((void*)param_1);
+    }
+}
 
 void FUN_004011c0(intptr_t entity) {
     if (entity != 0) {
