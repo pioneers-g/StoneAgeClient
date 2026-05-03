@@ -106,6 +106,7 @@ set(TEST_SOURCES
     test_commandline_comprehensive.c
     test_screenshot_comprehensive.c
     test_storage_comprehensive.c
+    test_album_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
