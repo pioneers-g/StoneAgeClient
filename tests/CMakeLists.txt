@@ -107,6 +107,9 @@ set(TEST_SOURCES
     test_screenshot_comprehensive.c
     test_storage_comprehensive.c
     test_album_comprehensive.c
+    test_sprite_core_module_comprehensive.c
+    test_sprite_lookup_module_comprehensive.c
+    test_assets_module_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
