@@ -37,6 +37,45 @@ int FUN_004808e0(int param_1) {
     return 1;
 }
 
+/*
+ * FUN_00480bd0 - Main Input State Reader
+ *
+ * Binary analysis:
+ * - Reads all input device states (keyboard, mouse, joystick)
+ * - Stores results in DAT_04ebe488 (key states) and DAT_04ebe47c (mouse/joystick)
+ * - Calculates delta states (changed from last frame) in DAT_04ebe490/494
+ * - Bit flags for keys:
+ *   - 0x0001-0x0020: F1-F10 keys
+ *   - 0x0100: Left mouse button
+ *   - 0x0400: Right mouse button
+ *   - 0x1000: Up arrow
+ *   - 0x2000: Down arrow
+ *   - 0x4000: Left arrow
+ *   - 0x8000: Right arrow
+ *   - Higher bits: Various game-specific inputs
+ * - Also handles gamepad/joystick input via DirectInput
+ */
+void FUN_00480bd0(void) {
+    /* Input state processing */
+    /* TODO: Full implementation with DirectInput */
+}
+
+/*
+ * FUN_004809e0 - Input Key Repeat Handler
+ *
+ * Binary analysis:
+ * - Handles key repeat detection for held keys
+ * - param_1: player index (0 or 1 for multiplayer)
+ * - Returns bitmask of keys that triggered repeat
+ * - Uses counter at DAT_04ebe420 for repeat timing
+ * - Repeat threshold: 0x1e (30 frames) initial, 0x17 (23 frames) for subsequent
+ * - Key repeat masks: 0x1000, 0x2000, 0x4000, 0x8000 (arrows), 0x100, 0x400 (mouse)
+ */
+unsigned int FUN_004809e0(unsigned int player_index) {
+    (void)player_index;
+    return 0;
+}
+
 /* Additional UI stubs */
 void FUN_00414820(int param_1) { (void)param_1; }
 void FUN_0047d5b0(void) {}
