@@ -88,6 +88,7 @@ set(TEST_SOURCES
     test_sprite_queue_comprehensive.c
     test_sprite_lookup_comprehensive.c
     test_sprite_background_comprehensive.c
+    test_sprite_render_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
