@@ -300,3 +300,38 @@ void FUN_0045fdc0(int conn_handle, const char* status, int param) {
 void FUN_0045ff50(int conn_handle, const char* status) {
     (void)conn_handle; (void)status;
 }
+
+/*
+ * FUN_00476860 - Parse Hexadecimal Number from Protocol String
+ *
+ * Binary analysis:
+ * - Parses a hex number from DAT_004e1118 starting at DAT_0461c678
+ * - Skips non-hex characters at start
+ * - Accepts: '0'-'9' (0x30-0x39) and 'A'-'F' (0x41-0x46)
+ * - Returns -1 if no hex digit found
+ * - Converts: '0'-'9' -> 0-9, 'A'-'F' -> 10-15
+ * - Multiplies by 16 for each subsequent hex digit
+ * - Updates DAT_0461c678 to position after last hex digit
+ */
+int FUN_00476860(void) {
+    return -1;
+}
+
+/*
+ * FUN_004768e0 - Extract String Field from Protocol Message
+ *
+ * Binary analysis:
+ * - Extracts a string field from DAT_004e1118 at position DAT_0461c678
+ * - param_1: destination structure
+ * - param_2: field selector (0 = offset 0x38, 1 = offset 0x55)
+ * - Reads until null terminator or '|' delimiter
+ * - Handles DBCS characters via IsDBCSLeadByte()
+ * - For DBCS: copies 2 bytes (lead + trail)
+ * - For SBCS: copies 1 byte
+ * - Null-terminates the result
+ * - Calls FUN_0048a170 to process the extracted string
+ * - Updates DAT_0461c678 to position after delimiter
+ */
+void FUN_004768e0(void* dest_struct, int field_selector) {
+    (void)dest_struct; (void)field_selector;
+}
