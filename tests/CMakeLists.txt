@@ -76,6 +76,9 @@ set(TEST_SOURCES
     test_pathfind_comprehensive.c
     test_protocol_module_comprehensive.c
     test_application_comprehensive.c
+    test_stringutil_comprehensive.c
+    test_battle_calc_comprehensive.c
+    test_battle_unit_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
