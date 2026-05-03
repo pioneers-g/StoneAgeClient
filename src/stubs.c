@@ -2269,6 +2269,116 @@ void FUN_00492cd2(char* param_1, void* param_2) {
 /* Character position */
 void character_get_position(u16* x, u16* y) { if (x) *x = 0; if (y) *y = 0; }
 
+/* FUN_0045e880 - Network I/O Loop
+ * Core network loop handling send/receive operations
+ *
+ * Socket: gSocket (global socket handle)
+ * Buffer: DAT_045f1bf8 (8KB receive buffer)
+ * Send buffer: gBuffer (16KB at DAT_0461b41c)
+ *
+ * Operations:
+ * 1. Check connection state (DAT_0461b3f8, DAT_0461b420)
+ * 2. Use select() to check for pending data
+ * 3. recv() data into buffer (max 0x1fff bytes)
+ * 4. Process received data via FUN_0045ec80
+ * 5. Send pending data from gBuffer
+ * 6. Handle heartbeat (30 second timeout)
+ *
+ * Large packet handling:
+ * - If packet is 200-0x1127 bytes: Sleep(2000), try recv again
+ * - Sets DAT_0461b414 flag for large packets
+ *
+ * Protocol mode selection:
+ * - DAT_04ebffd8 == 3: Binary protocol via FUN_0043bf90
+ * - Otherwise: Text protocol via FUN_0048a6f0
+ *
+ * Heartbeat:
+ * - Sent every 30 seconds (30000ms)
+ * - Binary mode: FUN_0043bea0
+ * - Checksum mode: FUN_004901f0
+ * - Counter: DAT_005ab714
+ *
+ * Error handling:
+ * - WSAEWOULDBLOCK (0x2733): Non-blocking, continue
+ * - Other errors: Close socket, set DAT_0461b420 = 1
+ */
+void FUN_0045e880(void) {
+    /* Core network I/O loop with select/recv/send */
+}
+
+/* FUN_0045f4d0 - Connection Handler
+ * Manages server connection establishment and handshake
+ *
+ * Connection states (DAT_0461c008):
+ * - 0: Initial state, start connection
+ * - 1-70: Wait for connection
+ * - 71-80: Send handshake packet
+ * - 81-98: Wait for response
+ * - 99: Connected
+ *
+ * Connection process:
+ * 1. Resolve hostname via FUN_0045e820
+ * 2. Create socket with socket(AF_INET, SOCK_STREAM, 0)
+ * 3. Set non-blocking mode via ioctlsocket
+ * 4. Call connect() - may return WSAEWOULDBLOCK
+ * 5. Wait for connection completion
+ * 6. Send encryption key packet
+ *
+ * Server info:
+ * - DAT_004c4288: Server address string
+ * - Port from DAT_04557040, DAT_0455703c
+ *
+ * Encryption setup (state 0x47):
+ * - XOR key: "f;encor1c" via FUN_0048bb90
+ * - Sends encrypted handshake via FUN_0043bb10 or FUN_0048ff00
+ * - Key stored in DAT_04557040-DAT_04557048
+ *
+ * Timeout: 600000ms (10 minutes) for connection
+ *
+ * Returns: 0 on success, negative error code on failure
+ */
+int FUN_0045f4d0(void) {
+    /* Handle connection establishment and handshake */
+    return 0;
+}
+
+/* FUN_0045ffb0 - Binary Packet Dispatcher
+ * Dispatches binary protocol packets to appropriate handlers
+ *
+ * Parameters:
+ * - param_1: Socket handle
+ * - param_2: Packet data (first byte is opcode)
+ *
+ * Opcode handlers (case values):
+ * - 0x42 ('B'): Inventory update
+ * - 0x4b ('K'): Character stats bitmask
+ * - 0x4e ('N'): Equipment data
+ * - 0x50 ('P'): Full character stats
+ * - 0x53 ('S'): Party data
+ * - 0x57 ('W'): Mail data
+ * - 0x58 ('X'): Skill list
+ * - 0x59 ('Y'): Pet list
+ * - 0x5a ('Z'): Quest list
+ * - 0x5c ('\'): Storage data
+ * - 0x5d (']'): Album data
+ * - 0x5e ('^'): Ranking data
+ * - 0x5f ('_'): Buff data
+ *
+ * Processing:
+ * - Each opcode has specific field parsing
+ * - Uses FUN_00489f70 for field extraction
+ * - Uses FUN_0048a170 for string unescaping
+ * - Updates corresponding global data structures
+ *
+ * Data structures:
+ * - DAT_046274d4: Character data (0xb18 bytes per character)
+ * - DAT_0462bf34: Pet data array
+ * - DAT_04630df0: Battle state
+ */
+void FUN_0045ffb0(int param_1, unsigned char* param_2) {
+    /* Dispatch binary packet to handler based on opcode */
+}
+
 /* Network functions */
 void network_send_action_complete(void) {}
 void network_send_action_response(int r) { (void)r; }
