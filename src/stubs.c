@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include "types.h"
 
 /* ========================================
@@ -456,20 +457,106 @@ void FUN_0048fdc0(void) {}
 
 int FUN_0043dce0(int param_1) { (void)param_1; return 0; }
 
+/* FUN_0043dc90 - Safe String Append
+ * param_1: destination buffer
+ * param_2: source string to append
+ * param_3: max buffer size (including null terminator)
+ * Binary: finds end of dest, then appends source with null termination
+ */
 void FUN_0043dc90(char* param_1, const char* param_2, int param_3) {
-    (void)param_1; (void)param_2; (void)param_3;
+    int dest_len;
+    int i;
+    if (!param_1 || !param_2 || param_3 <= 1) return;
+    param_3--;  /* Reserve space for null terminator */
+    /* Find end of destination string */
+    dest_len = 0;
+    while (dest_len < param_3 && param_1[dest_len] != '\0') {
+        dest_len++;
+    }
+    /* Append source string */
+    for (i = 0; dest_len < param_3 && param_2[i] != '\0'; i++, dest_len++) {
+        param_1[dest_len] = param_2[i];
+    }
+    param_1[dest_len] = '\0';
 }
 
+/* FUN_0043e170 - String Copy
+ * param_1: destination buffer
+ * param_2: source string
+ * Binary: copies source to destination with null termination
+ */
 void FUN_0043e170(char* param_1, const char* param_2) {
-    (void)param_1; (void)param_2;
+    if (!param_1 || !param_2) return;
+    while (*param_2) {
+        *param_1++ = *param_2++;
+    }
+    *param_1 = '\0';
 }
 
+/* FUN_0049b108 - Integer to String Conversion
+ * param_1: integer value to convert
+ * param_2: output buffer
+ * param_3: buffer size
+ * Returns: number of characters written (excluding null)
+ */
 int FUN_0049b108(int param_1, char* param_2, int param_3) {
-    (void)param_1; (void)param_2; (void)param_3; return 0;
+    int len;
+    int temp;
+    int i;
+    int negative;
+    unsigned int value;
+
+    if (!param_2 || param_3 <= 0) return 0;
+
+    negative = 0;
+    value = (unsigned int)param_1;
+    if (param_1 < 0) {
+        negative = 1;
+        value = (unsigned int)(-param_1);
+    }
+
+    /* Calculate digits */
+    temp = value;
+    len = 0;
+    do {
+        len++;
+        temp /= 10;
+    } while (temp > 0);
+
+    if (negative) len++;
+    if (len >= param_3) len = param_3 - 1;
+
+    param_2[len] = '\0';
+    i = len - 1;
+
+    /* Write digits in reverse */
+    do {
+        param_2[i--] = '0' + (value % 10);
+        value /= 10;
+    } while (value > 0 && i >= 0);
+
+    if (negative && i >= 0) {
+        param_2[i] = '-';
+    }
+
+    return len;
 }
 
+/* FUN_004923a7 - Printf-style String Formatting
+ * param_1: output buffer
+ * param_2: format string
+ * ...: variable arguments
+ * Returns: number of characters written
+ * Note: Simplified implementation - full version supports %s, %d, etc.
+ */
 int FUN_004923a7(char* param_1, const char* param_2, ...) {
-    (void)param_1; (void)param_2; return 0;
+    va_list args;
+    int result;
+    if (!param_1 || !param_2) return 0;
+    va_start(args, param_2);
+    result = vsnprintf(param_1, 1024, param_2, args);
+    va_end(args);
+    return result;
 }
 
 void FUN_0043e100(int param_1, char* param_2) {
