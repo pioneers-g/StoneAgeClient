@@ -104,33 +104,43 @@ static Inventory g_test_inventory;
 /*
  * Parse a pipe-delimited field - simplified FUN_00489f70
  * Returns field length, -1 on error
+ *
+ * NOTE: Field index is 1-based (field 1 = first field)
+ * FUN_00489f70 loops (field_index - 1) times to find the start position
+ * FUN_00489fe0 extracts the field content until delimiter or end
  */
 static int parse_field(const char* data, char delimiter, int field_index, char* buffer, int max_len) {
     if (!data || !buffer || max_len <= 0) return -1;
+    if (field_index < 1) return -1;
 
-    int current_field = 0;
-    const char* start = data;
     const char* p = data;
+    int current_delim = 0;
 
-    /* Find the requested field */
-    while (*p && current_field < field_index) {
-        if (*p == delimiter) {
-            current_field++;
-            if (current_field == field_index) {
-                start = p + 1;
-            }
+    /* Find the start of the requested field */
+    /* FUN_00489f70: loop (field_index - 1) times to skip delimiters */
+    while (current_delim < field_index - 1) {
+        /* Skip characters until we find the delimiter or end of string */
+        /* TODO: This simplified version doesn't handle DBCS - see FUN_00489f70 for DBCS handling */
+        while (*p && *p != delimiter) {
+            p++;
         }
+
+        if (*p == '\0') {
+            /* Not enough fields */
+            buffer[0] = '\0';
+            return 0;
+        }
+
+        /* Skip the delimiter */
         p++;
+        current_delim++;
     }
 
-    if (current_field < field_index - 1) {
-        buffer[0] = '\0';
-        return 0;
-    }
-
-    /* Copy field content */
+    /* Now p points to the start of the field */
+    /* FUN_00489fe0: copy characters until delimiter or end */
     int len = 0;
     while (*p && *p != delimiter && len < max_len - 1) {
+        /* TODO: This doesn't handle DBCS - see FUN_00489fe0 for proper DBCS handling */
         buffer[len++] = *p++;
     }
     buffer[len] = '\0';
@@ -636,8 +646,11 @@ static int test_item_address_calculation(void) {
 
     u32 addr = base + char_index * CHAR_INVENTORY_SIZE + item_index * ITEM_SIZE;
 
-    /* Expected: 0x046274d4 + 2 * 0xb18 + 3 * 0x184 */
-    u32 expected = 0x046274d4 + 0x1630 + 0x42c;
+    /* Expected: 0x046274d4 + 2 * 0xb18 + 3 * 0x184
+     * 2 * 0xb18 = 0x1630
+     * 3 * 0x184 = 0x48c (not 0x42c - was a calculation error)
+     * FIX: Corrected expected value calculation */
+    u32 expected = 0x046274d4 + 0x1630 + 0x48c;
 
     return addr == expected;
 }
