@@ -123,14 +123,79 @@ int FUN_0045ede0(int param_1);
  * FUN_0045e880 - Main Network I/O Loop
  *
  * Binary analysis:
- * - Uses select() for non-blocking I/O
- * - Calls recv() and send() based on socket state
- * - Processes incoming packets
- * - Returns 0 on success, negative on error
+ * - Uses select() for non-blocking I/O on gSocket
+ * - Calls recv() when socket is readable
+ * - Calls send() when socket is writable (via gBuffer/len)
+ * - Processes incoming packets via FUN_0045ec80/FUN_0045ee40
+ * - Dispatches text protocol via FUN_0043bf90 or binary via FUN_0048d3e0
+ * - Sends heartbeat every 30 seconds (30000ms) via FUN_0043bea0
+ * - Handles connection errors by setting DAT_0461b420=1
+ * - Uses VirtualProtect for buffer memory protection
+ * - Returns void (status via global state)
+ *
+ * Key globals:
+ * - DAT_0461b3f8: Connection active flag
+ * - DAT_0461b420: Disconnection flag
+ * - DAT_0461b424: Previous disconnection state
+ * - DAT_04ebffd8: Protocol mode (3 = connected)
+ * - DAT_0461b410: Last activity timestamp
+ * - DAT_0461b658: Binary protocol mode flag
  */
-int FUN_0045e880(void) {
+void FUN_0045e880(void) {
     /* Network I/O processing */
     /* TODO: Full implementation with select/recv/send */
+}
+
+/*
+ * FUN_00489f70 - String Token Extraction
+ *
+ * Binary analysis:
+ * - Extracts the Nth field from a delimited string
+ * - param_1: input string
+ * - param_2: delimiter character
+ * - param_3: field index (0-based)
+ * - param_4: maximum field size
+ * - param_5: output buffer
+ * - Returns 0 on success, 1 if field not found
+ * - Handles DBCS characters (bytes >= 0x80)
+ * - Calls FUN_00489fe0 to extract the token
+ */
+int FUN_00489f70(const char* str, char delimiter, int field_index, int max_size, char* output) {
+    const unsigned char* ptr = (const unsigned char*)str;
+    int count = 0;
+
+    if (!str || !output) {
+        if (output) output[0] = '\0';
+        return 1;
+    }
+
+    /* Skip to the desired field */
+    while (count < field_index) {
+        while (*ptr && *ptr != (unsigned char)delimiter) {
+            /* Handle DBCS characters */
+            if (*ptr >= 0x80 && ptr[1]) {
+                ptr += 2;
+            } else {
+                ptr++;
+            }
+        }
+        if (*ptr == delimiter) {
+            ptr++;
+            count++;
+        } else {
+            /* End of string, field not found */
+            output[0] = '\0';
+            return 1;
+        }
+    }
+
+    /* Extract the field */
+    /* TODO: Call FUN_00489fe0 for actual extraction */
+    int i = 0;
+    while (*ptr && *ptr != (unsigned char)delimiter && i < max_size - 1) {
+        output[i++] = *ptr++;
+    }
+    output[i] = '\0';
     return 0;
 }
 
