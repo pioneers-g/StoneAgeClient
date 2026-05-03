@@ -267,3 +267,37 @@ char* FUN_0048a170(char* str) {
 
 /* Protocol send stub */
 void protocol_send_text_command(const char* cmd) { (void)cmd; }
+
+/*
+ * FUN_0048a050 - Get Integer Field from Delimited String
+ *
+ * Binary analysis:
+ * - Extracts a field and converts to integer
+ * - param_1: source string
+ * - param_2: delimiter character
+ * - param_3: field index (0-based)
+ * - Returns: integer value, or -1 if field empty/not found
+ * - Uses FUN_00489f70 for extraction, FUN_004929fe for conversion
+ */
+int FUN_0048a050(const char* str, char delimiter, int field_index) {
+    (void)str; (void)delimiter; (void)field_index;
+    return -1;
+}
+
+/*
+ * FUN_00489fe0 - Copy String with DBCS Support Until Delimiter
+ *
+ * Binary analysis:
+ * - Copies string handling DBCS (double-byte character set)
+ * - param_1: source string
+ * - param_2: delimiter character (stops copying if found)
+ * - param_3: maximum length
+ * - param_4: destination buffer
+ * - Returns 0 if delimiter found, 1 if reached end/max length
+ * - DBCS characters (lead byte >= 0x80) are copied as pairs
+ * - Null-terminates the result
+ */
+int FUN_00489fe0(const char* src, char delimiter, int max_len, char* dst) {
+    (void)src; (void)delimiter; (void)max_len; (void)dst;
+    return 1;
+}
