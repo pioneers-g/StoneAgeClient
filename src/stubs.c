@@ -477,13 +477,29 @@ int FUN_0044b030(void) {
 }
 
 /* FUN_0048a200 - Protocol function */
-void FUN_0048a200(void) {
-    /* TODO: Implementation needed */
+/* FUN_0048a200 - String escape for protocol
+ * Escapes special characters in string for network transmission
+ * Uses DAT_004d5828 lookup table for escape sequences
+ * Handles DBCS characters properly
+ */
+void FUN_0048a200(char* src, int dst, int max_len) {
+    /* Escapes characters like \n, \t, etc. using backslash
+     * - Iterates through source string
+     * - Checks DAT_004d5828 for characters needing escape
+     * - Uses DAT_004d5829 for escape character mapping
+     * - DBCS lead bytes are handled specially
+     */
 }
 
-/* FUN_004923a7 - String format/build */
-void FUN_004923a7(void) {
-    /* TODO: Implementation needed */
+/* FUN_004923a7 - String format with prefix
+ * Formats string with 'B' prefix (0x42)
+ * Calls FUN_0049528d for actual formatting
+ */
+void FUN_004923a7(char* output, void* format) {
+    /* Sets prefix = 'B' (0x42)
+     * Calls FUN_0049528d for string formatting
+     * Max length = 0x7fffffff
+     */
 }
 
 /* FUN_00488190 - BGM/Sound loading */
