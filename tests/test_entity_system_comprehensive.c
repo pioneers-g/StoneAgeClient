@@ -112,13 +112,16 @@ static void test_setup(void) {
 
 /*
  * Entity create (FUN_004010a0)
+ * NOTE: Binary uses 500-byte allocation for 32-bit layout. On 64-bit,
+ * we allocate sizeof(Entity) which accounts for 8-byte pointers.
  */
 static Entity* entity_create(u8 type, int extra_size) {
     /* Allocate base structure */
-    Entity* entity = (Entity*)malloc(ENTITY_BASE_SIZE);
+    Entity* entity = (Entity*)malloc(sizeof(Entity));
     if (entity == NULL) {
         return NULL;
     }
+    memset(entity, 0, sizeof(Entity));
 
     /* Allocate optional extra data */
     if (extra_size > 0) {

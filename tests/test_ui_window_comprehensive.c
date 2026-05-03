@@ -153,18 +153,22 @@ static int test_queue_add_fade(int x1, int y1, int x2, int y2, u8 sprite_type, u
 /*
  * Create window - FUN_00448610
  * Returns allocated window or NULL on failure
+ *
+ * NOTE: Binary allocates 0x40 bytes for 32-bit layout. On 64-bit builds,
+ * the structure is larger due to pointer size. We allocate sizeof(WindowWidget)
+ * for the test, but the actual implementation should use byte-level offsets.
  */
 static WindowWidget* window_create(int x, int y, int width, int height, int style) {
     WindowWidget* wnd;
     WindowInternal* wi;
     int half_w, half_h;
 
-    /* Allocate 0x40 bytes as in FUN_004010a0(3, 0x40) */
-    wnd = (WindowWidget*)malloc(0x40);
+    /* Allocate window structure - binary uses 0x40 but we need more on 64-bit */
+    wnd = (WindowWidget*)malloc(sizeof(WindowWidget));
     if (!wnd) {
         return NULL;
     }
-    memset(wnd, 0, 0x40);
+    memset(wnd, 0, sizeof(WindowWidget));
 
     wnd->x = x;
     wnd->y = y;
