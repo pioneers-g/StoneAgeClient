@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define NDEBUG
 #include <assert.h>
 
 /* Stub types */
