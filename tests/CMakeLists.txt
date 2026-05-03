@@ -96,6 +96,7 @@ set(TEST_SOURCES
     test_menu_system_comprehensive.c
     test_ranking_system_comprehensive.c
     test_ui_skin_system_comprehensive.c
+    test_ui_element_system_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
