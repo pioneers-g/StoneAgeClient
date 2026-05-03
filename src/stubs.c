@@ -1231,6 +1231,91 @@ int FUN_0044aba0(int param_1, int param_2, int param_3, int param_4, int param_5
     return 0;
 }
 
+/* FUN_0047e640 - Render Sprite with Blend Mode
+ * Renders sprite with specified blending/transparency mode
+ *
+ * Parameters:
+ * - param_1: X position 1 (left)
+ * - param_2: Y position 1 (top)
+ * - param_3: X position 2 (right)
+ * - param_4: Y position 2 (bottom)
+ * - param_5: Sprite ID
+ * - param_6: Base sprite flags
+ * - param_7: Blend mode
+ *
+ * Coordinate packing:
+ * - param_3: Combined as (param_1 << 16) | param_3
+ * - param_4: Combined as (param_2 << 16) | param_4
+ *
+ * Blend modes (param_7):
+ * - 0: Additive alpha (0xa0000000 flag)
+ * - 1: Subtractive alpha (0x90000000 flag)
+ * - 2: Custom blend (0xc0000000 flag)
+ * - Other: No additional flags
+ *
+ * Calls FUN_0047e210 for actual sprite rendering
+ */
+void FUN_0047e640(int param_1, int param_2, unsigned int param_3, unsigned int param_4,
+                  int param_5, unsigned int param_6, int param_7) {
+    /* Render sprite with blend mode */
+}
+
+/* FUN_00411900 - Get Last Character Width
+ * Returns the byte width of the last character in a DBCS string
+ *
+ * Parameter: param_1 - Null-terminated string
+ *
+ * Processing:
+ * - Iterates through string using IsDBCSLeadByte
+ * - For DBCS characters: advances 2 bytes, returns 2 at end
+ * - For SBCS characters: advances 1 byte, returns 1 at end
+ *
+ * Returns:
+ * - 0: Empty string
+ * - 1: Last character is single-byte
+ * - 2: Last character is double-byte (DBCS)
+ * - 3: Incomplete DBCS sequence at end (lead byte without trail)
+ *
+ * Used by: FUN_0041d890 for proper text wrapping
+ */
+int FUN_00411900(const unsigned char* param_1) {
+    /* Get last character byte width */
+    return 0;
+}
+
+/* FUN_004792c0 - Calculate Gold Limit
+ * Returns maximum gold based on VIP level
+ *
+ * Formula: DAT_0462e3b4 * 1800000 + 1000000
+ *
+ * VIP gold limits:
+ * - VIP 0: 1,000,000 gold
+ * - VIP 1: 2,800,000 gold
+ * - VIP 2: 4,600,000 gold
+ * - etc. (1.8M per VIP level)
+ *
+ * Returns: Maximum gold the player can hold
+ */
+int FUN_004792c0(void) {
+    /* Calculate gold limit from VIP level */
+    return 1000000;
+}
+
+/* FUN_00411990 - Dialog/UI cleanup */
+ * - DAT_045f1b9c: Mouse Y position
+ * - Validates: x1 <= mouseX <= x2 AND y1 <= mouseY <= y2
+ *
+ * If param_5 >= 0 and click is inside:
+ * - Calls FUN_0047e640 to render highlight sprite
+ * - Uses sprite from DAT_045f1bec
+ *
+ * Returns: 1 if click inside rectangle, 0 otherwise
+ */
+int FUN_0044aba0(int param_1, int param_2, int param_3, int param_4, int param_5) {
+    /* Check if click is within rectangle */
+    return 0;
+}
+
 /* FUN_00411990 - Dialog/UI cleanup */
 void FUN_00411990(void) {
     /* TODO: Implementation needed */
