@@ -1083,6 +1083,154 @@ int FUN_0043bf90(void* socket, const char* data) {
     return 0;
 }
 
+/* FUN_00439310 - Validate and Normalize Numeric String
+ * Validates string contains only digits, replaces non-digits with '0'
+ *
+ * Parameters:
+ * - param_1: String buffer to validate (modified in place)
+ * - param_2: Maximum value (-1 for check against current gold)
+ *
+ * Processing:
+ * - Iterates through string, finds length
+ * - Replaces any non-digit characters ('0'-'9') with '0'
+ * - Validates resulting number against maximum
+ *
+ * Value validation:
+ * - If param_2 < 0: Compare against FUN_004792c0() result (current gold)
+ * - If param_2 >= 0: Compare against param_2 directly
+ * - If value exceeds maximum, reset to DAT_004aa1c4 (likely "0")
+ *
+ * Used by: FUN_00438880 (dismount UI) for numeric input validation
+ */
+void FUN_00439310(char* param_1, int param_2) {
+    /* Validate numeric string in place */
+}
+
+/* FUN_00438f70 - Parse Pet Data from Protocol String
+ * Parses pipe-delimited pet data into structured format
+ *
+ * Parameters:
+ * - param_1: Mode (0 = multiple pets, 1 = single pet with stats)
+ * - param_2: Output buffer for parsed pet data
+ *
+ * Mode 0 (multiple pets):
+ * - Parses 10 pet entries from DAT_0455ef34
+ * - Each entry: field1 (int), field2 (17 bytes), field3 (101 bytes)
+ * - Stride: 0x118 (280 bytes) per pet
+ *
+ * Mode 1 (single pet with full stats):
+ * - Parses from DAT_0455ef34 with 6+ fields
+ * - Field 1: Pet ID (int)
+ * - Field 2: Pet name (17 bytes) at offset 0x7a
+ * - Field 3: Pet nickname (101 bytes) at offset 0x15
+ * - Field 4: Pet level (8 bytes) at offset 0x8b
+ * - Field 5: Pet type (int) at offset 0x25
+ * - If type == 1: Parse additional stats (fields 6-8 for 7 values)
+ * - Otherwise: Parse description string (field 4, 64 bytes)
+ *
+ * Data source:
+ * - DAT_0455ef34: Raw pipe-delimited string from server
+ * - Uses FUN_00489f70 for field extraction
+ * - Uses FUN_0048a170 for string unescaping
+ * - Uses FUN_004929fe for string-to-int conversion
+ */
+void FUN_00438f70(int param_1, void* param_2) {
+    /* Parse pet data from protocol string */
+}
+
+/* FUN_00449510 - Create Pet Portrait Entity
+ * Creates an entity for displaying pet portrait in UI
+ *
+ * Parameters:
+ * - param_1: X position
+ * - param_2: Y position
+ * - param_3: Sprite/image ID
+ * - param_4: Mode (0 = standard, 2 = with fade effect)
+ *
+ * Entity creation:
+ * - Calls FUN_004010a0(3, 0) to allocate entity
+ * - Sets entity type flag: *(entity + 0xa0) |= 4
+ * - Sets callback to LAB_00448780
+ * - Sets sprite at offset 0x140
+ * - Sets position at offset 0x18 (x) and 0x1c (y)
+ *
+ * Mode-specific settings:
+ * - Mode 0: Standard display, state 0xc at offset 0x2c
+ * - Mode 2: Fade effect, state 0x1 at offset 0x2c, timer 0x1e at offset 0x130
+ *
+ * Returns: Entity handle or 0 on failure
+ */
+int FUN_00449510(int param_1, int param_2, int param_3, int param_4) {
+    /* Create pet portrait entity */
+    return 0;
+}
+
+/* FUN_0041d890 - Draw Multi-line Text with Highlighting
+ * Renders text with support for line wrapping and cursor highlighting
+ *
+ * Parameter: param_1 - Text layout structure
+ *   - offset 0x00: Text string (null-terminated)
+ *   - offset 0x105: Character width per line
+ *   - offset 0x106: Line height
+ *   - offset 0x107: Indent character count
+ *   - offset 0x108: Color/flags
+ *   - offset 0x109: Cursor position (character index)
+ *   - offset 0x10c: X position
+ *   - offset 0x110: Y position
+ *   - offset 0x11c: Color
+ *   - offset 0x120: Mode (1 = use asterisks)
+ *
+ * Processing:
+ * - If character count > 0x3ff: Mark as invalid (-2, -1 markers)
+ * - If offset 0x105 == 0: Register text in global list
+ * - Otherwise: Multi-line rendering with line breaks
+ *
+ * Text registration (offset 0x105 == 0):
+ * - Stores position in DAT_005676f8 array
+ * - Stores dimensions in DAT_005676fa array
+ * - If mode == 1: Fill with asterisks for password masking
+ * - Increments DAT_005ab6f8 counter
+ *
+ * Multi-line rendering:
+ * - Splits text by character width (param_1[0x105])
+ * - Renders each line with proper positioning
+ * - Highlights line containing cursor position
+ * - Uses FUN_0041d860 for actual text rendering
+ *
+ * Cursor tracking:
+ * - Calculates cursor pixel position from character index
+ * - Stores in offset 0x114 (x) and 0x118 (y)
+ */
+void FUN_0041d890(char* param_1) {
+    /* Draw multi-line text with highlighting */
+}
+
+/* FUN_0044aba0 - Check Click Within Rectangle
+ * Tests if mouse click is within a rectangular region
+ *
+ * Parameters:
+ * - param_1: Left edge (x1)
+ * - param_2: Top edge (y1)
+ * - param_3: Right edge (x2)
+ * - param_4: Bottom edge (y2)
+ * - param_5: Sprite/surface index (or -1 for no render)
+ *
+ * Check conditions:
+ * - DAT_045f1b98: Mouse X position
+ * - DAT_045f1b9c: Mouse Y position
+ * - Validates: x1 <= mouseX <= x2 AND y1 <= mouseY <= y2
+ *
+ * If param_5 >= 0 and click is inside:
+ * - Calls FUN_0047e640 to render highlight sprite
+ * - Uses sprite from DAT_045f1bec
+ *
+ * Returns: 1 if click inside rectangle, 0 otherwise
+ */
+int FUN_0044aba0(int param_1, int param_2, int param_3, int param_4, int param_5) {
+    /* Check if click is within rectangle */
+    return 0;
+}
+
 /* FUN_00411990 - Dialog/UI cleanup */
 void FUN_00411990(void) {
     /* TODO: Implementation needed */
