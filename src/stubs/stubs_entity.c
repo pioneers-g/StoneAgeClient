@@ -247,6 +247,41 @@ void FUN_0040b740(void* entity, int target_x, int target_y) {
     }
 }
 
+/*
+ * FUN_0040bb00 - Entity Queue Shift
+ *
+ * Binary analysis:
+ * - Shifts entity movement queue left by one position
+ * - Decrements queue count
+ * - param_1: entity pointer
+ * - Called when entity reaches a waypoint
+ */
+void FUN_0040bb00(void* entity) {
+    short* queue_count;
+    int* x_queue;
+    int* y_queue;
+    int i;
+
+    if (entity == NULL) return;
+
+    queue_count = (short*)((char*)entity + 0x110);
+    if (*queue_count <= 0) return;
+
+    /* Decrement count */
+    (*queue_count)--;
+
+    /* Shift queue left */
+    if (*queue_count > 0) {
+        x_queue = (int*)((char*)entity + 0xc0);
+        y_queue = (int*)((char*)entity + 0xe8);
+
+        for (i = 0; i < *queue_count; i++) {
+            x_queue[i] = x_queue[i + 1];
+            y_queue[i] = y_queue[i + 1];
+        }
+    }
+}
+
 /* Entity query stubs */
 void* entity_get_by_id(int id) {
     (void)id;
