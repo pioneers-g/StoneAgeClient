@@ -449,6 +449,80 @@ void FUN_00488190(int param_1, int param_2, int param_3) {
     (void)param_1; (void)param_2; (void)param_3;
 }
 
+/*
+ * FUN_004872b0 - WAV File Header Parser
+ *
+ * Binary analysis:
+ * - Parses WAV file format header using Windows multimedia I/O
+ * - param_1: HMMIO file handle (from mmioOpen)
+ * - param_2: output WAVEFORMATEX structure (18 bytes)
+ * - param_3: output data chunk size
+ * - Returns 1 on success, 0 on failure
+ *
+ * Process:
+ * 1. Descend into 'WAVE' chunk (fccType = 0x45564157 = "WAVE")
+ * 2. Descend into 'fmt ' chunk (ckid = 0x20746d66 = "fmt ")
+ * 3. Read 18 bytes of format data (WAVEFORMATEX)
+ * 4. Validate format tag is 1 (PCM)
+ * 5. Ascend from fmt chunk
+ * 6. Descend into 'data' chunk (ckid = 0x61746164 = "data")
+ * 7. Return data chunk size
+ *
+ * WAVEFORMATEX structure (param_2):
+ * - offset 0: wFormatTag (1 = PCM)
+ * - offset 2: nChannels
+ * - offset 4: nSamplesPerSec
+ * - offset 8: nAvgBytesPerSec
+ * - offset 12: nBlockAlign
+ * - offset 14: wBitsPerSample
+ * - offset 16: cbSize
+ */
+int FUN_004872b0(void* hmmio, void* format, u32* data_size) {
+    (void)hmmio; (void)format; (void)data_size;
+    /* TODO: Full WAV parsing implementation with mmioDescend/mmioRead */
+    return 0;
+}
+
+/*
+ * FUN_00420590 - Login Screen State Machine
+ *
+ * Binary analysis:
+ * - Main login screen state machine with multiple states
+ * - State tracked via DAT_04630df0
+ *
+ * States (DAT_04630df0):
+ * - 0: Initialize - Close socket, terminate thread, init UI
+ * - 1: DES encryption setup - Copy credentials, encrypt
+ * - 2: Wait for login window creation
+ * - 3: Display login window, play sound
+ * - 4: Wait for user input
+ * - 100 (0x64): Error state - show message, retry
+ * - 101 (0x65): Wait for retry after error
+ *
+ * Key operations:
+ * - State 0: closesocket(), TerminateThread(), FUN_00412710()
+ * - State 1: DES encrypt via FUN_0048bb90 with key "f;encor1c"
+ * - State 2: FUN_00420b70() for window creation
+ * - State 3: Create window via FUN_00448610(), sound via FUN_00488190()
+ * - State 4: Check login result via FUN_0045ef60()
+ *
+ * DES encryption:
+ * - Key: s_f_encor1c_0049e48c = "f;encor1c" (9 bytes)
+ * - Encrypts username and password separately (32 bytes each)
+ * - Uses FUN_0048bb90 for DES cipher
+ *
+ * Returns from FUN_0045ef60:
+ * - 1: Login successful, transition to game state 2
+ * - 2: Cancel/exit, post WM_CLOSE message
+ * - -7: Connection error, show DAT_04ebe4d8 message
+ * - -8: Server error, show DAT_04ebe4d8 message
+ * - Other negative: Show DAT_0461b65c error message
+ */
+void FUN_00420590(void) {
+    /* Login state machine implementation */
+    /* TODO: Full login state machine implementation */
+}
+
 /* Additional UI render functions */
 void FUN_0043b980(int param_1, int param_2, int param_3, int param_4) {
     (void)param_1; (void)param_2; (void)param_3; (void)param_4;
@@ -555,3 +629,48 @@ const char* item_get_name(int item_id) { (void)item_id; return ""; }
 
 /* Render function */
 void FUN_0047d8c0(void) {}
+
+/* ========================================
+ * Save Data Functions
+ * ======================================== */
+
+/*
+ * FUN_00449e00 - Load Save Data
+ *
+ * Binary analysis:
+ * - Loads game save data from file
+ * - Opens file via FUN_00492394
+ * - Reads records, decrypts with XOR key at DAT_004c107c (16 bytes)
+ * - Key bytes: applied to 16-byte chunks
+ * - Validates record header against expected value
+ * - Copies data to DAT_045837c8 (max 0x8980-0x9010 range)
+ * - Calls FUN_00449910 for each record
+ * - Returns 1 on success, 0 on failure
+ * - Uses stack buffer of 0x50 bytes per record
+ */
+int FUN_00449e00(void) {
+    return 0;
+}
+
+/*
+ * FUN_00401300 - Load Pet AI Settings
+ *
+ * Binary analysis:
+ * - Loads pet AI configuration from "data/AISetting.dat"
+ * - param_1: 16-byte key for validation (XOR encrypted)
+ * - Decrypts key using DAT_004c10bc (reverse order)
+ * - Searches for matching record in file
+ * - Loads settings to:
+ *   - DAT_004d9050: AI mode (4 bytes)
+ *   - DAT_004d7ea4-eb4: 5 AI parameters
+ *   - DAT_004d7f30-3c: 5 AI targets
+ *   - DAT_004d7f1c-20: 5 AI thresholds
+ *   - DAT_004d7f18: Extra setting
+ *   - DAT_004d7f54: Enable flag
+ * - Default values: mode=9, targets=1, thresholds=0x1e
+ * - Returns 1 if found, 0 otherwise
+ */
+int FUN_00401300(void* key) {
+    (void)key;
+    return 0;
+}

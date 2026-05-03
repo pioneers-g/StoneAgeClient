@@ -414,27 +414,58 @@ void FUN_004419a0(void) {}
 void render_process_queue(void) {}
 
 /*
- * FUN_0047e210 - Sprite Render Queue
+ * FUN_0047e210 - Sprite Render Queue Add
  *
  * Binary analysis:
- * - Adds sprite to render queue
- * - Max 4096 sprites in queue (DAT_0464f488)
- * - Stores position, sprite ID, render mode
+ * - Adds a sprite to the render queue for later processing by FUN_0047dc60
+ * - Max 4096 sprites in queue (checked against 0xfff)
+ * - Returns -2 if queue full or invalid parameters
+ *
+ * Parameters:
+ * - param_1: screen X position
+ * - param_2: screen Y position
+ * - param_3: sprite/surface handle (stored at DAT_0464b48a)
+ * - param_4: sprite ID (-1 to 99: special handling, 100+: normal sprite)
+ * - param_5: render mode (0-9: normal, 10-19: mode 1, 20-29: mode 2, etc.)
+ *
+ * Render mode encoding:
+ * - 0-9: Normal rendering (mode 0)
+ * - 10-19: Add offset to mode 1 (DAT_0463349c = 1)
+ * - 20-29: Add offset to mode 2 (DAT_0463349c = 2)
+ * - 30-39: Add offset to mode 3 (DAT_0463349c = 3)
+ * - 40-49: Add offset to mode 4 (DAT_0463349c = 4)
+ * - 50+: Normal rendering (mode 0)
+ *
+ * For sprite IDs 100+, calls:
+ * - FUN_0041fad0: Convert sprite ID to image index
+ * - FUN_0041f900: Get sprite dimensions
+ *
+ * Returns: queue index on success, -2 on failure
  */
-int FUN_0047e210(int x, int y, int flags, unsigned int sprite_id, int unused) {
-    (void)flags; (void)unused;
+int FUN_0047e210(int param_1, int param_2, int param_3, int param_4, int param_5) {
+    (void)param_1; (void)param_2; (void)param_3; (void)param_4; (void)param_5;
 
-    if (DAT_0464f488 >= 4096) {
-        return -1;  /* Queue full */
+    /* Check queue capacity */
+    if (DAT_0464f488 > 0xfff) {
+        return -2;
     }
 
-    /* Store sprite data */
-    int idx = DAT_0464f488;
-    DAT_04633488[idx] = x;
-    DAT_0463348c[idx] = y;
-    DAT_04633490[idx] = sprite_id;
+    /* Validate sprite ID */
+    if (param_4 < -1) {
+        if (param_4 > 99) {
+            /* Normal sprite: lookup dimensions */
+            /* FUN_0041fad0(param_4, &img_index); */
+            /* FUN_0041f900(img_index, &width, &height); */
+        }
+        return -2;
+    }
+    if (param_4 >= 0 && param_4 < 100) {
+        return -2;  /* Invalid range */
+    }
 
-    return (int)DAT_0464f488++;
+    /* TODO: Full implementation with proper array storage */
+    DAT_0464f488++;
+    return (int)DAT_0464f488 - 1;
 }
 
 /*
