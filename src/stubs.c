@@ -417,9 +417,13 @@ void FUN_00421080(void) {
     /* TODO: Implementation needed */
 }
 
-/* FUN_0044b030 - Battle UI check */
-void FUN_0044b030(void) {
-    /* TODO: Returns battle UI state */
+/* FUN_0044b030 - Battle UI active check
+ * Returns non-zero if battle UI is active (menus, dialogs, etc.)
+ */
+int FUN_0044b030(void) {
+    /* Check: DAT_045e19b0 > 0 || DAT_004e21dc > 0 || DAT_045e8ce0 != 0 */
+    /* Also checks DAT_045f1a3b and DAT_045f1a3a flags */
+    return 0;  /* TODO: Implement with proper global checks */
 }
 
 /* FUN_0048a200 - Protocol function */
