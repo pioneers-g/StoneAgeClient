@@ -591,6 +591,75 @@ int FUN_0048d3e0(int param_1) {
     return 0;
 }
 
+/*
+ * FUN_0043dbe0 - Parse Integer Parameter with Default
+ *
+ * Binary analysis:
+ * - Parses integer from protocol buffer, returns default if not present
+ * - param_1: output integer pointer
+ * - param_2: destination buffer for string copy
+ * - param_3: buffer size
+ * - param_4: source data (2 dwords: [0]=value or 0, [1]=string or 0)
+ *
+ * Process:
+ * - If param_4[0] and param_4[1] are both non-zero:
+ *   - Convert param_4[0] to integer via FUN_004930a0 (base 10)
+ *   - Copy string via FUN_0043dc40
+ * - Otherwise: set output to 0 and copy default string from DAT_004e220c
+ */
+void FUN_0043dbe0(int* output, char* dest, int dest_size, int* source) {
+    (void)output; (void)dest; (void)dest_size; (void)source;
+    /* TODO: Full implementation */
+}
+
+/*
+ * FUN_0043dc40 - String Copy with Length Limit
+ *
+ * Binary analysis:
+ * - Copies string with length limit (null-terminated)
+ * - param_1: destination buffer
+ * - param_2: source string
+ * - param_3: maximum size including null terminator
+ * - Copies until null byte or max_size-1 characters
+ * - Always null-terminates the result
+ */
+void FUN_0043dc40(char* dest, const char* src, int max_size) {
+    (void)dest; (void)src; (void)max_size;
+    /* TODO: Full implementation with safe string copy */
+}
+
+/*
+ * FUN_0043dd50 - Parse String Field
+ *
+ * Binary analysis:
+ * - Parses string field from protocol buffer
+ * - param_1: source pointer (or 0 for empty)
+ * - Returns pointer to parsed string
+ * - If param_1 == 0: copies default from DAT_004e220c to DAT_004b9ff8
+ * - Otherwise: calls FUN_0043ded0 to extract field
+ */
+const char* FUN_0043dd50(const char* source) {
+    (void)source;
+    /* TODO: Full implementation */
+    return "";
+}
+
+/*
+ * FUN_0043dd70 - Get String Field with Default
+ *
+ * Binary analysis:
+ * - Similar to FUN_0043dd50 but with default handling
+ * - param_1: source pointer (or 0 for default)
+ * - Returns pointer to result string
+ * - If param_1 == 0: copies default string
+ * - Otherwise: extracts via FUN_0043ded0
+ */
+const char* FUN_0043dd70(const char* source) {
+    (void)source;
+    /* TODO: Full implementation */
+    return "";
+}
+
 /* Additional UI render functions */
 void FUN_0043b980(int param_1, int param_2, int param_3, int param_4) {
     (void)param_1; (void)param_2; (void)param_3; (void)param_4;
