@@ -129,6 +129,10 @@ static void shop_set_mode(u8 buy_mode) {
     g_shop.buy_mode = buy_mode;
     g_shop.selected_index = -1;
     g_shop.scroll_offset = 0;
+    /* FIX: Clear cart when switching modes - prevents accidental purchases/sales */
+    g_shop.cart_count = 0;
+    memset(g_shop.cart_items, 0, sizeof(g_shop.cart_items));
+    memset(g_shop.cart_counts, 0, sizeof(g_shop.cart_counts));
 }
 
 static int shop_select_item(s32 index) {

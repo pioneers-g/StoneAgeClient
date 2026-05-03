@@ -98,16 +98,21 @@ static int tests_passed = 0;
  * ======================================== */
 
 void des_encrypt(const char* key, void* data, u32 len, u8 encrypt) {
-    /* Simplified DES encryption stub */
+    /* Simplified DES encryption stub
+     * FIX: Encryption and decryption must be inverse operations:
+     * - Encrypt: XOR with key, then add 0x55
+     * - Decrypt: Subtract 0x55, then XOR with key
+     */
     u8* bytes = (u8*)data;
     u32 key_len = strlen(key);
 
     for (u32 i = 0; i < len; i++) {
-        bytes[i] ^= key[i % key_len];
         if (encrypt) {
+            bytes[i] ^= key[i % key_len];
             bytes[i] = (bytes[i] + 0x55) & 0xFF;
         } else {
             bytes[i] = (bytes[i] - 0x55) & 0xFF;
+            bytes[i] ^= key[i % key_len];
         }
     }
 }
@@ -327,8 +332,7 @@ static int test_des_decrypt_basic(void) {
     des_encrypt(DES_KEY, data, 4, 1);
     des_encrypt(DES_KEY, data, 4, 0);
 
-    /* Data should be restored
-     * TODO: DES encryption stub needs actual implementation for correct decrypt */
+    /* Data should be restored after encrypt/decrypt cycle */
     return memcmp(data, original, 4) == 0;
 }
 

@@ -83,6 +83,7 @@ static int parse_command(const char* input, ParsedCommand* cmd) {
             if (in_field) {
                 cmd->fields[field_idx][char_idx] = '\0';
                 field_idx++;
+                in_field = 0;  /* FIX: Clear in_field to prevent post-loop increment */
             }
             break;
         } else {

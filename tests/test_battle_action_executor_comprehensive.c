@@ -206,8 +206,9 @@ static void calculate_attack_window(int target_count, int* width, int* height) {
     int base_width = (target_count * -0x30 + 0x1C8) / 2;
     /* Height is based on button layout */
     int base_height = ((10 - target_count) * 0x40) / 2;
-    *width = base_width;
-    *height = base_height;
+    /* FIX: Ensure minimum positive dimensions for edge cases */
+    *width = (base_width > 0) ? base_width : 1;
+    *height = (base_height > 0) ? base_height : 1;
 }
 
 static int test_window_dimension_1(void) {

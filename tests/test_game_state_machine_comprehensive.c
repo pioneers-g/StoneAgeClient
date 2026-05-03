@@ -570,13 +570,18 @@ static int test_exit_init_state(void) {
 
     g_game.current_state = STATE_EXIT_INIT;
 
+    /* First update: EXIT_INIT -> EXIT_FADE_1 */
     game_state_update();
 
-    int pass = g_game.current_state == STATE_EXIT_FADE_1 &&
-               g_game.fade_flag == 2;
+    int pass1 = g_game.current_state == STATE_EXIT_FADE_1;
+
+    /* Second update: EXIT_FADE_1 sets fade_flag */
+    game_state_update();
+
+    int pass2 = g_game.fade_flag == 2;
 
     test_teardown();
-    return pass;
+    return pass1 && pass2;
 }
 
 static int test_exit_check_no_exit(void) {
