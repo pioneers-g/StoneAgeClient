@@ -75,6 +75,7 @@ set(TEST_SOURCES
     test_minimap_comprehensive.c
     test_pathfind_comprehensive.c
     test_protocol_module_comprehensive.c
+    test_application_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
