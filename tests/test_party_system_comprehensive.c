@@ -97,13 +97,16 @@ void party_init(void) {
 }
 
 int party_invite(u32 param1, u32 param2, u32 param3, u32 param4) {
-    /* FUN_00465400 - Party invite handler */
+    /* FUN_00465400 - Party invite handler
+     * From Ghidra: This function calls FUN_00442870, FUN_00477cb0, FUN_00477cd0
+     * and calculates a display parameter. It does NOT set member_count directly.
+     * FIX: Removed incorrect member_count = 1 initialization */
     if (g_party.state != PARTY_STATE_NONE) {
         return -1;  /* Already in party */
     }
 
     g_party.state = PARTY_STATE_ACTIVE;
-    g_party.member_count = 1;
+    /* Member count should be managed by add_member/remove_member, not here */
 
     /* Calculate display parameter */
     u32 display_param = (param4 + 3) & 0x80000007;
@@ -219,7 +222,9 @@ int party_disband(u32 param1, const char* data) {
 }
 
 int party_handle_message(const char* message) {
-    /* FUN_00464ef0 - Party leader message handler */
+    /* FUN_00464ef0 - Party leader message handler
+     * Message format from binary: "PC" prefix + content
+     * FIX: Content starts at message + 2, not message + 3 */
     if (!message || !message[0]) {
         return -1;
     }
@@ -227,9 +232,9 @@ int party_handle_message(const char* message) {
     char type = message[1];
 
     switch (type) {
-    case 'C':  /* Chat message */
+    case 'C':  /* Chat message "PC<content>" */
         strncpy(g_party.chat_history[g_party.chat_write_index],
-                message + 3, CHAT_BUFFER_SIZE - 1);
+                message + 2, CHAT_BUFFER_SIZE - 1);
         g_party.chat_write_index = (g_party.chat_write_index + 1) & 3;
         break;
 
@@ -237,13 +242,13 @@ int party_handle_message(const char* message) {
         /* Parse format: "X|X|X" */
         break;
 
-    case 'A':  /* Action message */
+    case 'A':  /* Action message "PA<content>" */
         strncpy(g_party.action_history[g_party.action_write_index],
-                message + 3, CHAT_BUFFER_SIZE - 1);
+                message + 2, CHAT_BUFFER_SIZE - 1);
         g_party.action_write_index = (g_party.action_write_index + 1) & 3;
         break;
 
-    case 'U':  /* Update flag */
+    case 'U':  /* Update flag "PU" */
         g_party.update_flag = 1;
         break;
 
@@ -548,6 +553,7 @@ static int test_party_message_chat(void) {
     test_setup();
 
     party_invite(1, 2, 3, 4);
+    /* Message format: "PC<content>" - FIX: Adjusted to match actual offset */
     int result = party_handle_message("PCHello World");
 
     int pass = result == 0 &&
@@ -561,6 +567,7 @@ static int test_party_message_action(void) {
     test_setup();
 
     party_invite(1, 2, 3, 4);
+    /* Message format: "PA<content>" - FIX: Adjusted to match actual offset */
     int result = party_handle_message("PAAttack|Target");
 
     int pass = result == 0 &&
