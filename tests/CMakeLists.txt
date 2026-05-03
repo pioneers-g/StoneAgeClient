@@ -97,6 +97,7 @@ set(TEST_SOURCES
     test_event_system_comprehensive.c
     test_debug_effect.c
     test_debug_death.c
+    test_animation_system_comprehensive.c
 )
 
 # Create test executables

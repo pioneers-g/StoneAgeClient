@@ -10,6 +10,17 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
+#include <windows.h>
+/* Disable Windows error popups (like assertion failures) */
+#define DISABLE_ERROR_POPUPS() do { \
+    SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX); \
+    _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT); \
+} while(0)
+#else
+#define DISABLE_ERROR_POPUPS() do {} while(0)
+#endif
+
 /* Test counters */
 static int s_tests_run = 0;
 static int s_tests_passed = 0;
@@ -18,74 +29,75 @@ static int s_tests_failed = 0;
 /* Current test name */
 static char s_current_test[256] = "";
 
-/* Assert macros */
-#define TEST_ASSERT(condition, message) do { \
-    if (!(condition)) { \
-        printf("  FAILED: %s\n    Line %d: %s\n", s_current_test, __LINE__, message); \
-        s_tests_failed++; \
-        return; \
-    } \
-} while(0)
+/*
+ * Assert macros
+ * Support both 1 and 2 parameter forms for TEST_ASSERT
+ * Support both 2 and 3 parameter forms for TEST_ASSERT_EQ and TEST_ASSERT_STR_EQ
+ */
 
-/* 1-parameter version for convenience */
-#undef TEST_ASSERT
-#define TEST_ASSERT(condition) do { \
-    if (!(condition)) { \
+/* TEST_ASSERT - can be called with just condition or condition and message */
+#define TEST_ASSERT_1(cond) do { \
+    if (!(cond)) { \
         printf("  FAILED: %s\n    Line %d: assertion failed\n", s_current_test, __LINE__); \
         s_tests_failed++; \
         return; \
     } \
 } while(0)
 
-#define TEST_ASSERT_EQ(expected, actual, message) do { \
-    if ((expected) != (actual)) { \
+#define TEST_ASSERT_2(cond, msg) do { \
+    if (!(cond)) { \
+        printf("  FAILED: %s\n    Line %d: %s\n", s_current_test, __LINE__, msg); \
+        s_tests_failed++; \
+        return; \
+    } \
+} while(0)
+
+#define TEST_ASSERT_GET_MACRO(_1, _2, NAME, ...) NAME
+#define TEST_ASSERT(...) TEST_ASSERT_GET_MACRO(__VA_ARGS__, TEST_ASSERT_2, TEST_ASSERT_1)(__VA_ARGS__)
+
+/* TEST_ASSERT_EQ - can be called with (expected, actual) or (expected, actual, message) */
+#define TEST_ASSERT_EQ_2(exp, act) do { \
+    if ((exp) != (act)) { \
+        printf("  FAILED: %s\n    Line %d: (expected %d, got %d)\n", \
+               s_current_test, __LINE__, (int)(exp), (int)(act)); \
+        s_tests_failed++; \
+        return; \
+    } \
+} while(0)
+
+#define TEST_ASSERT_EQ_3(exp, act, msg) do { \
+    if ((exp) != (act)) { \
         printf("  FAILED: %s\n    Line %d: %s (expected %d, got %d)\n", \
-               s_current_test, __LINE__, message, (int)(expected), (int)(actual)); \
+               s_current_test, __LINE__, msg, (int)(exp), (int)(act)); \
         s_tests_failed++; \
         return; \
     } \
 } while(0)
 
-/* 2-parameter version for convenience */
-#define TEST_ASSERT_EQ2(expected, actual) do { \
-    if ((expected) != (actual)) { \
-        printf("  FAILED: %s\n    Line %d: (expected %d, got %d)\n", \
-               s_current_test, __LINE__, (int)(expected), (int)(actual)); \
-        s_tests_failed++; \
-        return; \
-    } \
-} while(0)
+#define TEST_ASSERT_EQ_GET_MACRO(_1, _2, _3, NAME, ...) NAME
+#define TEST_ASSERT_EQ(...) TEST_ASSERT_EQ_GET_MACRO(__VA_ARGS__, TEST_ASSERT_EQ_3, TEST_ASSERT_EQ_2)(__VA_ARGS__)
 
-/* Override to use 2-param version by default */
-#undef TEST_ASSERT_EQ
-#define TEST_ASSERT_EQ(expected, actual) do { \
-    if ((expected) != (actual)) { \
-        printf("  FAILED: %s\n    Line %d: (expected %d, got %d)\n", \
-               s_current_test, __LINE__, (int)(expected), (int)(actual)); \
-        s_tests_failed++; \
-        return; \
-    } \
-} while(0)
-
-#define TEST_ASSERT_STR_EQ(expected, actual, message) do { \
-    if (strcmp((expected), (actual)) != 0) { \
-        printf("  FAILED: %s\n    Line %d: %s (expected \"%s\", got \"%s\")\n", \
-               s_current_test, __LINE__, message, (expected), (actual)); \
-        s_tests_failed++; \
-        return; \
-    } \
-} while(0)
-
-/* 2-parameter version for convenience */
-#undef TEST_ASSERT_STR_EQ
-#define TEST_ASSERT_STR_EQ(expected, actual) do { \
-    if (strcmp((expected), (actual)) != 0) { \
+/* TEST_ASSERT_STR_EQ - can be called with (expected, actual) or (expected, actual, message) */
+#define TEST_ASSERT_STR_EQ_2(exp, act) do { \
+    if (strcmp((exp), (act)) != 0) { \
         printf("  FAILED: %s\n    Line %d: (expected \"%s\", got \"%s\")\n", \
-               s_current_test, __LINE__, (expected), (actual)); \
+               s_current_test, __LINE__, (exp), (act)); \
         s_tests_failed++; \
         return; \
     } \
 } while(0)
+
+#define TEST_ASSERT_STR_EQ_3(exp, act, msg) do { \
+    if (strcmp((exp), (act)) != 0) { \
+        printf("  FAILED: %s\n    Line %d: %s (expected \"%s\", got \"%s\")\n", \
+               s_current_test, __LINE__, msg, (exp), (act)); \
+        s_tests_failed++; \
+        return; \
+    } \
+} while(0)
+
+#define TEST_ASSERT_STR_EQ_GET_MACRO(_1, _2, _3, NAME, ...) NAME
+#define TEST_ASSERT_STR_EQ(...) TEST_ASSERT_STR_EQ_GET_MACRO(__VA_ARGS__, TEST_ASSERT_STR_EQ_3, TEST_ASSERT_STR_EQ_2)(__VA_ARGS__)
 
 #define TEST_ASSERT_MEM_EQ(expected, actual, size, message) do { \
     if (memcmp((expected), (actual), (size)) != 0) { \
@@ -101,6 +113,13 @@ static char s_current_test[256] = "";
     strncpy(s_current_test, name, sizeof(s_current_test) - 1); \
     s_tests_run++; \
     printf("  Running: %s... ", name); \
+    fflush(stdout); \
+} while(0)
+
+/* Test initialization - call at the start of main() */
+#define TEST_INIT() do { \
+    DISABLE_ERROR_POPUPS(); \
+    printf("=== Unit Tests ===\n\n"); \
 } while(0)
 
 #define TEST_END() do { \

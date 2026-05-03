@@ -12,6 +12,7 @@
 #define PET_AI_H
 
 #include "types.h"
+#include "pet.h"
 
 /* Constants from binary analysis */
 #define MAX_AI_PRESETS          1       /* Only 1 preset used in original */

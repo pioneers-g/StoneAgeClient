@@ -202,4 +202,4 @@ data/
 - 本项目由AI生成，全程几乎0人类干预，是一个实验项目
 - 工具: claude code、ghidra、bethington/ghidra-mcp、cc-switch、vscode、clawgod(开启claude code高级功能)
 - 模型: glm5(百度千帆 - 200RMB 的coding plan(本项目大概占了约70%的请求，成本不到150RMB))
-- AI Agent连续工作时长: 48小时43分
+- AI Agent连续工作时长: 48小时43分(从2026年5月1日10:42分开始)
