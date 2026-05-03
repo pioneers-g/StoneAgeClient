@@ -295,6 +295,15 @@ float _DAT_0049c334 = 1.0f;
 float _DAT_0049c3e8 = 0.5f;
 float _DAT_0049c3e4 = 0.25f;
 
+/* Entity movement speed constants */
+float _DAT_0049c32c = 1.0f;    /* Default speed */
+float _DAT_0049c308 = 1.5f;    /* Speed for queue < 6 */
+float _DAT_0049c330 = 2.0f;    /* Speed for queue < 4 */
+float _DAT_0049c30c = 1.2f;    /* Speed for queue 2-3 */
+float _DAT_0049c318 = 0.001f;  /* Minimum distance threshold */
+float _DAT_0049c328 = 1.0f;    /* Speed multiplier */
+float _DAT_0049c324 = 0.0f;    /* Direction offset */
+
 /* Additional globals needed by render */
 u32 DAT_045829b8 = 0;
 u32 DAT_045829b4 = 0;
@@ -345,7 +354,7 @@ s32 DAT_004cf838 = -1;        /* Box wipe init flag */
 u32 DAT_005ab710 = 0;         /* Fade state machine: 2=fade out, 3=fade in, 4=complete */
 
 /* Float constants for fade calculations */
-float _DAT_0049c318 = 0.0f;   /* Minimum velocity threshold */
+/* _DAT_0049c318 defined above with entity movement constants */
 float _DAT_0049c440 = 0.0f;   /* Scroll boundary left */
 float _DAT_0049c444 = 0.0f;   /* Scroll boundary top */
 float _DAT_0049c448 = 1.0f;   /* X acceleration */

@@ -5,6 +5,7 @@
 
 #include <windows.h>
 #include <stdlib.h>
+#include <math.h>
 #include "types.h"
 
 /* External globals */
@@ -279,6 +280,117 @@ void FUN_0040bb00(void* entity) {
             x_queue[i] = x_queue[i + 1];
             y_queue[i] = y_queue[i + 1];
         }
+    }
+}
+
+/*
+ * FUN_0040b880 - Entity Set Target Position with Speed
+ *
+ * Binary analysis:
+ * - Sets entity movement target with speed calculation
+ * - param_1: entity pointer
+ * - param_2: target X (world coordinates)
+ * - param_3: target Y (world coordinates)
+ * - Calculates velocity based on distance and speed constants
+ * - Uses SQRT for distance calculation
+ * - Sets direction via FUN_00447150
+ */
+void FUN_0040b880(void* entity, float target_x, float target_y) {
+    short queue_count;
+    float speed, dx, dy, dist;
+    extern float _DAT_0049c32c, _DAT_0049c308, _DAT_0049c330, _DAT_0049c30c;
+    extern float _DAT_0049c318, _DAT_0049c328, _DAT_0049c324;
+
+    if (entity == NULL) return;
+
+    queue_count = *(short*)((char*)entity + 0x110);
+
+    /* Determine speed based on queue count */
+    speed = _DAT_0049c32c;
+    if (queue_count < 6) {
+        speed = _DAT_0049c308;
+        if (queue_count < 4) {
+            speed = _DAT_0049c330;
+            if (queue_count > 1) {
+                speed = _DAT_0049c30c;
+            }
+        }
+    }
+
+    /* Calculate direction vector */
+    dx = ((int)target_x << 6) - *(float*)((char*)entity + 0x114);
+    dy = ((int)target_y << 6) - *(float*)((char*)entity + 0x118);
+
+    /* Calculate distance */
+    dist = (float)sqrt(dx * dx + dy * dy);
+
+    /* Normalize or zero if too close */
+    if (dist <= _DAT_0049c318) {
+        dx = 0.0f;
+        dy = 0.0f;
+    } else {
+        dx = dx / dist;
+        dy = dy / dist;
+    }
+
+    /* Set position and velocity */
+    *(int*)((char*)entity + 0xb8) = (int)target_x;
+    *(float*)((char*)entity + 0xbc) = target_y;
+    *(float*)((char*)entity + 0x11c) = dx * speed * _DAT_0049c328;
+    *(float*)((char*)entity + 0x120) = dy * speed * _DAT_0049c328;
+
+    /* Set direction if moving */
+    if (dx != 0.0f || dy != 0.0f) {
+        float direction = (float)0;  /* FUN_00447150(dx, dy) + _DAT_0049c324 */
+        /* FUN_004470d0(&direction) - normalize direction */
+        *(int*)((char*)entity + 0x150) = (int)direction;
+        *(short*)((char*)entity + 0x112) = 1;
+    }
+}
+
+/*
+ * FUN_0040b9e0 - Entity Set Target Position Simple
+ *
+ * Binary analysis:
+ * - Sets entity movement target without speed modification
+ * - param_1: entity pointer
+ * - param_2: target X (world coordinates)
+ * - param_3: target Y (world coordinates)
+ * - Simpler version of FUN_0040b880
+ */
+void FUN_0040b9e0(void* entity, float target_x, float target_y) {
+    float dx, dy, dist;
+    extern float _DAT_0049c318, _DAT_0049c328;
+
+    if (entity == NULL) return;
+
+    /* Calculate direction vector */
+    dx = ((int)target_x << 6) - *(float*)((char*)entity + 0x114);
+    dy = ((int)target_y << 6) - *(float*)((char*)entity + 0x118);
+
+    /* Calculate distance */
+    dist = (float)sqrt(dx * dx + dy * dy);
+
+    /* Normalize or zero if too close */
+    if (dist <= _DAT_0049c318) {
+        dx = 0.0f;
+        dy = 0.0f;
+    } else {
+        dx = dx / dist;
+        dy = dy / dist;
+    }
+
+    /* Set position and velocity */
+    *(float*)((char*)entity + 0xb8) = target_x;
+    *(int*)((char*)entity + 0xbc) = (int)target_y;
+    *(float*)((char*)entity + 0x11c) = dx * _DAT_0049c328;
+    *(float*)((char*)entity + 0x120) = dy * _DAT_0049c328;
+
+    /* Set direction if moving */
+    if (dx != 0.0f || dy != 0.0f) {
+        float direction = (float)0;  /* FUN_00447150(dx, dy) */
+        *(int*)((char*)entity + 0x150) = (int)direction;
+        *(short*)((char*)entity + 0x112) = 1;
     }
 }
 
