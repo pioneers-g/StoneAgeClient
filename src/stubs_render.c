@@ -288,6 +288,46 @@ void FUN_0047fae0(void* surface, int x, int y, int src_x, int src_y,
 }
 
 /*
+ * FUN_0041fb10 - Load Standard Sprite from Archive
+ *
+ * Binary analysis:
+ * - Loads sprite data from sprite archive file
+ * - param_1: sprite ID (0-549999)
+ * - param_2: output surface pointer
+ * - param_3, param_4: dimensions output
+ * - Uses DAT_00e8f228 sprite directory (0x14 bytes per entry)
+ * - Returns true on success, false on failure
+ * - Opens file at DAT_03885528, reads from DAT_00c1e224 buffer
+ */
+int FUN_0041fb10(int sprite_id, void** surface, int* width, int* height) {
+    (void)sprite_id; (void)surface; (void)width; (void)height;
+    /* TODO: Full sprite archive loading */
+    return 0;
+}
+
+/*
+ * FUN_0041fc90 - Load High-Resolution Sprite from Archive
+ *
+ * Binary analysis:
+ * - Loads high-res sprite (for sprites 500000-549999)
+ * - param_1: sprite index (0-49999, maps to 500000-549999)
+ * - param_2: output primary surface
+ * - param_3, param_4: dimensions
+ * - param_5: output alpha mask surface
+ * - param_6: output flag indicating alpha mask loaded
+ * - Uses file handle at DAT_00a04c60
+ * - Directory at DAT_0081c7e4 (10 dwords per entry)
+ * - Loads sprite data + optional alpha mask
+ */
+int FUN_0041fc90(unsigned int sprite_index, void** surface, int* width, int* height,
+                 void** alpha_surface, int* has_alpha) {
+    (void)sprite_index; (void)surface; (void)width; (void)height;
+    (void)alpha_surface; (void)has_alpha;
+    /* TODO: Full high-res sprite loading */
+    return 0;
+}
+
+/*
  * FUN_0041fad0 - Sprite Image Index Lookup
  *
  * Binary analysis:
