@@ -4,6 +4,7 @@
  */
 
 #include <windows.h>
+#include <string.h>
 #include "types.h"
 
 /* External globals */
@@ -14,6 +15,17 @@ extern char DAT_0462bf09[];
 extern int DAT_0462be98;
 extern int DAT_0462be9c;
 extern int DAT_0462bec0;
+extern u32 DAT_0462be88;
+extern u32 DAT_0462be94;
+extern u32 DAT_0462be90;
+extern u32 DAT_04581d3c;
+extern u32 DAT_04581d40;
+
+/* External functions */
+extern void* FUN_0040b5e0(int model_id, int x, int y, int extra);
+extern void FUN_00477c70(int model_id, int extra);
+extern void FUN_00477cb0(int x, int y);
+extern void FUN_00477cd0(void);
 
 /*
  * FUN_00477fd0 - Update Player Entity Data
