@@ -328,29 +328,50 @@ void FUN_0041bba0(void) {
      */
 }
 
-/* FUN_0044ac00 - UI/render function */
+/* FUN_0044ac00 - Clear UI handles array
+ * Iterates through DAT_0458f4c0 array and marks each handle for deletion
+ */
 void FUN_0044ac00(void) {
-    /* TODO: Implementation needed */
+    /* Clear UI handles from DAT_0458f4c0 to DAT_0458f4d0 */
+    /* Each entry is freed via FUN_004011c0 then zeroed */
 }
 
-/* FUN_004445c0 - Render function */
+/* FUN_004445c0 - Clear render state
+ * Resets various render-related counters and flags
+ */
 void FUN_004445c0(void) {
-    /* TODO: Implementation needed */
+    /* DAT_0456b17c = 0; _DAT_04560284 = 0; DAT_04560288 = 0; */
 }
 
-/* FUN_00445070 - Render update */
+/* FUN_00445070 - Render update with timing
+ * Calls multiple render functions and handles fade timing
+ */
 void FUN_00445070(void) {
-    /* TODO: Implementation needed */
+    /* Calls: FUN_00445100, FUN_004452f0, FUN_00445650, FUN_00446320,
+     * FUN_00446b30, FUN_00446e80
+     * Also handles fade state (DAT_0456b178) with 2500ms timeout
+     */
 }
 
-/* FUN_004419a0 - UI update */
+/* FUN_004419a0 - Reset map scroll position
+ * Sets scroll coordinates to -1 (invalid/offscreen)
+ */
 void FUN_004419a0(void) {
-    /* TODO: Implementation needed */
+    /* DAT_004bb414 = 0xffffffff; DAT_004bb418 = 0xffffffff; */
 }
 
-/* FUN_00440e90 - Input handling */
+/* FUN_00440e90 - Isometric map tile rendering
+ * Complex function that renders map tiles in isometric view
+ * Handles tile types, sprites, and viewport positioning
+ */
 void FUN_00440e90(void) {
-    /* TODO: Implementation needed */
+    /* TODO: Complex isometric tile rendering:
+     * - Checks if map position changed (DAT_04581d3c vs DAT_004bb414)
+     * - Calls FUN_00440aa0 for tile data
+     * - Iterates tiles in diamond pattern
+     * - Renders sprites via FUN_0047e210
+     * - Handles tile types 0-99, 20-39, 40-59
+     */
 }
 
 /* FUN_00410850 - Game state update */
