@@ -331,6 +331,61 @@ int FUN_004929fe(const char* param_1) {
     return 0;
 }
 
+/* FUN_0043dce0 - Encode Integer to Base-62 String
+ * Converts an integer to Base-62 encoded string for protocol
+ *
+ * Parameter: param_1 - Integer value to encode
+ *
+ * Processing:
+ * 1. Call FUN_0043e190 to encode using DAT_004b9fec table
+ * 2. Clear output buffer via FUN_0043dc40(DAT_004b9ffc, result)
+ * 3. Append to buffer via FUN_0043dc90
+ *
+ * Output: DAT_004b9ffc - Buffer containing encoded string
+ *
+ * Returns: Pointer to encoded string in DAT_004b9ffc
+ */
+int FUN_0043dce0(int param_1) {
+    /* Encode integer to Base-62 string */
+    return 0;
+}
+
+/* FUN_0043dc90 - Append String to Buffer with Limit
+ * Appends a string to buffer with maximum size limit
+ *
+ * Parameters:
+ * - param_1: Destination buffer
+ * - param_2: Source string to append
+ * - param_3: Maximum buffer size
+ *
+ * Processing:
+ * - Find null terminator in destination
+ * - Append source string until null or limit reached
+ * - Respects (param_3 - 1) maximum characters
+ *
+ * Note: This is a safe string concatenation function
+ */
+void FUN_0043dc90(char* param_1, const char* param_2, int param_3) {
+    /* Append string to buffer with size limit */
+}
+
+/* FUN_0043e170 - Initialize Protocol Buffer
+ * Initializes a protocol output buffer with format string
+ *
+ * Parameters:
+ * - param_1: Buffer to initialize
+ * - param_2: Format specifier
+ *
+ * Processing:
+ * 1. Call FUN_0043e0f0 to clear format state
+ * 2. Initialize with "%u %s" format via FUN_004923a7
+ *
+ * Format string: "%u %s" at DAT_004ba3ac
+ */
+void FUN_0043e170(char* param_1, const char* param_2) {
+    /* Initialize protocol buffer with format */
+}
+
 /* Window proc */
 LRESULT window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
     return DefWindowProc(hwnd, msg, wparam, lparam);
