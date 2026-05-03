@@ -636,19 +636,56 @@ void FUN_004011c0(intptr_t entity) {
     }
 }
 
-void FUN_00401170(void) {}
+/* FUN_00401170 - Field Entity Update Loop
+ * Iterates through entity linked list and updates each entity
+ * Binary: Checks entity delete flag at offset 0x24, calls update callback
+ */
+void FUN_00401170(void) {
+    /* TODO: Full implementation would:
+     * - Get entity list head from DAT_004d7e3c
+     * - Iterate through linked list
+     * - If entity->delete_flag, remove from list and free
+     * - Otherwise call entity->update_callback(entity)
+     */
+}
+
 void FUN_004011f0(void) {}
 
 int FUN_0040f460(int param_1) { (void)param_1; return 0; }
 
+/* FUN_0040ddd0 - Entity Action Dispatcher
+ * param_1: entity pointer
+ * param_2: x position
+ * param_3: y position
+ * param_4: target id
+ * param_5: action type (0-60+)
+ * param_6: action parameter
+ * param_7: sprite id
+ * param_8: mode
+ * Binary: 30+ action types with switch statement
+ * Actions: 0=stop, 1=walk, 2=idle, 3=attack, etc.
+ */
 void FUN_0040ddd0(int entity, int x, int y, int target, int action_type,
                   int param6, int sprite_id, int mode) {
-    (void)entity; (void)x; (void)y; (void)target; (void)action_type;
+    if (!entity) return;
+    /* TODO: Full implementation handles 30+ action types */
+    (void)x; (void)y; (void)target; (void)action_type;
     (void)param6; (void)sprite_id; (void)mode;
 }
 
+/* FUN_0040b6e0 - Entity Walk To Position
+ * Sets entity to walk towards target position
+ */
 void FUN_0040b6e0(int entity, int x, int y) { (void)entity; (void)x; (void)y; }
+
+/* FUN_0040bfc0 - Entity Set Direction
+ * Updates entity facing direction
+ */
 void FUN_0040bfc0(int entity, int x, int y) { (void)entity; (void)x; (void)y; }
+
+/* FUN_0040b740 - Entity Step Movement
+ * Single step movement for entity
+ */
 void FUN_0040b740(int entity, int x, int y) { (void)entity; (void)x; (void)y; }
 
 /* ========================================
