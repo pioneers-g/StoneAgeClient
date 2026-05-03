@@ -296,3 +296,68 @@ void FUN_004770c0(void* entity) {
 void FUN_0046b800(void* entity) {
     (void)entity;
 }
+
+/*
+ * FUN_0046b8a0 - Parse Hex Number from Buffer
+ *
+ * Binary analysis:
+ * - Parses hexadecimal number from DAT_004d803c at position DAT_0461c6c0
+ * - Same logic as FUN_00476860 but different buffer
+ * - Skips non-hex characters at start
+ * - Accepts: '0'-'9' (0x30-0x39) and 'A'-'F' (0x41-0x46)
+ * - Returns -1 if no hex digit found
+ * - Updates DAT_0461c6c0 to position after last hex digit
+ */
+int FUN_0046b8a0(void) {
+    return -1;
+}
+
+/*
+ * FUN_0046b930 - Extract String from Buffer
+ *
+ * Binary analysis:
+ * - Extracts string from DAT_004d803c at position DAT_0461c6c0
+ * - Same logic as FUN_004768e0 but different buffer
+ * - param_1: destination structure (stores at offset 0x38)
+ * - Reads until null or '|' delimiter
+ * - Handles DBCS characters via IsDBCSLeadByte()
+ * - Calls FUN_0048a170 to process extracted string
+ */
+void FUN_0046b930(void* dest_struct) {
+    (void)dest_struct;
+}
+
+/*
+ * FUN_0046b9a0 - Check All Characters Ready
+ *
+ * Binary analysis:
+ * - Checks if all character entities are ready for action
+ * - Returns true if all characters in party are ready
+ * - Checks entities in DAT_04ebe428 (first 10) and DAT_04ebe450 (next 5)
+ * - For each entity: checks offset 8 (active) and offset 0x78 (HP)
+ * - Special sprites 0x18db5/0x18db6 always considered ready
+ * - Also checks companion flag at offset 0xc+0x120
+ * - Returns false if any entity is not ready
+ */
+int FUN_0046b9a0(void) {
+    return 1;
+}
+
+/*
+ * FUN_0046bac0 - Set Character Emote Sprite
+ *
+ * Binary analysis:
+ * - Sets emote sprite for character entity at DAT_0461c67c
+ * - param_1: emote type (0-4)
+ * - Emote sprites:
+ *   - 0: 0x622c (normal)
+ *   - 1: 0x622d (happy)
+ *   - 2: 0x622e (sad)
+ *   - 3: 0x622f (angry)
+ *   - 4: 0x622f (angry)
+ * - Clears bit 1 from flags at offset 0xa0
+ * - Calls FUN_00477240 to update animation
+ */
+void FUN_0046bac0(int emote_type) {
+    (void)emote_type;
+}
