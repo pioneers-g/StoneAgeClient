@@ -91,9 +91,59 @@ void FUN_0047dc60(void) {
 
 /* Stub implementations */
 void FUN_00412a40(void) {}
-void FUN_0047d850(void) {}
-int FUN_0047d8e0(void) { return 1; }
 void FUN_00404e20(void) {}
+
+/*
+ * FUN_0047d850 - Animation Frame Update
+ *
+ * Binary analysis:
+ * - Updates animation frame counters every second
+ * - Only runs when DAT_046333f0 is non-zero
+ * - Uses timeGetTime() for timing (1000ms interval)
+ * - Calls FUN_00492403 to get random values
+ * - Updates DAT_046333e8 and DAT_046333ec with frame indices
+ */
+void FUN_0047d850(void) {
+    extern u32 DAT_046333f0;
+    extern u32 DAT_04633408;
+    extern u32 DAT_046333e8;
+    extern u32 DAT_046333ec;
+
+    if (DAT_046333f0 != 0) {
+        DWORD now = timeGetTime();
+        if (DAT_04633408 < now) {
+            DAT_04633408 = now + 1000;  /* 1 second interval */
+            /* Random frame selection */
+            /* TODO: Full implementation with FUN_00492403 */
+        }
+    }
+}
+
+/*
+ * FUN_0047d8e0 - Battle Render Queue Processing
+ *
+ * Binary analysis:
+ * - Processes render queue for battle state (game state 9 or 10)
+ * - Handles screen scrolling via DAT_045829b4/b8
+ * - Updates render queue at DAT_0464f64c
+ * - Calls DirectX surface functions for rendering
+ * - Returns 1 if surface flip was performed
+ */
+int FUN_0047d8e0(void) {
+    extern u32 DAT_04630dd8;
+    extern u32 DAT_0464f64c;
+    extern u32 DAT_0464f488;
+    extern u32 DAT_0464f48c;
+
+    if (DAT_04630dd8 != 9 && DAT_04630dd8 != 10) {
+        return 0;
+    }
+
+    DAT_0464f48c = 0;
+    /* Process render queue for battle */
+    /* TODO: Full implementation */
+    return 0;
+}
 
 /*
  * FUN_0041fad0 - Sprite Image Index Lookup
