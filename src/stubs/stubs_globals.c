@@ -180,6 +180,8 @@ char DAT_0462bf09[34] = {0}; /* Player title buffer */
 int DAT_0462be98 = 0;       /* Player HP */
 int DAT_0462be9c = 0;       /* Player MP */
 int DAT_0462bec0 = 0;       /* Player level */
+u32 DAT_0462be90 = 0;       /* Player direction global 1 */
+u32 DAT_0462be94 = 0;       /* Player direction global 2 */
 
 /* Pet/special entity globals */
 void* DAT_004e2b18 = NULL;  /* Pet/special entity pointer */
