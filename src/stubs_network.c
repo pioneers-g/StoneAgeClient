@@ -230,3 +230,73 @@ int network_send_packet(int opcode, void* data, int len) {
 }
 
 /* network_disconnect and network_is_connected are defined in network_core.c */
+
+/*
+ * FUN_0045fa40 - Login Server List Response Handler
+ *
+ * Binary analysis:
+ * - Handles response from login server request
+ * - param_1: connection handle
+ * - param_2: response string (DBCS)
+ * - Checks if response matches DAT_004c4474 (server list data)
+ * - If match: sets DAT_0461bff4 = 1, calls FUN_00492750/FUN_004925f0
+ * - Only processes when DAT_0461c000 == 1 (waiting for response)
+ * - Sets DAT_0461c000 = 2 (processed)
+ */
+void FUN_0045fa40(int conn_handle, const char* response) {
+    (void)conn_handle; (void)response;
+}
+
+/*
+ * FUN_0045fb80 - Login Character List Response Handler
+ *
+ * Binary analysis:
+ * - Handles character list response after successful login
+ * - param_1: connection handle
+ * - param_2: status string ("successful" or other)
+ * - param_3: character data string
+ * - On "successful": sets DAT_0461bff6 = 1
+ *   - Parses 3 character entries (indices 1,3,5) from param_3
+ *   - Uses FUN_00489f70 to extract fields delimited by '|'
+ *   - Calls FUN_00478a30 to process character data
+ * - On "OUTOFSERVICE": sets DAT_0461bff6 = 2 (server maintenance)
+ * - State machine: DAT_0461c000 (1->2)
+ */
+void FUN_0045fb80(int conn_handle, const char* status, const char* char_data) {
+    (void)conn_handle; (void)status; (void)char_data;
+}
+
+/*
+ * FUN_0045fdc0 - Login Server Select Response Handler
+ *
+ * Binary analysis:
+ * - Handles server selection response
+ * - param_1: connection handle
+ * - param_2: status string ("successful" or "close")
+ * - param_3: server parameter (port number)
+ * - On "successful":
+ *   - Creates thread at LAB_00465900 if DAT_0461c00c == 0
+ *   - Sets DAT_0461bffc = 1
+ * - On "close":
+ *   - Parses param_3 as port number via FUN_004929fe
+ *   - If port == -502 (0xfffffe0a): sets DAT_0461bffc = 0xfe0a
+ * - Clears DAT_00564e70/74 (connection state)
+ * - State machine: DAT_0461c000 (1->2)
+ */
+void FUN_0045fdc0(int conn_handle, const char* status, int param) {
+    (void)conn_handle; (void)status; (void)param;
+}
+
+/*
+ * FUN_0045ff50 - Login Create Character Response Handler
+ *
+ * Binary analysis:
+ * - Handles character creation response
+ * - param_1: connection handle
+ * - param_2: status string ("successful" or error)
+ * - On "successful": sets DAT_0461bffe = 1
+ * - State machine: DAT_0461c000 (1->2)
+ */
+void FUN_0045ff50(int conn_handle, const char* status) {
+    (void)conn_handle; (void)status;
+}
