@@ -386,6 +386,65 @@ void FUN_0043e170(char* param_1, const char* param_2) {
     /* Initialize protocol buffer with format */
 }
 
+/* FUN_0049b108 - Integer to String Conversion
+ * Converts integer to string representation in given base
+ *
+ * Parameters:
+ * - param_1: Integer value to convert
+ * - param_2: Output buffer
+ * - param_3: Number base (typically 10 for decimal)
+ *
+ * Special handling:
+ * - If base is 10 and value is negative, sets sign flag
+ * - Calls FUN_0049b135 for actual conversion
+ *
+ * Returns: Pointer to output buffer (param_2)
+ */
+int FUN_0049b108(int param_1, char* param_2, int param_3) {
+    /* Convert integer to string in given base */
+    return 0;
+}
+
+/* FUN_004923a7 - String Format/Initialize
+ * Formats a string with printf-style arguments
+ *
+ * Parameters:
+ * - param_1: Output buffer
+ * - param_2: Format string
+ * - ...: Variable arguments (on stack)
+ *
+ * Processing:
+ * - Uses FUN_0049528d for formatting
+ * - Maximum length: 0x7fffffff - 1 characters
+ * - Null-terminates result
+ *
+ * Returns: Result from format function
+ */
+int FUN_004923a7(char* param_1, const char* param_2, ...) {
+    /* Format string with variable arguments */
+    return 0;
+}
+
+/* FUN_0043e100 - Send Protocol Message
+ * Sends a protocol message to the server
+ *
+ * Parameters:
+ * - param_1: Socket/connection handle
+ * - param_2: Message string to send
+ *
+ * Processing:
+ * - If DAT_0461b658 == 0: Encrypt via FUN_0043e1d0
+ * - Calculate string length
+ * - Append newline if not present
+ * - Send via function pointer at DAT_004b9fe8
+ *
+ * Message format: "data\n" (newline-terminated)
+ * Encryption: XOR-based using DAT_004b9fec * 3 table
+ */
+void FUN_0043e100(int param_1, char* param_2) {
+    /* Send protocol message to server */
+}
+
 /* Window proc */
 LRESULT window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
     return DefWindowProc(hwnd, msg, wparam, lparam);
