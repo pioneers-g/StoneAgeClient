@@ -73,6 +73,8 @@ set(TEST_SOURCES
     test_field_entity_comprehensive.c
     test_fade_comprehensive.c
     test_minimap_comprehensive.c
+    test_pathfind_comprehensive.c
+    test_protocol_module_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
