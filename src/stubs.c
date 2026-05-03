@@ -523,6 +523,74 @@ void FUN_00420590(void) {
     /* TODO: Full login state machine implementation */
 }
 
+/*
+ * FUN_0048bb90 - DES Cipher Block Operation
+ *
+ * Binary analysis:
+ * - Encrypts/decrypts data using DES cipher in ECB mode
+ * - param_1: key string (typically "f;encor1c")
+ * - param_2: data buffer to encrypt/decrypt
+ * - param_3: data length in bytes
+ * - param_4: operation mode (bit flags)
+ *   - bit 0: 0=encrypt, 1=decrypt
+ *   - bit 1: 1=don't return boolean (internal use)
+ *
+ * Process:
+ * 1. Initialize key schedule via FUN_0048b620(param_1)
+ * 2. Calculate padded length: (length + 7) & ~7 (round up to 8)
+ * 3. Process 8-byte blocks via FUN_0048b7c0(block, mode)
+ * 4. Return true unless bit 1 of mode is set
+ *
+ * Used by:
+ * - FUN_00420590: Login credential encryption
+ * - Various protocol encryption/decryption
+ */
+int FUN_0048bb90(const char* key, void* data, int length, int mode) {
+    (void)key; (void)data; (void)length; (void)mode;
+    /* TODO: Full DES cipher implementation */
+    return 1;
+}
+
+/*
+ * FUN_0048d3e0 - Binary Protocol Dispatcher
+ *
+ * Binary analysis:
+ * - Main binary protocol command dispatcher
+ * - Dispatches to handler functions based on opcode
+ * - Uses anti-tamper checksum validation
+ *
+ * Process:
+ * 1. Initialize via FUN_00492d80(), FUN_0048c720(), FUN_0048c5a0()
+ * 2. Get packet count via FUN_0048c7f0()
+ * 3. For each packet, read opcode from stack (in_stack_00000024)
+ * 4. Validate checksum: sum of parameters must equal return address
+ * 5. Dispatch to appropriate handler
+ *
+ * Opcodes (partial list):
+ * - 0x02: Battle action (FUN_00465400)
+ * - 0x04: Party update (FUN_00463e70)
+ * - 0x07: Pet update (FUN_00464e10)
+ * - 0x0C: Party member join (FUN_004643f0)
+ * - 0x0D: Party member leave (FUN_00464610)
+ * - 0x0F: Friend update (FUN_00465460, FUN_00464ef0)
+ * - 0x18: Guild member update (FUN_00464650)
+ * - 0x1A: Guild info (FUN_00465170)
+ * - 0x1C: Guild member list (FUN_00464af0)
+ * - 0x2A: NPC dialog (FUN_00462f60)
+ * - 0x48: Login server response (FUN_0045fa40)
+ * - 0x50: Character list response (FUN_0045fb80)
+ * - 0x5C: Mail receive (FUN_0045a9a0)
+ * - 0x75: Shop protocol (FUN_00465d20)
+ * - 0x78: Skill protocol (FUN_00465de0)
+ * - 0x85: Guild member data (FUN_004665b0)
+ * - 0x86: Guild info (FUN_00466550)
+ */
+int FUN_0048d3e0(int param_1) {
+    (void)param_1;
+    /* TODO: Full binary protocol dispatcher implementation */
+    return 0;
+}
+
 /* Additional UI render functions */
 void FUN_0043b980(int param_1, int param_2, int param_3, int param_4) {
     (void)param_1; (void)param_2; (void)param_3; (void)param_4;
