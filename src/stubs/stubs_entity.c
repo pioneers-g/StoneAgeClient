@@ -413,3 +413,53 @@ void FUN_00468150(int effect_type, void* parent_entity) {
 void FUN_00468430(void* parent_entity) {
     (void)parent_entity;
 }
+
+/*
+ * FUN_00477c70 - Set Entity Model/Sprite
+ *
+ * Binary analysis:
+ * - Updates entity model ID and extra data
+ * - param_1: model/sprite ID
+ * - param_2: extra data
+ * - Sets both global (DAT_0462be88/94) and entity-specific (offset 0x140/150)
+ */
+void FUN_00477c70(int model_id, int extra_data) {
+    (void)model_id; (void)extra_data;
+}
+
+/*
+ * FUN_00477cd0 - Update Entity Position from Globals
+ *
+ * Binary analysis:
+ * - Copies position data from global variables to entity
+ * - Target: entity at DAT_0462e3ac
+ * - Copies:
+ *   - offset 0x114/118: from DAT_0456a644/48
+ *   - offset 0xb0/b4: from DAT_04581d3c/40 (world coords)
+ *   - offset 0x11c/120: from DAT_045827fc/800
+ *   - offset 0xb8/bc: from DAT_0458118c/84
+ */
+void FUN_00477cd0(void) {}
+
+/*
+ * FUN_00478a30 - Parse Character Data String
+ *
+ * Binary analysis:
+ * - Parses character data from pipe-delimited string
+ * - param_1: character name string
+ * - param_2: data string (14+ fields separated by '|')
+ * - Returns 0 on success, -1 on failure
+ * - Extracts fields using FUN_0048a050:
+ *   - Field 1: slot index (0 or 1)
+ *   - Field 2: level -> DAT_04630a18
+ *   - Field 3: HP -> DAT_04630a12
+ *   - Field 4-8: stats -> various offsets
+ *   - Field 9: status -> DAT_04630a40
+ *   - Fields 10-13: values divided by 10
+ *   - Field 14: extra data
+ * - Character name stored at DAT_04630a00 + slot*0x44
+ */
+int FUN_00478a30(char* name, char* data) {
+    (void)name; (void)data;
+    return 0;
+}
