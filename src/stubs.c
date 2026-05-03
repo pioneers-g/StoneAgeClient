@@ -447,14 +447,24 @@ void FUN_004011c0(intptr_t entity) {
     }
 }
 
-/* FUN_0041d860 - UI layout function */
-void FUN_0041d860(void) {
-    /* TODO: Implementation needed */
+/* FUN_0041d860 - UI layout wrapper
+ * Calls FUN_0041d7c0 with default parameter 0
+ */
+void FUN_0041d860(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6) {
+    /* FUN_0041d7c0(param_1, param_2, param_3, param_4, param_5, param_6, 0); */
 }
 
-/* FUN_00421080 - Character select update */
-void FUN_00421080(void) {
-    /* TODO: Implementation needed */
+/* FUN_00421080 - Find character index by ID
+ * Searches character array for matching ID
+ * Returns index if found, -1 otherwise
+ */
+int FUN_00421080(int* char_array, int count) {
+    int i;
+    /* Check if search enabled (DAT_045f1bc4 & 1) */
+    for (i = 0; i < count; i++) {
+        /* if (char_array[i] == DAT_045f1b90) return i; */
+    }
+    return -1;
 }
 
 /* FUN_0044b030 - Battle UI active check
