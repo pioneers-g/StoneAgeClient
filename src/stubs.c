@@ -2707,3 +2707,433 @@ int FUN_00425dc0(const char* param_1, void* param_2) {
     /* Parse pet capture data from protocol */
     return 0;
 }
+
+/* FUN_00401300 - Pet AI Settings Loader with XOR Decryption
+ * Loads and decrypts pet AI configuration from AISetting.dat
+ *
+ * Parameter: param_1 - Parameter array (4 elements)
+ *   - [0]: AI mode setting
+ *   - [1]: Attack priority mode
+ *   - [2]: Skill usage mode
+ *   - [3]: Target selection mode
+ *
+ * File: "data/AISetting.dat"
+ *
+ * Processing:
+ * 1. Opens file via FUN_00492394
+ * 2. Reads 16-byte header entry (XOR encrypted)
+ * 3. Decrypts header using XOR key at DAT_004c10bc
+ * 4. Reads AI settings entries in loop
+ * 5. Each entry: 16 bytes, XOR encrypted
+ * 6. Compares entry with parameter values
+ * 7. If match found, reads additional settings
+ *
+ * XOR decryption key:
+ * - Key stored at DAT_004c10bc (descending addresses)
+ * - Key length: 17 bytes (0x4c10bc - 0x4c107c = 0x40 / 4)
+ * - Each entry byte XORed with key[i % key_len]
+ *
+ * AI settings structure:
+ * - DAT_004d9050: AI mode (0 = off, 1 = on)
+ * - DAT_004d7ea4: Attack priority (9 = default)
+ * - DAT_004d7f30: Skill mode (1 = default)
+ * - DAT_004d7f1c: Target mode (0x1e = 30 = default)
+ * - DAT_004d7ea8: Attack threshold (-1 = unlimited)
+ * - DAT_004d7f34: Secondary mode (1)
+ * - DAT_004d7f20: Secondary threshold (0x1e = 30)
+ * - DAT_004d7eac: Secondary attack threshold (-1)
+ * - DAT_004d7eb0: Tertiary priority (9)
+ * - DAT_004d7f3c: Tertiary mode (1)
+ * - DAT_004d7eb4: Quaternary setting (0x1a = 26)
+ * - DAT_004d7f40: Quaternary mode (4)
+ * - DAT_004d7f18: Final threshold
+ * - DAT_004d7f54: AI enabled flag
+ *
+ * Default values (if file not found):
+ * - Mode: 0 (disabled)
+ * - Priority: 9
+ * - All thresholds: -1 (unlimited)
+ *
+ * Returns: 0 if settings loaded, 1 if defaults used
+ */
+int FUN_00401300(int* param_1) {
+    /* Load pet AI settings from AISetting.dat with XOR decryption */
+    return 0;
+}
+
+/* FUN_0044aff0 - Battle UI Cleanup
+ * Clears battle UI state and flags when exiting battle
+ *
+ * Processing:
+ * 1. Clear battle state flag: DAT_045e8ce0 = 0
+ * 2. Call FUN_0044ac50 to clear UI elements
+ * 3. Call FUN_0044adc0 to clear additional UI state
+ * 4. Clear counter: DAT_004e21dc = 0
+ * 5. Set invalid values: DAT_045f1be0 = -1
+ * 6. Set invalid values: DAT_004bd3d8 = -1
+ * 7. Set invalid values: DAT_004bd3d4 = -1
+ *
+ * State flags cleared:
+ * - DAT_045e8ce0: Main battle state (0 = not in battle)
+ * - DAT_004e21dc: Battle UI counter
+ * - DAT_045f1be0: Selection index (-1 = none)
+ * - DAT_004bd3d8/d4: Target indices
+ *
+ * Called by: FUN_0040a1a0 (battle state machine) on state 7/8
+ *
+ * Used for: Resetting battle UI when returning to field
+ */
+void FUN_0044aff0(void) {
+    /* Clear battle UI state and flags */
+}
+
+/* FUN_0040daf0 - Battle Entity Cleanup
+ * Frees battle-specific entity and clears related state
+ *
+ * Processing:
+ * 1. Check if entity exists: DAT_004e2b18 != 0
+ * 2. If exists, call FUN_004011c0 to mark for deletion
+ * 3. Clear entity handle: DAT_004e2b18 = 0
+ * 4. Clear state flags: DAT_00544d74 = 0
+ * 5. Clear state flags: DAT_00544d75 = 0
+ *
+ * Entity at DAT_004e2b18:
+ * - Battle UI container entity
+ * - Created at battle start
+ * - Contains all battle UI elements
+ *
+ * State flags:
+ * - DAT_00544d74: Battle UI active flag
+ * - DAT_00544d75: Battle UI render flag
+ *
+ * Called by: FUN_0040a1a0 (battle state machine) on initialization
+ *
+ * Used for: Clearing previous battle UI before creating new one
+ */
+void FUN_0040daf0(void) {
+    /* Free battle UI entity and clear state */
+}
+
+/* FUN_0044ac50 - Battle UI Element Cleanup (Primary)
+ * Frees all primary battle UI elements and clears state flags
+ *
+ * Processing (marks entities for deletion via FUN_004011c0):
+ * 1. DAT_045e7af0: Main battle UI entity, set DAT_00564e5c=0, DAT_045f1a3b=0
+ * 2. DAT_0458f620: Secondary UI entity, set DAT_045f1a3a=0
+ * 3. DAT_045e859c: Tertiary UI entity
+ * 4. DAT_045e19b4: Quaternary UI entity
+ * 5. Call FUN_00411990 on DAT_0054a3c8 (dialog cleanup)
+ * 6. DAT_045e1850: Fifth UI entity
+ * 7. DAT_045e7b14: Sixth UI entity
+ * 8. DAT_04583108: Seventh UI entity
+ * 9. Call FUN_0044ac00 to clear UI handles array
+ * 10. Conditional cleanup (if non-zero):
+ *     - DAT_045e19b8: Extended UI entity
+ *     - DAT_04583240: Additional UI entity
+ *     - DAT_045e85a0: Pet UI entity
+ *     - DAT_04582cb4: Target UI entity
+ *     - DAT_0458f718: Skill UI entity
+ *     - DAT_0458f714: Item UI entity
+ *     - DAT_045967a0: Menu UI entity
+ *     - DAT_045e7c4c: Final UI entity
+ *
+ * Called by: FUN_0044aff0 (battle UI cleanup)
+ *
+ * Used for: Cleaning up all battle UI entities when exiting battle
+ */
+void FUN_0044ac50(void) {
+    /* Free all primary battle UI elements */
+}
+
+/* FUN_0044adc0 - Battle UI Element Cleanup (Secondary)
+ * Frees secondary battle UI elements and resets state flags
+ *
+ * Processing (marks entities for deletion via FUN_004011c0):
+ * 1. DAT_045e19bc: Primary entity, clear DAT_045f194e, set to 0
+ * 2. Call FUN_00411990 on DAT_0054a3c8 (dialog cleanup)
+ * 3. DAT_0458f70c: Secondary entity, set DAT_004bd3dc=-1
+ * 4. Conditional cleanup (similar to FUN_0044ac50):
+ *    - DAT_045e19b8: Clear DAT_00564e5c, DAT_045f1a3b
+ *    - DAT_0458f620: Clear DAT_045f1a3a
+ *    - DAT_045e859c, DAT_04583240, DAT_045e85a0, DAT_04582cb4
+ *    - Set DAT_045f194f=0
+ *    - DAT_0458f718, DAT_0458f714, DAT_045967a0, DAT_045e7c4c
+ *
+ * State flags cleared:
+ * - DAT_045f194e: UI mode flag
+ * - DAT_045f194f: Secondary mode flag
+ * - DAT_004bd3dc: Selection index (-1 = none)
+ *
+ * Called by: FUN_0044aff0 (battle UI cleanup)
+ *
+ * Used for: Additional cleanup for extended battle UI elements
+ */
+void FUN_0044adc0(void) {
+    /* Free secondary battle UI elements */
+}
+
+/* FUN_004011f0 - Entity Cleanup and Process Termination
+ * Terminates external process and marks all entities for deletion
+ *
+ * Processing:
+ * 1. Check if external process tracking active: DAT_0455f8f8 != 0
+ * 2. If active, use Process32First/Next to find process by ID
+ * 3. If process name is NOT "explorer.exe", terminate it:
+ *    - OpenProcess with PROCESS_ALL_ACCESS (0x1f0fff)
+ *    - TerminateProcess
+ *    - CloseHandle
+ * 4. Clear process ID: DAT_0455f8f8 = 0
+ * 5. Mark all entities in linked list for deletion
+ *
+ * Process tracking:
+ * - DAT_0455f8f8: Tracked process ID (0 = not tracking)
+ * - DAT_0456021c: Snapshot handle from CreateToolhelp32Snapshot
+ * - DAT_0455fa18: PROCESSENTRY32 structure (size set to 0x128)
+ * - DAT_0455fa20: Process ID from enumeration
+ * - DAT_0455fa3c: Process name from enumeration
+ *
+ * Entity list cleanup:
+ * - List head at DAT_004d7e3c + 4 (first entity)
+ * - List tail at DAT_004d7e38
+ * - For each entity: set *(entity + 0x24) = 1 (mark for deletion)
+ *
+ * Anti-cheat/Anti-debug:
+ * - Purpose appears to be terminating external processes
+ * - Exception for "explorer.exe" (Windows shell)
+ * - Used in anti-tamper mechanism
+ *
+ * Called by: FUN_0040a1a0 (battle state machine) state 0 initialization
+ *
+ * Used for: Cleanup before battle, terminate any tracked external process
+ */
+void FUN_004011f0(void) {
+    /* Terminate external process and mark all entities for deletion */
+}
+
+/* FUN_00419ac0 - UI Handle Array Cleanup
+ * Clears array of UI handles by marking each for deletion
+ *
+ * Processing:
+ * - Iterates from DAT_0054ca20 to DAT_0054cae8
+ * - Array size: 0xcae8 - 0xca20 = 0xc8 = 200 bytes
+ * - Each entry: 4 bytes (entity handle)
+ * - Total entries: 200 / 4 = 50 UI handles
+ * - For each non-zero handle: call FUN_004011c0 to mark for deletion
+ * - Set handle to 0 after marking
+ *
+ * Called by: FUN_0040a1a0 (battle state machine) state 0 initialization
+ *
+ * Used for: Clearing UI handle array before battle
+ */
+void FUN_00419ac0(void) {
+    /* Clear UI handle array (50 entries) */
+}
+
+/* FUN_00419a40 - Single UI Entity Cleanup
+ * Frees a single UI entity and clears related state
+ *
+ * Processing:
+ * 1. Check if entity exists: DAT_0054c998 != 0
+ * 2. If exists, call FUN_004011c0 to mark for deletion
+ * 3. Clear entity handle: DAT_0054c998 = 0
+ * 4. Clear state flag: DAT_00564c61 = 0
+ *
+ * Called by: FUN_0040a1a0 (battle state machine) state 0 initialization
+ *
+ * Used for: Clearing specific UI entity before battle
+ */
+void FUN_00419a40(void) {
+    /* Free single UI entity and clear state */
+}
+
+/* FUN_00465d20 - Shop Protocol Command Dispatcher
+ * Dispatches shop-related protocol commands to appropriate handlers
+ *
+ * Parameters:
+ * - param_1: Socket/connection handle
+ * - param_2: Protocol command string (pipe-delimited)
+ *
+ * Processing:
+ * 1. Extract first field via FUN_00489f70 (max 0x1f=31 bytes)
+ * 2. Switch on first character of extracted field:
+ *
+ * Command characters:
+ * - 'B' (0x42): Set buy mode flag DAT_00564e3e = 1, fall through to 'D'
+ * - 'D' (0x44): Open shop UI via FUN_00416be0
+ * - 'C' (0x43): Set sell mode flag DAT_00564e3e = 0
+ * - 'O' (0x4f): Set special mode DAT_00564e3c = 1, DAT_046308b0 = 1
+ * - 'S' (0x53): Set extended mode DAT_00564e3c = 3, call FUN_00415c50
+ *
+ * Mode flags:
+ * - DAT_00564e3e: Buy/sell mode (1 = buy, 0 = sell)
+ * - DAT_00564e3c: Shop mode (1 = special, 3 = extended)
+ * - DAT_046308b0: Special shop flag
+ *
+ * Protocol format: "command|shop_data|item_list|..."
+ * - First field: Single character command
+ * - Subsequent fields: Shop-specific data
+ *
+ * Called by: Protocol dispatcher when receiving shop commands
+ */
+void FUN_00465d20(int param_1, const char* param_2) {
+    /* Dispatch shop protocol command */
+}
+
+/* FUN_00416be0 - Shop UI Main Handler
+ * Complex function handling shop display, item selection, and purchases
+ *
+ * Parameter: param_1 - Protocol data string (or NULL for UI update)
+ *
+ * Window creation (first call, DAT_00564e38 == 0):
+ * - Creates window via FUN_00448610(0xc, 0, 0x269, 0x195, 0x89a8, -1)
+ * - Size: 617 x 405 pixels
+ * - Initializes data arrays: DAT_0054dbe0 (0x1b08 bytes)
+ * - Initializes UI handles: DAT_0054c88c (20 entries)
+ * - Counts inventory items and pet slots
+ *
+ * Button sprites (rendered via FUN_0047e210):
+ * - 0x66b1: Left scroll button
+ * - 0x66b3: Right scroll button
+ * - 0x66db/0x66dc: Up/down scroll buttons
+ * - 0x6767/0x6768: Toggle mode button
+ *
+ * UI states:
+ * - DAT_00564e38: Window handle
+ * - DAT_0054ccfc: Scroll offset (0-13)
+ * - DAT_0054cd10: Selected item index
+ * - DAT_00564e58: Buy/sell mode (0=buy, 1=sell)
+ * - DAT_00564e48: Item portrait entity
+ *
+ * Item data (per item, stride 0x15a = 346 bytes):
+ * - DAT_0054dbe0: Item sprite ID
+ * - DAT_0054dbe8: Item count
+ * - DAT_0054dc1c: Item available flag
+ * - DAT_0054dc22: Item in cart flag
+ * - DAT_0054dc23: Item name
+ * - DAT_0054dc40: Item description
+ * - DAT_0054dd71: Item category (0=pet, 1=item)
+ *
+ * Shop cart:
+ * - DAT_0054c87c: Item count in cart
+ * - DAT_0054c880: Pet count in cart
+ * - DAT_0054c908: Total cart value
+ *
+ * Protocol handling:
+ * - 'B' command: Parse item list from protocol
+ * - 'D' command: Parse item details from protocol
+ *
+ * Click handling (via FUN_0044aba0):
+ * - Case 0: Buy/confirm button
+ * - Case 1: Cancel button
+ * - Case 2: Scroll up
+ * - Case 3: Scroll down
+ * - Case 4: Toggle buy/sell mode
+ *
+ * Protocol output:
+ * - Buy: "B %d %s" format via FUN_00490560
+ * - Sell: "D %d" format
+ *
+ * Called by: FUN_00465d20 (shop protocol dispatcher)
+ */
+void FUN_00416be0(const char* param_1) {
+    /* Main shop UI handler */
+}
+
+/* FUN_00415c50 - Pet Shop / Extended Shop UI
+ * Handles pet selection and special shop modes
+ *
+ * Parameters:
+ * - param_1: Mode (0 = normal, non-zero = special)
+ * - param_2: Protocol data string (or NULL for UI update)
+ *
+ * Window creation (first call, DAT_00564e34 == 0):
+ * - Creates window via FUN_00448610(9, 0, 0x26e, 0x19d, DAT_0054ad1c, -1)
+ * - Size: 622 x 413 pixels
+ * - Initializes scroll buttons and navigation
+ *
+ * UI states:
+ * - DAT_00564e34: Window handle
+ * - DAT_0054c9b4: Scroll offset (0-10)
+ * - DAT_0054c884: Selected pet index (0-4)
+ * - DAT_00564e50: Selection mode active flag
+ * - DAT_00564e48: Pet portrait entity
+ *
+ * Pet data (per pet, stride 0x4c = 76 bytes):
+ * - DAT_00564658: Pet ID
+ * - DAT_0056465c: Pet type (0=pet, 1=character)
+ * - DAT_00564660: Pet level
+ * - DAT_00564664: Selection flag
+ * - DAT_00564683: Pet name
+ * - DAT_005646a0: Pet category
+ *
+ * Pet selection array:
+ * - DAT_0054c90c: Selected pets (5 slots)
+ * - DAT_0054c9b0: Selected characters (5 slots)
+ * - Values: -1 = not selected, index = selected
+ *
+ * Button handling:
+ * - Case 0: Confirm selection
+ * - Case 1: Cancel
+ * - Case 2: Scroll up
+ * - Case 3: Scroll down
+ * - Case 4: Select current pet
+ * - Case 5: Next pet
+ * - Case 6: Previous pet
+ *
+ * Protocol output:
+ * - "S %d %s %s" format for pet selection
+ * - "R P 1" format for special mode
+ *
+ * Called by: FUN_00465d20 for 'S' command
+ */
+void FUN_00415c50(int param_1, const char* param_2) {
+    /* Pet shop / extended shop UI */
+}
+
+/* FUN_00404850 - Battle Map Loader (SAB Format)
+ * Loads and renders battle map from SAB file
+ *
+ * Parameter: param_1 - Map ID (0-219, values > 0xdb reset to 0)
+ *
+ * File format: "data/battleMap/battle%02d.sab"
+ * - 4-byte header: "SAB1" signature
+ * - 800-byte tile data (20x20 grid, 2 bytes per tile)
+ *
+ * Header validation:
+ * - FUN_0049212c reads 4-byte header
+ * - FUN_00492020 checks for "SAB1" signature
+ * - Shows error MessageBox if invalid
+ *
+ * Tile data:
+ * - 20x20 = 400 tiles
+ * - Each tile: 2 bytes (sprite ID)
+ * - Read via FUN_00492421 (little-endian 16-bit)
+ *
+ * Map rendering:
+ * - Isometric tile positioning
+ * - Start position: (-288, 240) = (-0x120, 0xf0)
+ * - Tile offset: (32, -24) = (0x20, -0x18)
+ * - 20 tiles per row, 20 rows total
+ *
+ * Special maps (DAT_04581190):
+ * - 0x331, 0x1f47, 0x1fa5, etc.: Arena maps (single sprite)
+ * - 0x2147: Arena map with sprite 0x718d
+ * - 0x7546-0x7549: Special event maps with random backgrounds
+ * - 0x4e-0x63, 0x1fab-0x1fb0: Special dungeon maps
+ *
+ * Background sprite selection (via FUN_00492403 random):
+ * - Default: 0x7149 + variant
+ * - Arena maps: Single background sprite
+ * - Special maps: Random from sprite tables at DAT_0049ea64+
+ *
+ * Data storage:
+ * - DAT_004d7f78: Current map ID
+ * - DAT_004d7f74: Current background sprite
+ * - DAT_04581190: Current field/map ID for special handling
+ *
+ * Returns: 1 on success, 0 on file error
+ */
+int FUN_00404850(int param_1) {
+    /* Load and render battle map from SAB file */
+    return 0;
+}
