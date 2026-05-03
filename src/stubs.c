@@ -430,11 +430,6 @@ void FUN_00401170(void) {
      */
 }
 
-/* FUN_00492cd2 - String/format function */
-void FUN_00492cd2(void) {
-    /* TODO: Implementation needed */
-}
-
 /* FUN_00448610 - Window widget creation (9-sprite grid) */
 void FUN_00448610(void) {
     /* Implemented in ui_window.c - window_create() */
@@ -511,14 +506,37 @@ void FUN_00488190(void) {
      */
 }
 
-/* FUN_0043b980 - Network protocol */
-void FUN_0043b980(void) {
-    /* TODO: Implementation needed */
+/* FUN_0043b980 - Network protocol packet builder
+ * Builds a protocol packet with 6 integer fields
+ * Uses DAT_004b9ff0 as output buffer, DAT_004b9fec for encoding
+ */
+void FUN_0043b980(void* param_1, int p2, int p3, int p4, int p5, int p6, int p7) {
+    /* Calls FUN_0043e170 to initialize buffer
+     * Uses FUN_0043dce0 to encode each integer field
+     * Uses FUN_0043dd20 for last field
+     * Calls FUN_0043e100 to finalize packet
+     */
 }
 
-/* FUN_0048fdc0 - Utility function */
+/* FUN_0048fdc0 - Protocol checksum calculator
+ * Calculates checksum for protocol message
+ * Uses FUN_0048d1f0 for field hashing
+ */
 void FUN_0048fdc0(void) {
-    /* TODO: Implementation needed */
+    /* FUN_00492d80 initializes state
+     * Multiple FUN_0048d1f0 calls hash fields
+     * FUN_0048c8c0 builds final packet with opcode 0x43
+     */
+}
+
+/* FUN_00492cd2 - String format with 'I' prefix
+ * Formats string with 'I' prefix (0x49) for inventory protocol
+ */
+void FUN_00492cd2(char* param_1, void* param_2) {
+    /* Sets prefix = 'I' (0x49)
+     * Gets string length via _strlen
+     * Calls FUN_004969ef for formatting
+     */
 }
 
 /* Character position */
