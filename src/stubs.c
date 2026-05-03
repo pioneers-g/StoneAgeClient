@@ -262,9 +262,26 @@ void render_blit_scaled(void* src, void* dst, int sx, int sy, int sw, int sh, in
  * FUN_0043bf90 - Text Protocol Dispatcher
  *
  * Binary analysis:
- * - Dispatches text-based protocol commands (40+ commands)
- * - Commands delimited by newline
- * - Each command parsed and routed to handlers
+ * - Main text-based protocol command dispatcher
+ * - Commands are newline-delimited strings parsed at DAT_004ba014
+ * - Uses FUN_0043dbe0 for initial parsing into local_400 buffer
+ * - Compares first token against command strings at DAT_004b9xxx
+ * - Routes to handler functions with parsed parameters
+ *
+ * Command categories (50+ commands total):
+ * - Battle commands: FUN_00465400, FUN_00463e70, FUN_00464e10
+ * - Party commands: FUN_004643f0, FUN_00464610, FUN_00464ef0, FUN_00464670
+ * - Guild commands: FUN_00464650, FUN_00465170, FUN_00464af0, FUN_00463f00
+ * - Trade commands: FUN_00464190, FUN_00463790, FUN_00462010, FUN_00462200
+ * - Chat commands: FUN_00462590, FUN_00462f60, FUN_00463380, FUN_00465460
+ * - NPC commands: FUN_0045ffb0, FUN_00463ee0, FUN_00464ee0, FUN_00463d80
+ * - Login commands: FUN_0045fa40, FUN_00463c20, FUN_00463d20, FUN_0045fdc0
+ * - Character commands: FUN_0045fb80, FUN_0045ff50, FUN_00465440
+ * - Mail commands: FUN_0045a9a0, FUN_00465470
+ *
+ * Uses FUN_0043dd50 to parse integer parameters
+ * Uses FUN_0043dd70 to parse string parameters
+ * Uses FUN_0043e1b0 for string unescaping/processing
  */
 void FUN_0043bf90(const char* param_1) {
     (void)param_1;
