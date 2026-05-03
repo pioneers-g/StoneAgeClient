@@ -281,13 +281,38 @@ const char* item_get_name(u32 id) { (void)id; return "Unknown"; }
  * These are implemented as stubs pending full reverse engineering
  * ======================================== */
 
-/* FUN_00418370 - Main game loop update (complex, many state checks) */
+/* FUN_00418370 - Main game loop state machine
+ * This is the central game update function handling all game states.
+ *
+ * Key operations:
+ * - Network heartbeat (500ms interval via timeGetTime)
+ * - Battle UI state checks via FUN_0044b030
+ * - Game state transitions based on DAT_04581190 (map ID)
+ * - Input handling for states 0-13
+ *
+ * State values (iVar3 = input state):
+ * - 0,10: Normal/idle
+ * - 1: Movement
+ * - 2: Action mode
+ * - 3: Item use
+ * - 4: Pet interaction
+ * - 5: Menu
+ * - 6: Interaction
+ * - 7: Dialog
+ * - 8: Special action
+ * - 9: Capture mode
+ * - 11: Battle wait
+ * - 12: Battle action
+ * - 13: Battle result
+ *
+ * Map-specific behaviors (DAT_04581190):
+ * - 0x7bda, 0x27dc: Special maps
+ * - 0x2968-0x296e: Event maps
+ * - 0x2aa7, 0x2aa8, 0x50e7, 0x50e8: Battle maps
+ * - 0x3f0, 0x3fd: Dialog maps
+ */
 void FUN_00418370(void) {
-    /* TODO: Full implementation requires analysis of:
-     * - DAT_005676a4, DAT_045602a8, DAT_04581198 state flags
-     * - Network heartbeat timing (500ms interval)
-     * - Game state transitions
-     */
+    /* Complex state machine - see Ghidra decompilation for full logic */
 }
 
 /* FUN_00424f50 - Battle action executor dispatcher */
