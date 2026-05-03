@@ -394,6 +394,39 @@ void FUN_0040f7a0(void) {}
 void FUN_0040f7d0(void) {}
 
 /*
+ * FUN_0040f930 - Create Entity from Slot Data
+ *
+ * Binary analysis:
+ * - Creates entity from spawn slot data for given entity ID
+ * - param_1: entity ID (must be >= 0)
+ * - Uses FUN_0040e830 to find slot
+ * - Checks if slot is active (DAT_004e2b20) and entity pointer is null
+ * - Calls FUN_0040b5e0 to create entity from slot data:
+ *   - Model: DAT_004e2b28[slot * 0x43]
+ *   - X: DAT_004e2b2c[slot * 0x43]
+ *   - Y: DAT_004e2b30[slot * 0x43]
+ *   - Extra: DAT_004e2b38[slot * 0x43]
+ * - Sets state to 2 (active)
+ * - Copies name from DAT_004e2b58[slot * 0x10c] to entity offset 0x38
+ * - Sets entity flags from DAT_004e2bd4[slot * 0x43]
+ */
+void FUN_0040f930(int entity_id) {
+    /* TODO: Full implementation with entity arrays */
+    (void)entity_id;
+}
+
+/*
+ * FUN_0040fa10 - Clear Entity Spawn Flag
+ *
+ * Binary analysis:
+ * - Clears the entity spawn processing flag
+ * - Sets DAT_004e2b08 to 0
+ */
+void FUN_0040fa10(void) {
+    /* TODO: Implementation with global DAT_004e2b08 */
+}
+
+/*
  * FUN_00476150 - Get Random Value with Range Check
  *
  * Binary analysis:
