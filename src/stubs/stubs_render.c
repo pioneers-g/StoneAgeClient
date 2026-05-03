@@ -94,6 +94,27 @@ void FUN_00412a40(void) {}
 void FUN_00404e20(void) {}
 
 /*
+ * FUN_0047cd80 - Field Rendering Update
+ *
+ * Binary analysis:
+ * - Updates field rendering when field sprite changes
+ * - Creates/updates field surfaces based on sprite dimensions
+ * - Handles field background rendering for isometric view
+ * - Uses FUN_0041fad0 (sprite offset lookup) and FUN_0041f980 (sprite dimensions)
+ * - Creates primary and secondary field surfaces
+ */
+void FUN_0047cd80(void) {
+    extern u32 DAT_046333f0;
+    extern u32 DAT_046333b4, DAT_046333d4;
+    extern u32 DAT_04633398, DAT_046333bc;
+
+    if (DAT_046333f0 != 0) {
+        /* Get sprite dimensions and create surfaces */
+        /* TODO: Full implementation with sprite lookup and surface creation */
+    }
+}
+
+/*
  * FUN_0047d850 - Animation Frame Update
  *
  * Binary analysis:

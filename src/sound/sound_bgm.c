@@ -219,3 +219,109 @@ int bgm_is_type_streaming(u32 bgm_id) {
     if (bgm_id >= BGM_ID_COUNT) return 0;
     return s_bgm_types[bgm_id] == 2;
 }
+
+/* ========================================
+ * Field BGM Lookup - FUN_0047cfe0
+ * ======================================== */
+
+/* External globals for field rendering */
+extern u32 DAT_046333f0;    /* Current field sprite ID */
+extern u32 DAT_046333f4;    /* Previous field sprite ID */
+extern u32 DAT_04633404;    /* Field type flag */
+
+/*
+ * FUN_0047cfe0 - Field BGM Lookup
+ *
+ * Binary analysis:
+ * - Maps field/map ID to BGM sprite ID
+ * - Sets DAT_046333f0 to the appropriate sprite ID for the field
+ * - Special field IDs have hardcoded sprite IDs
+ * - Calls FUN_0047cd80 to update field rendering if sprite changed
+ *
+ * Field ID to Sprite ID mapping:
+ * - 0x68 (104): 0x29e3f (171583)
+ * - 0x15cd (5581): 0x19e3f (106303)
+ * - 0x203f (8255): 0x19e40 (106304)
+ * - 0x2040 (8256): 0x29e40 (171584)
+ * - 0x2041 (8257): 0x39e40 (236864)
+ * - 0x77e1 (30689): 0x69e3e (433726)
+ * - 0x77e3-0x77e7: Various sprite IDs for special maps
+ * - 0x1d1a-0x1d1b (7450-7451): 0x10000 (65536)
+ */
+void field_set_bgm_sprite(int field_id) {
+    extern u32 DAT_04581d3c, DAT_04581d40;
+    extern u32 DAT_04569b70;
+    extern u32 DAT_046333b4, DAT_046333bc, DAT_046333c0, DAT_046333c8;
+    extern u32 DAT_046333c4, DAT_046333cc, DAT_046333d4, DAT_04633398;
+    extern void FUN_0047cd80(void);
+
+    u32 prev_sprite = DAT_046333f0;
+
+    /* Save previous sprite and reset */
+    DAT_046333f4 = DAT_046333f0;
+    DAT_046333f0 = 0;
+    DAT_04633404 = 0;
+
+    if (field_id < 0x77e2) {
+        if (field_id == 0x77e1) {
+            DAT_046333f0 = 0x69e3e;
+        } else {
+            if (field_id < 0x2040) {
+                if (field_id == 0x203f) {
+                    DAT_046333f0 = 0x19e40;
+                } else {
+                    if (field_id < 0x15ce) {
+                        if (field_id == 0x15cd) {
+                            DAT_046333f0 = 0x19e3f;
+                        } else if (field_id == 0x68) {
+                            DAT_046333f0 = 0x29e3f;
+                        }
+                    } else if (field_id > 0x1d19 && field_id < 0x1d1c) {
+                        DAT_046333f0 = 0x10000;
+                    }
+                    goto check_update;
+                }
+            } else if (field_id == 0x2040) {
+                DAT_046333f0 = 0x29e40;
+            } else if (field_id == 0x2041) {
+                DAT_046333f0 = 0x39e40;
+            } else {
+                goto check_update;
+            }
+            DAT_04633404 = 1;
+        }
+    } else {
+        switch (field_id) {
+        case 0x77e3:
+            DAT_046333f0 = 0x19e3e;
+            break;
+        case 0x77e4:
+            DAT_046333f0 = 0x29e3e;
+            break;
+        case 0x77e5:
+            DAT_046333f0 = 0x39e3e;
+            break;
+        case 0x77e6:
+            DAT_046333f0 = 0x49e3e;
+            break;
+        case 0x77e7:
+            DAT_046333f0 = 0x59e3e;
+            break;
+        }
+    }
+
+check_update:
+    /* If sprite changed, update field rendering */
+    if (prev_sprite != DAT_046333f0) {
+        FUN_0047cd80();
+
+        /* Calculate view offsets */
+        DAT_046333c0 = ((DAT_04581d40 + DAT_04581d3c) *
+                       (DAT_046333b4 - 0x280) * 0x20) / DAT_046333bc;
+        DAT_046333c8 = DAT_046333c0 + 0x280;
+
+        DAT_046333c4 = (((DAT_04569b70 - DAT_04581d3c) + DAT_04581d40) *
+                       (DAT_046333d4 - 0x1e0) * 0x18) / DAT_04633398;
+        DAT_046333cc = DAT_046333c4 + 0x1e0;
+    }
+}
