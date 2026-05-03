@@ -31,6 +31,55 @@ void FUN_00465d20(void) {}
 void FUN_00418330(void) {}
 void FUN_00418370(void) {}
 
+/*
+ * FUN_004777e0 - Swap Two Strings
+ *
+ * Binary analysis:
+ * - Swaps two null-terminated strings (max 256 chars each)
+ * - param_1: first string pointer
+ * - param_2: second string pointer
+ * - Uses local_100[256] as temporary buffer
+ * - Validates both strings are < 256 characters before swapping
+ * - Optimized with 4-byte (dword) copy for bulk data
+ */
+void FUN_004777e0(char* str1, char* str2) {
+    (void)str1; (void)str2;
+}
+
+/*
+ * FUN_00477b20 - Create or Update Player Entity
+ *
+ * Binary analysis:
+ * - Creates or updates the main player entity on the field
+ * - param_1: entity model ID
+ * - param_2: world X coordinate
+ * - param_3: world Y coordinate
+ * - param_4: extra data
+ * - If DAT_0462e3ac == 0: calls FUN_0040b5e0 to create new entity
+ *   - Sets flag 0x80 at offset 0xa0
+ * - Otherwise: updates existing entity via FUN_00477c70/77cb0/77cd0
+ * - Stores params in DAT_0462be88/94 for later reference
+ */
+void FUN_00477b20(int model_id, int world_x, int world_y, int extra_data) {
+    (void)model_id; (void)world_x; (void)world_y; (void)extra_data;
+}
+
+/*
+ * FUN_004779d0 - Update UI Elements
+ *
+ * Binary analysis:
+ * - Main UI update function called from game state machine
+ * - Updates player entity via FUN_00477b20
+ * - Updates UI panels via FUN_00477dc0
+ * - Updates party member entity references
+ * - Clears various UI state arrays:
+ *   - DAT_0461b528, 5e0, 590 (20 entries each)
+ *   - DAT_04630b1a-1e: UI element flags
+ *   - DAT_0462ac0c, DAT_046309f8: selection state
+ * - Called each frame during main game loop
+ */
+void FUN_004779d0(void) {}
+
 /* Input Functions */
 int FUN_004808e0(int param_1) {
     (void)param_1;
