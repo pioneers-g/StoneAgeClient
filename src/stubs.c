@@ -2514,3 +2514,196 @@ int battle_check_end_condition(void) { return 0; }
 
 /* Config functions */
 int config_init(void) { return 1; }
+
+/* FUN_004017a0 - Pet AI Settings Loader
+ * Loads pet AI configuration from AISetting.dat file
+ *
+ * Processing:
+ * 1. Opens "AISetting.dat" via FUN_00492d40
+ * 2. Reads 4-byte entries in loop via FUN_00493240
+ * 3. Each entry: [command_id:2][target_id:2]
+ * 4. Stops when FUN_00493260 returns EOF indicator
+ * 5. Closes file via FUN_00493270
+ *
+ * Data storage:
+ * - DAT_04552904: AI command array (command IDs)
+ * - DAT_04552908: AI target array (target IDs)
+ * - DAT_04552900: Entry count (max 256 entries)
+ *
+ * Entry format (4 bytes each):
+ * - Offset 0-1: Command ID (AI action type)
+ * - Offset 2-3: Target ID (action parameter)
+ *
+ * AI commands (command_id values):
+ * - 0: No action / idle
+ * - 1: Attack nearest enemy
+ * - 2: Attack lowest HP enemy
+ * - 3: Attack highest threat enemy
+ * - 4: Use skill on enemy
+ * - 5: Use skill on ally
+ * - 6: Defend owner
+ * - 7: Flee
+ * - 8: Follow owner
+ * - 9-255: Extended AI behaviors
+ *
+ * File format:
+ * - Binary file with 4-byte records
+ * - No header, just raw entries
+ * - Typically 50-100 entries for game AI
+ *
+ * Returns: 0 on success, non-zero on file error
+ */
+int FUN_004017a0(void) {
+    /* Load pet AI settings from AISetting.dat */
+    return 0;
+}
+
+/* FUN_00425bb0 - Pet Capture Action Handler
+ * Handles pet capture during battle, parsing pet data from protocol
+ *
+ * Parameters:
+ * - param_1: Pet index in capture list
+ * - param_2: Capture mode (0 = normal, 1 = forced)
+ *
+ * Processing:
+ * 1. Get pet count from DAT_04556420
+ * 2. Validate pet index (1 to pet_count)
+ * 3. Retrieve pet sprite ID from DAT_04556400 array
+ * 4. Store pet name from DAT_04556678 to DAT_04554270
+ * 5. Calculate capture parameters via FUN_00425dc0
+ *
+ * Pet capture data:
+ * - DAT_04556400: Pet sprite ID array (100 bytes per entry)
+ * - DAT_04556678: Pet name buffer (100 bytes per entry)
+ * - DAT_04556420: Number of capturable pets
+ * - DAT_04554270: Selected pet name output buffer
+ * - DAT_04556410: Selected pet sprite ID
+ *
+ * Capture validation:
+ * - pet_index must be > 0 and <= DAT_04556420
+ * - If invalid: returns without action
+ * - If valid: stores selection for capture confirmation
+ *
+ * Protocol output:
+ * - After selection, capture command sent via FUN_0043b980
+ * - Format: "capture %d %s" (pet_index, pet_name)
+ * - Server validates and returns capture result
+ *
+ * Called by: FUN_00424b70 (action dispatcher) for action type 9
+ *
+ * Returns: 0 on success, -1 if invalid pet index
+ */
+int FUN_00425bb0(int param_1, int param_2) {
+    /* Handle pet capture action during battle */
+    return 0;
+}
+
+/* FUN_0044a100 - Album Data Loader with XOR Decryption
+ * Loads and decrypts pet album data files
+ *
+ * Processing:
+ * 1. Iterates through 36 album data files (indices 0-35)
+ * 2. Constructs filename: "data/album%d.dat" via FUN_004923a7
+ * 3. Opens each file via FUN_00492d40
+ * 4. Reads encrypted data via FUN_00493240
+ * 5. Decrypts using XOR cipher via FUN_00449e00
+ * 6. Stores decrypted data in album array
+ *
+ * File format (each album file):
+ * - Encrypted with XOR cipher
+ * - Key: The encryption key used by FUN_00449e00
+ * - Contains pet album entries
+ *
+ * XOR decryption (FUN_00449e00):
+ * - Key stored in DAT_0455ef9c
+ * - Iterates bytes: decrypted[i] = encrypted[i] ^ key[i % key_len]
+ * - Standard XOR cipher implementation
+ *
+ * Data storage:
+ * - DAT_04630b80: Album data array
+ * - DAT_04630b84: Album entry count
+ * - Each entry: 104 bytes (0x68 bytes)
+ * - Entry structure: pet_id, name, stats, capture_info
+ *
+ * Album entry layout (104 bytes):
+ * - Offset 0x00: Pet ID (2 bytes)
+ * - Offset 0x02: Pet name (16 bytes)
+ * - Offset 0x12: Pet nickname (32 bytes)
+ * - Offset 0x32: Level (1 byte)
+ * - Offset 0x33: HP (2 bytes)
+ * - Offset 0x35: Attack (2 bytes)
+ * - Offset 0x37: Defense (2 bytes)
+ * - Offset 0x39: Speed (2 bytes)
+ * - Offset 0x3b: Element (1 byte)
+ * - Offset 0x3c: Skills (20 bytes)
+ * - Offset 0x50: Capture date (8 bytes)
+ * - Offset 0x58: Reserved (16 bytes)
+ *
+ * Total album capacity: 36 * (entry_count_per_file)
+ * Typical: 36 files * 104 pets = ~3744 pets maximum
+ *
+ * Error handling:
+ * - Missing files: Skips silently
+ * - Corrupt files: Partial load, continues to next
+ * - Memory failure: Returns early
+ *
+ * Returns: Total number of album entries loaded, or -1 on error
+ */
+int FUN_0044a100(void) {
+    /* Load and decrypt all album data files */
+    return 0;
+}
+
+/* FUN_00449e00 - XOR Decryption Function
+ * Decrypts data using XOR cipher with given key
+ *
+ * Parameters:
+ * - param_1: Encrypted data buffer (modified in place)
+ * - param_2: Data length
+ * - param_3: XOR key buffer
+ * - param_4: Key length
+ *
+ * Processing:
+ * - For each byte i in data: data[i] ^= key[i % key_length]
+ * - Simple XOR cipher implementation
+ *
+ * Note: XOR is symmetric - same function encrypts/decrypts
+ */
+void FUN_00449e00(unsigned char* param_1, int param_2,
+                  const unsigned char* param_3, int param_4) {
+    /* XOR decrypt data with key */
+}
+
+/* FUN_00425dc0 - Pet Data Parser for Capture
+ * Parses pet data from protocol string for capture handling
+ *
+ * Parameters:
+ * - param_1: Raw protocol string from server
+ * - param_2: Output pet data structure
+ *
+ * Protocol format:
+ * "pet_id|sprite_id|name|level|hp|atk|def|spd|element|skill1|skill2|..."
+ *
+ * Field parsing:
+ * - Uses FUN_00489f70 for field extraction
+ * - Uses FUN_004929fe for integer conversion
+ * - Uses FUN_0048a170 for string unescaping
+ *
+ * Pet data structure:
+ * - Offset 0x00: Pet ID (4 bytes)
+ * - Offset 0x04: Sprite ID (4 bytes)
+ * - Offset 0x08: Name (32 bytes)
+ * - Offset 0x28: Level (4 bytes)
+ * - Offset 0x2c: HP (4 bytes)
+ * - Offset 0x30: Attack (4 bytes)
+ * - Offset 0x34: Defense (4 bytes)
+ * - Offset 0x38: Speed (4 bytes)
+ * - Offset 0x3c: Element (4 bytes)
+ * - Offset 0x40: Skills (40 bytes, 10 slots)
+ *
+ * Returns: 0 on success, -1 on parse error
+ */
+int FUN_00425dc0(const char* param_1, void* param_2) {
+    /* Parse pet capture data from protocol */
+    return 0;
+}
