@@ -457,6 +457,35 @@ void FUN_00476180(int sprite_id) {
 }
 
 /*
+ * FUN_00477b90 - Clear Player Entity Extra Data
+ *
+ * Binary analysis:
+ * - Clears extra data for the player entity (DAT_0462e3ac)
+ * - Frees extra data at offsets 0x1c, 0x20, 0x24-0x30 in entity extra struct
+ * - Clears DAT_046308d0 through DAT_046308e0 (pet/item slots)
+ * - Calls FUN_004011c0 for each pointer to free
+ * - Sets DAT_0462e3ac to 0 after cleanup
+ * - Calls FUN_004780a0 to clear additional state
+ */
+void FUN_00477b90(void) {
+    /* TODO: Full implementation with player entity globals */
+    /* DAT_0462bf2c &= 0xfffffeff; - clear bit 8 */
+}
+
+/*
+ * FUN_00477ca0 - Set Player Entity ID
+ *
+ * Binary analysis:
+ * - Sets the player entity ID global (DAT_0462be90)
+ * - param_1: entity ID to set as player
+ * - Used to identify which entity is the player character
+ */
+void FUN_00477ca0(int entity_id) {
+    /* TODO: Implementation with DAT_0462be90 */
+    (void)entity_id;
+}
+
+/*
  * FUN_00476200 - Initialize Character Grid Entities
  *
  * Binary analysis:
