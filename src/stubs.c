@@ -268,6 +268,69 @@ int map_handle_enter_field(const char* data) { (void)data; return 0; }
 /* Protocol send */
 int protocol_send_text_command(const char* cmd) { (void)cmd; return 0; }
 
+/* FUN_0043b980 - Send Protocol Packet with Parameters
+ * Constructs and sends a binary protocol packet with multiple fields
+ *
+ * Parameters:
+ * - param_1: Socket/connection handle
+ * - param_2: First integer field (encoded via FUN_0043dce0)
+ * - param_3: Second integer field
+ * - param_4: Third integer field
+ * - param_5: Fourth integer field
+ * - param_6: Fifth integer field
+ * - param_7: String/data field (encoded via FUN_0043dd20)
+ *
+ * Processing:
+ * 1. Initialize buffer via FUN_0043e170(DAT_004b9ff0, &DAT_004b9f34)
+ * 2. Encode each integer parameter via FUN_0043dce0 (Base-62)
+ * 3. Append each encoded field via FUN_0043dc90
+ * 4. Encode string parameter via FUN_0043dd20
+ * 5. Send via FUN_0043e100
+ *
+ * Buffer locations:
+ * - DAT_004b9ff0: Output buffer
+ * - DAT_004b9fec: Encoding table/format
+ * - DAT_004b9f34: Protocol format string
+ */
+void FUN_0043b980(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6, void* param_7) {
+    /* Send protocol packet with 5 int fields + 1 string field */
+}
+
+/* FUN_0048fdc0 - Send Checksum Verification Packet
+ * Sends a verification/checksum packet to the server
+ *
+ * Stack-based parameter passing (uses 7 parameters from stack):
+ * - Parameters passed via stack: 0x4004-0x401c
+ *
+ * Processing:
+ * 1. Call FUN_00492d80 (initialization/clear)
+ * 2. Calculate checksum via FUN_0048d1f0 for each field
+ * 3. Sum all checksums
+ * 4. Send via FUN_0048c8c0 with opcode 0x43 ('C')
+ *
+ * Used for: Server-side verification of client data integrity
+ */
+void FUN_0048fdc0(void) {
+    /* Send checksum verification packet */
+}
+
+/* FUN_004929fe - String to Integer Wrapper
+ * Wrapper function for FUN_00492973 (string to int conversion)
+ *
+ * Parameter: param_1 - String to convert
+ *
+ * Simply calls FUN_00492973 which:
+ * - Skips leading whitespace
+ * - Handles +/- signs
+ * - Converts decimal digits to integer
+ *
+ * Returns: Parsed integer value
+ */
+int FUN_004929fe(const char* param_1) {
+    /* Convert string to integer */
+    return 0;
+}
+
 /* Window proc */
 LRESULT window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
     return DefWindowProc(hwnd, msg, wparam, lparam);
