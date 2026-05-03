@@ -854,6 +854,168 @@ void FUN_004354f0(void) {
     /* Pet recall UI */
 }
 
+/* FUN_00432a10 - Formation UI
+ * Handles battle formation selection (two formation types)
+ *
+ * Parameter: param_1
+ *   0: Formation type A (10 tiles wide, 7 tiles tall)
+ *   1: Formation type B (8 tiles wide, 7 tiles tall)
+ *
+ * Window creation:
+ * - Position calculated based on formation type:
+ *   - Type A: (10 tiles, 7 tiles)
+ *   - Type B: (8 tiles, 7 tiles)
+ * - X position: (width * -0x30 + 0x1c8) / 2
+ * - Y position: ((10 - width) * 0x40) / 2
+ *
+ * Button layout:
+ * - 6 buttons at DAT_004b852c (initialized to -2 = 0xfffffffe)
+ * - Button text from local_218 array:
+ *   - [0]: DAT_004b91dc (confirm)
+ *   - [1]: s_Cancel (DAT_004b91d4)
+ *   - [2-5]: Formation options
+ *
+ * Formation member display:
+ * - Member count from DAT_0455ef94 (bitmask of active members)
+ * - Max 4 members per formation
+ * - Column positions stored in DAT_04552b58 array
+ * - Row height: 0x127 (295) pixels
+ * - Each member has width: (window_width << 6) / (member_count + 1)
+ *
+ * Member data:
+ * - Names from DAT_04556678 array (100 bytes per entry)
+ * - Max 10 members (DAT_0455a104)
+ * - Row spacing: 0x15 (21) pixels
+ * - Highlight color: 7 (selected) or 0 (normal)
+ *
+ * Protocol output:
+ * - Format: "%d %d %s" via FUN_0048a200
+ * - Button mask: 2 for cancel, 1 << button_index otherwise
+ * - Sent via FUN_0043b980 or FUN_0048fdc0
+ *
+ * Special states checked:
+ * - DAT_0455ef98: Window handle (0 = not created)
+ * - DAT_04ebe490 & 0x80000000: Invalid state check
+ * - DAT_005676a0, DAT_00564e62, DAT_0461b420: Mode flags
+ * - DAT_0455ef9c: Battle state flag
+ */
+void FUN_00432a10(int param_1) {
+    /* Formation selection UI */
+}
+
+/* FUN_00438080 - Pet Ride Action UI
+ * Handles the pet riding system with pet selection
+ *
+ * State management:
+ * - DAT_0455ef38: Ride state (1 = riding, 0 = not riding)
+ * - DAT_0455f038: Window handle
+ * - DAT_04553200: Current pet name buffer (700 bytes)
+ * - DAT_04552d24: Button state array (20 entries)
+ *
+ * Window creation (first call or DAT_0455f038 == 0):
+ * - Size: 0x21c x 0x1c2 pixels (540 x 450)
+ * - Position: (0x32, 0xf) = (50, 15)
+ * - Skin: 0x669e
+ * - Button count: 0x14 (20)
+ *
+ * Pet slots:
+ * - Slot 1: DAT_04552f10 (bit 4 of DAT_0455ef94)
+ * - Slot 2: DAT_04552f18 (bit 5 of DAT_0455ef94)
+ * - Value 2 = no pet, 0 = pet available
+ *
+ * Password verification:
+ * - XOR key at DAT_0454f3d4 (from DAT_0455703c)
+ * - Uses FUN_0048bb90 with key "f;encor1c"
+ * - 16-byte key buffer
+ *
+ * Pet list display:
+ * - Pet data at DAT_04553204, stride 0x118 (280 bytes)
+ * - Max 5 pets (0x4553cf4 - 0x4553204) / 0x118 = 5
+ * - Each pet: name at +0x11, password hash check
+ *
+ * Scroll handling:
+ * - DAT_04554098: Scroll offset
+ * - Increment/decrement by 10 per scroll
+ * - Update sent to server via FUN_0043b980
+ * - Scroll mask: 0x10 (up) or 0x20 (down)
+ *
+ * Button states:
+ * - DAT_04552f00: Confirm button (0=off, 1=hover, 2=normal)
+ * - DAT_04552f08: Cancel button
+ * - DAT_04552f10: Pet slot 1
+ * - DAT_04552f18: Pet slot 2
+ * - DAT_04552f20: Close button
+ *
+ * Protocol output:
+ * - Ride confirm: mask 1 or 4
+ * - Scroll: mask 0x10 or 0x20
+ * - Format via FUN_0048a200 with pet name
+ *
+ * Sound effects:
+ * - 0xca: Window open
+ * - 0xd9: Window close
+ */
+void FUN_00438080(void) {
+    /* Pet ride action UI */
+}
+
+/* FUN_00438880 - Pet Dismount UI
+ * Handles getting off a ridden pet with confirmation
+ *
+ * State management:
+ * - DAT_0455f038: Window handle
+ * - DAT_04557978: Pet data buffer (280 bytes, 0x46 entries)
+ * - DAT_0454e0a0-0x454e0b4: Button states (5 entries)
+ *
+ * Window creation:
+ * - Size: 0x21c x 0x1c2 pixels (540 x 450)
+ * - Position: (0x32, 0xf) = (50, 15)
+ * - Skin: 0x66b4
+ *
+ * Pet info display:
+ * - Pet name at DAT_0455798d, copied to DAT_04552be8
+ * - Name length stored in DAT_04552cef, DAT_04552cf1
+ * - Pet level: DAT_04552cec (default 100)
+ * - Pet stats: DAT_04552ced (24), DAT_04552cee (20)
+ *
+ * Secondary pet:
+ * - Name at DAT_04557a03, copied to DAT_0454dea0
+ * - Level at DAT_0454dfa4 (default 100)
+ * - Stats: DAT_0454dfa5 (28), DAT_0454dfa6 (20)
+ *
+ * Tertiary pet (if DAT_04557a0c == 2):
+ * - Name at DAT_04557a50, copied to DAT_0455ae58
+ * - Level at DAT_0455af5c (default 100)
+ * - Stats: DAT_0455af5d (28), DAT_0455af5e (20)
+ *
+ * Button positions:
+ * - Dismount confirm: (window_x + 0xe6, window_y + 0x109)
+ * - Secondary dismount: (window_x + 0x10e, window_y + 0x181)
+ * - Tertiary dismount: (window_x + 0xdc, window_y + 0xc8)
+ *
+ * Display elements:
+ * - Pet portrait sprite: 0x66b1, 0x66b3
+ * - Text labels at DAT_045579f2, DAT_04557a10
+ * - Pet image handle: DAT_0455f044 (via FUN_00449510)
+ *
+ * Pet stats display (if DAT_04557a0c == 1):
+ * - Stats at DAT_04557a34, DAT_04557a38, DAT_04557a3c, DAT_04557a40, DAT_04557a44, DAT_04557a48
+ * - Displayed as decimal via FUN_0049b108
+ *
+ * Protocol output:
+ * - Dismount confirm: mask 1
+ * - Format: "%d %s" with pet name
+ * - Sent via FUN_0043b980 or FUN_0048fdc0
+ *
+ * Cleanup:
+ * - FUN_004011c0 on window handle
+ * - FUN_00411990 on dialog (DAT_0054a3c8)
+ * - Clear DAT_0455f044 (pet image)
+ */
+void FUN_00438880(void) {
+    /* Pet dismount UI */
+}
+
 /* FUN_0043bf90 - Text Protocol Command Dispatcher
  * Central dispatcher for all text-based protocol commands
  *
