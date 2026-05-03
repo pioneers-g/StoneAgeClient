@@ -93,6 +93,8 @@ set(TEST_SOURCES
     test_quest_module_comprehensive.c
     test_chat_protocol_module_comprehensive.c
     test_battle_action_attack_module_comprehensive.c
+    test_effect_system_comprehensive.c
+    test_debug_effect.c
     test_debug_death.c
 )
 
