@@ -361,3 +361,55 @@ int FUN_0046b9a0(void) {
 void FUN_0046bac0(int emote_type) {
     (void)emote_type;
 }
+
+/*
+ * FUN_00468150 - Create Status Effect Entity
+ *
+ * Binary analysis:
+ * - Creates visual status effect above character
+ * - param_1: effect type (1-34)
+ * - param_2: parent entity pointer
+ * - Only creates if entity HP (offset 0x78) > 0
+ * - Creates child entity with priority 0x47, size 0x25c bytes
+ * - Sets render callback to FUN_00467eb0
+ * - Links child to parent via companion->0x110
+ * - Effect sprites by type:
+ *   - 1: 0x188cb (poison)
+ *   - 2, 23, 33: 0x188c7 (paralysis)
+ *   - 3: 0x188c9 (sleep)
+ *   - 4: 0x188c6 (stone)
+ *   - 5: 0x188c8 (drunk)
+ *   - 6, 20: 0x188ca (confusion)
+ *   - 7: 0x18c2c (attack up)
+ *   - 8: 0x18c29 (defense up)
+ *   - 9, 32: 0x18c2d (speed up)
+ *   - 10: 0x18c2b (accuracy up)
+ *   - 11: 0x18d46 (critical up)
+ *   - 12: 0x639c (buff indicator)
+ *   - 13: 0x8930 (special effect)
+ *   - 14: 0x8926 (special effect 2)
+ *   - 15, 17: 0x6c2c (shield)
+ *   - 16: 0x6795 (barrier)
+ *   - 18, 19: 0x6984 (protection)
+ *   - 21-22: 33: Special handling for 0x18db6/0x18db7
+ *   - 34: Resurrection effect
+ */
+void FUN_00468150(int effect_type, void* parent_entity) {
+    (void)effect_type; (void)parent_entity;
+}
+
+/*
+ * FUN_00468430 - Create Emote Effect Entity
+ *
+ * Binary analysis:
+ * - Creates emote bubble above character
+ * - param_1: parent entity pointer
+ * - Creates child entity with priority 0x47
+ * - Sets render callback to LAB_004683c0
+ * - Links via companion->0x118
+ * - Sprite: 0x622c (emote bubble)
+ * - Position: same X as parent, Y offset by -0x40
+ */
+void FUN_00468430(void* parent_entity) {
+    (void)parent_entity;
+}
