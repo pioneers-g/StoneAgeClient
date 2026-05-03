@@ -93,3 +93,70 @@ int FUN_0041f980(int param_1, short* param_2, short* param_3) {
     (void)param_1; (void)param_2; (void)param_3;
     return 1;
 }
+
+/*
+ * FUN_00448270 - UI Window Render Callback
+ *
+ * Binary analysis:
+ * - Render callback for window widgets
+ * - param_1: window entity pointer (500-byte structure)
+ * - Switch on animation state at offset 0xa8:
+ *   - Case 0: Initial animation (fade/slide in)
+ *   - Case 1: Complete (set flag at offset 0x78)
+ *   - Case 2: Render 9-sprite grid for window border
+ *   - Case 3: Button rendering with click detection
+ * - Uses FUN_0047e210 to queue sprites for rendering
+ * - 9-sprite grid layout: corners (0,2,6,8), edges (1,3,5,7), center (4)
+ */
+void FUN_00448270(void* window_entity) {
+    (void)window_entity;
+    /* TODO: Full window rendering implementation */
+}
+
+/*
+ * FUN_00448610 - UI Window Creation (9-Sprite Grid)
+ *
+ * Binary analysis:
+ * - Creates a window widget with 9-sprite grid layout
+ * - param_1: x position
+ * - param_2: y position
+ * - param_3: width (in tiles)
+ * - param_4: height (in tiles)
+ * - param_5: center sprite ID
+ * - param_6: style/type (0-5, -1)
+ * - Returns entity pointer or 0 on failure
+ * - Allocates 500-byte entity structure via FUN_004010a0
+ * - Sets render callback to FUN_00448270
+ * - Sprite sets from DAT_0054b194 (normal) or DAT_0054c208 (pressed)
+ *
+ * 9-sprite indices:
+ *   0 = top-left corner, 1 = top edge, 2 = top-right corner
+ *   3 = left edge, 4 = center, 5 = right edge
+ *   6 = bottom-left corner, 7 = bottom edge, 8 = bottom-right corner
+ */
+int FUN_00448610(int x, int y, int width, int height, int center_sprite, int style) {
+    (void)x; (void)y; (void)width; (void)height; (void)center_sprite; (void)style;
+    /* TODO: Full window creation implementation */
+    return 0;
+}
+
+/*
+ * FUN_0047bde0 - Fade Effect Dispatcher
+ *
+ * Binary analysis:
+ * - Dispatches fade/transition effects based on mode
+ * - param_1: fade mode (0-29)
+ * - Returns 1 when fade is complete, 0 otherwise
+ * - Modes:
+ *   - 0-11: Fade in/out for different layers (0,1 = layer 0, 2,3 = layer 1, etc.)
+ *   - 12-15: Special fade effects (FUN_0047aea0, FUN_0047b180)
+ *   - 16-19: Pattern fades (FUN_0047b7e0, FUN_0047b9f0, FUN_0047bb30)
+ *   - 20-29: Various transition effects
+ * - Calls FUN_00412a40 to prepare surfaces
+ * - Calls FUN_00412ab0 to flip surfaces when complete
+ */
+int FUN_0047bde0(int fade_mode) {
+    (void)fade_mode;
+    /* TODO: Full fade effect implementation */
+    return 1;
+}

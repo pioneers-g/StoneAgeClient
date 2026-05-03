@@ -376,9 +376,7 @@ void FUN_0048fdc0(int param_1, int param_2, const char* param_3) {
     (void)param_1; (void)param_2; (void)param_3;
 }
 
-void FUN_00448610(int param_1, int param_2, int param_3, int param_4) {
-    (void)param_1; (void)param_2; (void)param_3; (void)param_4;
-}
+/* FUN_00448610 is in stubs_ui.c */
 
 void FUN_004011c0(void) {}
 void FUN_0041d860(void) {}
