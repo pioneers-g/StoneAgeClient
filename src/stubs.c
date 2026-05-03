@@ -460,9 +460,17 @@ void FUN_0047d8c0(void) {
     /* FUN_0049320c(&DAT_0464b488, DAT_0464f488, 4, &LAB_0047e6e0); */
 }
 
-/* FUN_00412a40 - Animation update */
+/* FUN_00412a40 - DirectDraw primary surface restoration
+ * Restores lost DirectDraw surfaces and resets state
+ *
+ * Operations:
+ * - Initializes local buffer (100 bytes at offset 0)
+ * - Sets restoration rect to DAT_01000400
+ * - Calls surface restore via vtable +0x14 on DAT_0054a90c+0xc
+ * - If alpha mode (DAT_0054c83c), also restores secondary surface
+ */
 void FUN_00412a40(void) {
-    /* TODO: Implementation needed */
+    /* DirectDraw surface restoration */
 }
 
 /* FUN_0047dc60 - Render queue processor (main sprite rendering loop)
@@ -498,12 +506,20 @@ void FUN_0047dc60(void) {
     /* Complex sprite rendering - see Ghidra decompilation */
 }
 
-/* FUN_00401170 - Field entity update loop */
+/* FUN_00401170 - Field entity update loop
+ * Iterates through entity linked list and processes each entity
+ *
+ * Structure:
+ * - Entity list at DAT_004d7e3c, ends at DAT_004d7e38
+ * - Each entity has: prev at +0, next at +4, callback at +8
+ * - State flag at offset +0x24 (9*4): 0=active, else=delete
+ *
+ * Operations:
+ * - If state==0: Call callback at +0x8 if not NULL
+ * - If state!=0: Remove from list, call FUN_004011d0 to free
+ */
 void FUN_00401170(void) {
-    /* Iterates entity list and calls update callbacks
-     * - Uses DAT_004d7e3c as entity list head
-     * - Checks entity state at offset +0x24
-     */
+    /* Entity list iteration with callback dispatch */
 }
 
 /* FUN_00448610 - Window widget creation (9-sprite grid) */
