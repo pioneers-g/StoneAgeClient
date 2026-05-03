@@ -357,6 +357,426 @@ void FUN_00424f50(void) {
     /* Dispatcher based on DAT_004b83ec action type */
 }
 
+/* FUN_00426cc0 - Battle Item UI
+ * Handles item selection UI during battle
+ *
+ * Window creation (first call only):
+ * - Creates window via FUN_00448610(0x60, 0x6c, 7, 5, 0, 1)
+ * - Window size: 7 tiles wide, 5 tiles tall
+ * - Position: (0x60, 0x6c) = (96, 108)
+ *
+ * Button layout:
+ * - 6 buttons at DAT_004b8420 (initialized to -2 = unassigned)
+ * - Button labels from local_218: "OK", "CANCEL", button texts
+ * - Buttons positioned based on item count (DAT_0455ef94 bitmask)
+ *
+ * Item display:
+ * - Iterates through inventory (DAT_046274ce array, 0x58c stride)
+ * - Each item: name at +0x11, icon, level info
+ * - Displays item name, "LV. %d", "MaxHP %d"
+ * - Click detection via FUN_0044aba0
+ *
+ * Input handling:
+ * - Button clicks processed via FUN_00421080
+ * - Item selection via mouse click (DAT_045f1bc4 & 1)
+ * - Returns selection in local_21c (item index 1-7)
+ *
+ * Protocol output:
+ * - Uses FUN_004923a7 to format with 'B' prefix
+ * - Calls FUN_0048a200 for string escaping
+ * - Sends via FUN_0043b980 (normal) or FUN_0048fdc0 (checksum mode)
+ * - Sets DAT_004b83ec = -1 to close UI
+ *
+ * Cleanup:
+ * - FUN_004011c0 destroys window when action complete
+ * - Sets DAT_0455ef98 = 0
+ */
+void FUN_00426cc0(void) {
+    /* Battle item selection UI */
+}
+
+/* FUN_00427190 - Battle Pet UI
+ * Handles pet selection/management UI during battle
+ *
+ * Window creation (first call only):
+ * - Creates window via FUN_00448610(0x60, 0x6c, 7, 5, 0, 1)
+ * - Same layout as item UI
+ *
+ * Pet display:
+ * - 5 pet slots (loop iVar8 = 1 to 6)
+ * - Pet names from DAT_046308d8 + iVar8 * 0x30
+ * - First pet uses DAT_0462bef8 if DAT_04630b24 == 0
+ * - Empty slots show nothing (DAT_045566dc = 0)
+ *
+ * Selection:
+ * - Button selection via FUN_00421080 -> local_21c
+ * - Pet selection via FUN_0044aba0 click detection -> iVar3
+ * - Pet indices: 1-5 are player pets, 6-10 are enemy pets (iVar3 = iVar8 + 5)
+ *
+ * Protocol output:
+ * - Formats selection with FUN_004923a7, FUN_0048a200
+ * - Sends pet selection via FUN_0043b980 or FUN_0048fdc0
+ * - Bitmask: 1 << button_index for action
+ *
+ * Display loop:
+ * - Centers pet names ((0x10 - name_len) * 9) / 2
+ * - Position: x = 0x98 + context, y = (index + 2) * 0x15
+ */
+void FUN_00427190(void) {
+    /* Battle pet selection UI */
+}
+
+/* FUN_004276a0 - Battle Escape/Reposition UI
+ * Handles escape and pet repositioning during battle
+ *
+ * Window creation (first call only):
+ * - Creates window via FUN_00448610(0x60, 0x6c, 7, 5, 0, 1)
+ * - Title from DAT_004b924c
+ *
+ * Two selection areas:
+ * 1. Left side: Character actions (DAT_046274ce array)
+ *    - Shows character names with offset 0x11 check
+ *    - Click detection at (0x29, y) to (0x197, y+0x14)
+ *    - Returns character selection in iVar4
+ *
+ * 2. Right side: Pet actions (DAT_046308c0 + iVar8 * 0xc)
+ *    - Pet names from DAT_046308d8 + iVar8 * 0x30
+ *    - Click detection at (0x101, y) to (0x196, y+0x14)
+ *    - Returns pet selection in iVar4 = iVar8 + 5
+ *
+ * Button handling:
+ * - 6 buttons at DAT_004b8450
+ * - Button mask: 1 << (button_index & 0x1f)
+ *
+ * Protocol output:
+ * - Sends escape/reposition command
+ * - Parameter: button_mask for action, target_index for target
+ *
+ * Display:
+ * - Left side: x = 0x2c + context
+ * - Right side: x = 0x104 + context
+ * - Row height: 0x15 pixels
+ */
+void FUN_004276a0(void) {
+    /* Battle escape/reposition UI */
+}
+
+/* FUN_00426380 - Battle Attack UI
+ * Handles attack target selection during battle
+ *
+ * Parameter: param_1 = mode
+ *   0: Normal attack mode
+ *   1: Special attack with targeting cursor
+ *   2: Extended attack mode
+ *
+ * Window creation (first call only):
+ * - Position calculated from DAT_045541dc (width) and DAT_045541a4 (height)
+ * - Window dimensions: 0x30 pixel rows, variable columns
+ * - X position: ((10 - width) * 0x40) / 2
+ * - Y position: (height * -0x30 + 0x1c8) / 2
+ *
+ * Target grid:
+ * - Row count in DAT_0455b0dc = 0x14 (20 rows)
+ * - Cell height: (window_height - 0x38) / row_count
+ * - Up to 4 visible targets based on DAT_0455ef94 bitmask
+ *
+ * Button handling:
+ * - 6 buttons at DAT_004b83f0
+ * - Button positions stored in DAT_04552e44 array
+ * - Returns button mask: 1 << (button_index & 0x1f)
+ *
+ * Target selection (mode 1):
+ * - Uses FUN_00420fb0 for cursor positioning
+ * - Cursor position: DAT_04552fb0 * 9 offset
+ * - Displays target names from DAT_04556678 array (100 bytes each)
+ *
+ * Protocol output:
+ * - Sends attack command via FUN_0043b980 or FUN_0048fdc0
+ * - Button mask indicates target selection
+ */
+void FUN_00426380(int mode) {
+    /* Battle attack target selection UI */
+}
+
+/* FUN_00426850 - Battle Skill UI
+ * Handles skill selection and target selection during battle
+ *
+ * Window creation (first call only):
+ * - Fixed size: 7 tiles wide, 5 tiles tall
+ * - Position: (0x60, 0x6c) = (96, 108)
+ *
+ * Skill display:
+ * - Skills stored in DAT_04556678 array (100 bytes per skill)
+ * - Up to 10 skills displayed (DAT_0454efcc = 10)
+ * - Starting index: DAT_0454f5b0 (for scrolling)
+ * - Row height: 0x15 pixels
+ *
+ * Selection handling:
+ * - Button click via FUN_00421080 -> iVar3
+ * - Skill click via FUN_0044aba0 -> iVar10
+ * - Skill index: (row - scroll_offset) + 1
+ *
+ * Protocol output:
+ * - If cancel (iVar3 == 100): sends with mode 2
+ * - If button selected: sends button_mask = 1 << button_index
+ * - Target parameter: skill_index
+ *
+ * Protocol variants:
+ * - Normal: FUN_0043b980
+ * - Checksum: FUN_0048fdc0
+ * - With offset: FUN_0048fdc0 with subtracted parameters
+ */
+void FUN_00426850(void) {
+    /* Battle skill selection UI */
+}
+
+/* FUN_0042ce40 - Battle Pet Capture UI
+ * Complex state machine for pet capture during battle
+ *
+ * State machine (DAT_0455a0fc):
+ * 0: Initialize -> calls FUN_0042d570, advance to 1
+ * 1: Display -> calls FUN_0042d580
+ * 10: Capture init -> calls FUN_0042d880, advance to 11
+ * 11 (0xb): Wait for input via FUN_0042d890
+ *    - Return 1: Send cancel, close UI
+ *    - Return 2: Advance to 20 (0x14)
+ * 20 (0x14): Pet list init -> calls FUN_0042df30, advance to 21
+ * 21 (0x15): Wait for selection via FUN_0042df40
+ *    - Return 1: Send capture, update pet slots
+ *    - Return 2: Return to state 10
+ * 100 (0x64): Extended capture init -> calls FUN_0042e110, advance to 101
+ * 101 (0x65): Wait for input via FUN_0042e120
+ *    - Return 1: Send cancel, close UI
+ *    - Return 2: Advance to 110
+ *    - Return 3: Advance to 120
+ * 110 (0x6e): Pet list init -> calls FUN_0042df30, advance to 111
+ * 111 (0x6f): Wait for selection via FUN_0042df40
+ *    - Return 1: Send capture, update pet slots
+ *    - Return 2: Return to state 100
+ * 120 (0x78): Extended state
+ *
+ * Pet slot management:
+ * - Pet data at DAT_0455b5e0 (0x88 bytes per pet, 104 slots)
+ * - Pet count: DAT_04558c98
+ * - Selected pet: DAT_0454f25c
+ * - Each pet has: name, stats, skills
+ *
+ * Slot compaction:
+ * - When pet captured, slots are compacted
+ * - Empty slots (name[0] == 0) are skipped
+ * - Pet data copied with stride 0x88
+ *
+ * Protocol output:
+ * - Cancel: FUN_004923a7 with DAT_004b92e8 format
+ * - Capture: FUN_004923a7 with pet_id parameter
+ */
+void FUN_0042ce40(void) {
+    /* Battle pet capture state machine */
+}
+
+/* FUN_0042acf0 - Battle Pet Capture UI (Simplified)
+ * State machine for pet capture during battle (shorter flow)
+ *
+ * State machine (DAT_0455b0f0):
+ * 0: Initialize -> calls FUN_0042bee0, advance to 1
+ * 1: Wait for input via FUN_0042bef0
+ *    - Return 2: Advance to 10
+ * 10: Capture list init -> calls FUN_0042c580, advance to 11
+ * 11 (0xb): Wait for selection via FUN_0042c590
+ *    - Return 1: Reset to state 0
+ *    - Return 2: Advance to 20
+ * 20 (0x14): Pet detail init -> calls FUN_0042c8a0, advance to 21
+ * 21 (0x15): Wait for confirmation via FUN_0042c8b0
+ *    - Return 1: Return to state 10
+ *    - Return 2: Advance to 30
+ * 30 (0x1e): Final init -> calls FUN_0042cb90, advance to 31
+ * 31 (0x1f): Wait for final input via FUN_0042cba0
+ *    - Return 1: Send capture command with parameters
+ *    - Return 2: Return to state 20
+ *
+ * Protocol output format:
+ * - Uses format string "%d %d %d %d" with 4 parameters
+ * - Parameters: capture_index+1, DAT_04556410, DAT_04558c40, sprite_id
+ * - Decrements pet counter (DAT_0462bee8) on success
+ */
+void FUN_0042acf0(void) {
+    /* Simplified battle pet capture UI */
+}
+
+/* FUN_0042e8f0 - Pet Skill 1 UI
+ * Complex pet skill management interface during battle
+ *
+ * Window creation:
+ * - Position: (0x22, 0x5c) = (34, 92)
+ * - Size: 0x23b x 0x127 = 571 x 295 pixels
+ * - Uses FUN_00448610 with parameter -1 (special mode)
+ *
+ * UI elements:
+ * - Pet portrait area at offset (0x5a, 0x112)
+ * - Pet name display from DAT_0462bef8
+ * - Skill buttons: 4 sprites (0x6644-0x6647)
+ * - Navigation arrows: left/right for pet selection
+ *
+ * Pet selection:
+ * - Index stored in DAT_0455efa8 (0-4 range)
+ * - Navigate with button indices 2 (left) and 3 (right)
+ * - Pet data array at DAT_046274ce with stride 0x58c
+ * - Pet icon at DAT_0462745c with stride 0x2c6
+ *
+ * Button handlers (via FUN_004210b0):
+ * 0: Confirm skill selection
+ * 1: Cancel/close
+ * 2: Previous pet
+ * 3: Next pet
+ *
+ * Skill modes:
+ * - Mode stored in DAT_004b848c (0 or 1)
+ * - Mode changes via button index 1
+ *
+ * Protocol output:
+ * - Format: "A %s %d %d %s" (skill name, parameters)
+ * - Uses FUN_0043bf40 (text) or FUN_00490420 (binary)
+ *
+ * Special checks:
+ * - DAT_0455ed18: First skill name buffer
+ * - DAT_045562a0: Second skill name buffer
+ * - DAT_0454de9c: Pet icon entity handle
+ */
+void FUN_0042e8f0(void) {
+    /* Pet skill selection UI (skill slot 1) */
+}
+
+/* FUN_00430b50 - Special Battle Action UI
+ * Complex multi-target action selection interface
+ *
+ * Extended mode (DAT_0455effc == 1):
+ * - Calls FUN_004322a0 for sub-menu
+ * - Uses DAT_0455b22c as target index
+ *
+ * Window creation (normal mode):
+ * - Size: 9 tiles wide, 8 tiles tall
+ * - Position: (0x20, 0x24) = (32, 36)
+ *
+ * Target list:
+ * - Up to 11 targets (DAT_045528d0 = 0xb)
+ * - Names in DAT_04556678 array (100 bytes each)
+ * - Scroll offset: DAT_0454f5b0
+ * - Target types in DAT_04556600 array
+ *
+ * Target types:
+ * - -1: Dead/unavailable
+ * - 0: Normal
+ * - 1: Special target (different color)
+ * - 2: Protected target
+ * - 4: Highlighted target
+ *
+ * Click detection:
+ * - Uses FUN_0044aba0 for hit testing
+ * - Scroll timing check via FUN_00492750
+ * - Row 10 has different click zones (extended area)
+ *
+ * Selection handling:
+ * - Selected index stored temporarily in local_634
+ * - Values 1-10: Normal targets
+ * - Value 11 (0xb): Special toggle (DAT_04556628)
+ *
+ * Protocol output:
+ * - Format: "%d %d %d" (mode, target_index, target_type)
+ * - Extended info: "M %s %d %d" via FUN_0043bf40
+ * - Toggle notification: Special format from DAT_004b9650
+ *
+ * Button handling:
+ * - 6 buttons at DAT_004b84b4
+ * - Button mask: 1 << (button_index & 0x1f)
+ * - Cancel returns 2 as action type
+ */
+void FUN_00430b50(void) {
+    /* Special battle action UI */
+}
+
+/* FUN_00431560 - Combo Attack UI
+ * Handles combo attack selection during battle
+ *
+ * Window creation:
+ * - Position calculated from DAT_045541dc (width) and DAT_045541a4 (height)
+ * - Same layout as attack UI (FUN_00426380)
+ *
+ * Display:
+ * - Two-column target display
+ * - Left column: target names from DAT_04556934 - 700
+ * - Right column: combo partner names from DAT_04556934
+ * - Each column has entries every 100 bytes
+ * - 30 total entries (0x4556bf0 - 0x4556934) / 100 = 30
+ *
+ * Target selection:
+ * - Combo cursor at DAT_0454f110 (text buffer)
+ * - Cursor position via FUN_00420fb0
+ * - Cursor initialized to row_count - 2
+ *
+ * Button handling:
+ * - 6 buttons at DAT_004b84cc
+ * - Button mask: 1 << (button_index & 0x1f)
+ *
+ * Protocol output:
+ * - Format: "%d %s" (button_mask, target_name)
+ * - Target name escaped via FUN_0048a200
+ *
+ * Display layout:
+ * - Left column: (width * 0x40 - cursor * 9) / 2 + x_offset
+ * - Right column: same + 300
+ * - Row height: cell_height * 2
+ */
+void FUN_00431560(void) {
+    /* Combo attack selection UI */
+}
+
+/* FUN_004338d0 - Battle Wait/Defend UI
+ * Displays wait action options with party status
+ *
+ * Window creation:
+ * - Fixed size: 8 tiles wide, 8 tiles tall
+ * - Position: (0x40, 0x24) = (64, 36)
+ *
+ * Button layout:
+ * - 10 buttons at DAT_004b8584 (initialized to -2)
+ * - Buttons 0-5: Standard actions (OK, Cancel, etc.)
+ * - Buttons 6-9: Wait type selection
+ *
+ * Wait types (buttons 6-9):
+ * - Data from DAT_04552a18 + (button - 6) * 0x10
+ * - Each wait type has a 16-byte string
+ *
+ * Party status display:
+ * - Party count: DAT_04557968
+ * - Format: "%d" (party_count / 100, party_count % 100)
+ * - Column headers at DAT_004b9a24: "%10s%16s%16s%8s%8s"
+ *
+ * Party member data:
+ * - Array at DAT_04552a4c with stride 0x10
+ * - 4 members (0x4552b4c - 0x4552a4c) / 0x10 = 4
+ * - Member status at offset 4 (puVar7[1]):
+ *   - -1: Empty slot
+ *   - 0-1: Normal member
+ *   - 2-3: Special status
+ *   - 4: Leader/flagged
+ *
+ * Member display colors:
+ * - Empty: Different format (DAT_004b99d0)
+ * - Normal: Standard format (DAT_004b99e8, DAT_004b99d8)
+ * - Status affects row color (puVar9 parameter)
+ *
+ * Special mode check:
+ * - DAT_0462e3c8 == 3: PvP mode (different display rules)
+ *
+ * Protocol output:
+ * - Standard: FUN_0043b980 with button_mask
+ * - Wait type: FUN_0043b980 with wait_type_string
+ * - Checksum mode: FUN_0048fdc0
+ */
+void FUN_004338d0(void) {
+    /* Battle wait/defend UI */
+}
+
 /* FUN_00411990 - Dialog/UI cleanup */
 void FUN_00411990(void) {
     /* TODO: Implementation needed */
