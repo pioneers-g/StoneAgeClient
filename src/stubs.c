@@ -1285,6 +1285,83 @@ int FUN_0047e210(int param_1, int param_2, int param_3, int param_4, int param_5
     return -2;
 }
 
+/* FUN_0041fad0 - Get Sprite Image Index
+ * Looks up sprite image index from sprite ID
+ *
+ * Parameters:
+ * - param_1: Sprite ID (0-549999)
+ * - param_2: Output pointer for image index
+ *
+ * Lookup ranges:
+ * - 0-499999: Look up in DAT_00a04c64 table (stride 4)
+ * - 500000-549999: Return sprite ID directly (identity mapping)
+ * - 550000+: Invalid, return 0
+ *
+ * Returns: 1 on success, 0 on failure
+ */
+int FUN_0041fad0(unsigned int param_1, unsigned int* param_2) {
+    /* Get sprite image index from ID */
+    return 0;
+}
+
+/* FUN_0041f900 - Get Sprite Dimensions
+ * Looks up sprite width and height from sprite ID
+ *
+ * Parameters:
+ * - param_1: Sprite ID (0-549999)
+ * - param_2: Output pointer for width
+ * - param_3: Output pointer for height
+ *
+ * Lookup ranges:
+ * - 0-499999: Look up in DAT_00e8f234 table (stride 0x50)
+ *   - Width at offset 0, height at offset 4
+ * - 500000-550000: Look up in DAT_0081c7f4 table
+ *   - Uses formula: (param_1 * 5 - 2500000) * 8
+ * - 550000+: Invalid, return 0 for both dimensions
+ *
+ * Returns: 1 on success, 0 on failure
+ */
+int FUN_0041f900(unsigned int param_1, unsigned short* param_2, unsigned short* param_3) {
+    /* Get sprite dimensions from ID */
+    return 0;
+}
+
+/* FUN_00488190 - Play Sound Effect
+ * Plays a sound effect by index with volume and pan settings
+ *
+ * Parameter: param_1 - Sound effect index (0-500)
+ *
+ * Sound table:
+ * - DAT_04cb84d0: Sound data handles (index * 8)
+ * - DAT_04cb84e4: Sound state (0 = not loaded, 5 = playing)
+ * - DAT_04cb84dc: Sound duration
+ * - DAT_04cb84e0: Sound data offset
+ * - DAT_04cb84e8: Sound data size
+ *
+ * Volume calculation:
+ * - Uses DAT_004d36dc (master volume) / 15
+ * - Scaled by sound duration (0x7f range)
+ * - DAT_004d36d8: Pan setting (0 = center, else calculated)
+ *
+ * DirectSound interface:
+ * - Creates sound buffer from DAT_04cb743c entry
+ * - Sets volume via offset 0x3c method
+ * - Sets pan via offset 0x40 method
+ * - Sets data via offset 0x44 method
+ * - Plays via offset 0x30 method
+ *
+ * Channel management:
+ * - DAT_04ebe294: Current channel index (0-63)
+ * - DAT_04cb834c: Channel handles array
+ * - Skips occupied channels
+ *
+ * Returns: 0 on success, -1 on failure
+ */
+int FUN_00488190(int param_1) {
+    /* Play sound effect */
+    return -1;
+}
+
 /* FUN_0041d860 - Draw Text String
  * Renders text string at specified position with color
  *
