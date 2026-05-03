@@ -777,6 +777,150 @@ void FUN_004338d0(void) {
     /* Battle wait/defend UI */
 }
 
+/* FUN_00434d60 - Pet Summon/Gold Adjustment UI
+ * Handles pet summoning with gold payment during battle
+ *
+ * Window creation:
+ * - Size: 5 tiles wide, 4 tiles tall
+ * - Position: (0xa0, 0x84) = (160, 132)
+ *
+ * Button layout:
+ * - 4 buttons at DAT_004b8614 (initialized to -2)
+ * - Button 0: Confirm summon
+ * - Button 1: Cancel
+ * - Button 2: Increase gold amount
+ * - Button 3: Decrease gold amount
+ *
+ * Gold adjustment (buttons 2/3):
+ * - Current gold: DAT_0454f270
+ * - Total gold: DAT_0462bee8 + DAT_0454f3a4
+ * - Increment: DAT_0455f01c (increases by 5x each 29 clicks)
+ * - Decrement: DAT_0455f020 (increases by 5x each 29 clicks)
+ * - Acceleration counter: DAT_0455f024
+ * - Max gold: 100,000,000
+ *
+ * Display:
+ * - Pet icon at DAT_0462e3b6
+ * - Title: "Summon Pet" (from DAT_004b9b8c)
+ * - Current gold display
+ * - Amount to pay display
+ * - Sprite buttons: 0x664c/0x664e for increment/decrement
+ *
+ * PvP mode (DAT_0462e3c8 == 3 or 4):
+ * - Different sprite set for increment button
+ * - Restricted gold adjustment
+ *
+ * Protocol output:
+ * - Confirm: "B T %d" format via FUN_0043bf40 or FUN_00490420
+ * - Sound effects: 0xd9 (click), 0xdc (limit)
+ */
+void FUN_00434d60(void) {
+    /* Pet summon with gold payment UI */
+}
+
+/* FUN_004354f0 - Pet Recall UI
+ * Handles recalling (storing) pets during battle
+ *
+ * Window creation:
+ * - Size: 7 tiles wide, 6 tiles tall
+ * - Position: (0x60, 0x54) = (96, 84)
+ *
+ * Button layout:
+ * - 2 buttons at DAT_004b8634
+ * - Buttons 0-5: Standard actions
+ * - Buttons 6-13: Pet selection (via iVar2 * 3 + 0x12)
+ *
+ * Pet display:
+ * - Pet icons at DAT_0455ee80, DAT_0455ee84, DAT_0455ee88
+ * - Icon handles stored in DAT_0454bb4c, DAT_0454bb54, DAT_0454bb44
+ * - Pet names from DAT_04553df8 array
+ *
+ * Selection handling:
+ * - Pet index stored via (button - 6) * 3 + 0x12
+ * - Each pet has 6 bytes of data (3 shorts)
+ * - Total 8 pets selectable (buttons 6-13)
+ *
+ * Protocol output:
+ * - Format: "%d %s" (action_type, pet_name)
+ * - Action mask: 1 << (button_index & 0x1f)
+ * - Pet name escaped via FUN_0048a200
+ *
+ * Display layout:
+ * - Pet icons at positions (0x73, 0xb4), (0x14f, 0xb4), (0xe1, 0xb4)
+ * - Pet names in two columns
+ * - Title from DAT_004a145c
+ */
+void FUN_004354f0(void) {
+    /* Pet recall UI */
+}
+
+/* FUN_0043bf90 - Text Protocol Command Dispatcher
+ * Central dispatcher for all text-based protocol commands
+ *
+ * Parses incoming text commands and routes to appropriate handlers.
+ * Uses DAT_004b9ff0 as command buffer, DAT_004b9fec for encoding.
+ *
+ * Command format: "COMMAND|param1|param2|...\n"
+ * - Fields separated by pipe '|' or space
+ * - First field is command name
+ * - Subsequent fields are parameters
+ *
+ * Command handlers (40+ commands):
+ * - DAT_004b9fe4: Party join -> FUN_00465400
+ * - DAT_004b9eb8: Party leave -> FUN_00463e70
+ * - DAT_004b9ebc: Party kick -> FUN_00464e10
+ * - DAT_004b9fe0: Party invite -> FUN_004643f0
+ * - DAT_004b9fdc: Party accept -> FUN_00464610
+ * - DAT_004b9ecc: Party reject -> FUN_00464ef0
+ * - DAT_004b9fd8: Party change leader -> FUN_00464670
+ * - DAT_004b9fd4: Party settings -> FUN_00464650
+ * - DAT_004b9ee4: Guild create -> FUN_00465170
+ * - DAT_004b9fd0: Guild settings -> FUN_00464af0
+ * - DAT_004b9ef0: Guild join -> FUN_00463f00
+ * - DAT_004b9fcc: Guild leave -> FUN_00464190
+ * - DAT_004b9f00: Guild kick -> FUN_00463790
+ * - DAT_004b9fc8: Guild update -> FUN_00462010
+ * - DAT_004b9f04: Guild settings2 -> FUN_00462200
+ * - DAT_004a2624: Guild info -> FUN_00462590
+ * - DAT_004b9fc4: NPC dialog -> FUN_00462f60
+ * - DAT_004b9fc0: Shop open -> FUN_00463380
+ * - DAT_004b9fbc: Trade start -> FUN_00465460
+ * - DAT_004a262c: Battle start -> FUN_0045ffb0
+ * - DAT_004a2628: Battle action -> FUN_00465460
+ * - DAT_004b9f08: Mail send -> FUN_00463ee0
+ * - DAT_004b9f0c: Mail read -> FUN_00464ee0
+ * - DAT_004b9f10: Mail delete -> FUN_00463d80
+ * - DAT_004b9f14: Mail list -> FUN_00465060
+ * - DAT_004b9f20: Friend add -> FUN_00465390
+ * - DAT_004b9f28: Friend remove -> FUN_00465160
+ * - DAT_004b9f34: Friend list -> FUN_00464ac0
+ * - DAT_004b9fb8: Whisper -> FUN_00464db0
+ * - DAT_004b9fb4: Chat -> FUN_004653d0
+ * - DAT_004b9f3c: ClientLogin -> FUN_0045fa40
+ * - DAT_004b9f48: CreateNewChar -> FUN_00463c20
+ * - DAT_004b9f58: CharDelete -> FUN_00463d20
+ * - DAT_004b9f64: CharLogin -> FUN_0045fdc0
+ * - DAT_004b9f70: CharList -> FUN_0045fb80
+ * - DAT_004b9f7c: CharLogout -> FUN_0045ff50
+ * - DAT_004b9f88: ProcGet -> FUN_00465460
+ * - DAT_004b9f90: PlayerNumGet -> FUN_00465460
+ * - DAT_004b9fa0: System message -> FUN_00465460
+ * - DAT_004b9fb0: Server info -> FUN_00465440
+ * - DAT_004b9fa8: Mail notification -> FUN_0045a9a0
+ * - DAT_004b9fac: Ping/Pong -> FUN_00465470
+ *
+ * Parameter parsing:
+ * - FUN_0043dd50: Parse integer parameter
+ * - FUN_0043dd70: Parse string parameter (Base-62 encoded)
+ * - FUN_0043e1b0: Decode string parameter
+ *
+ * Returns: 0 on success, -1 if no handler found
+ */
+int FUN_0043bf90(void* socket, const char* data) {
+    /* Text protocol command dispatcher */
+    return 0;
+}
+
 /* FUN_00411990 - Dialog/UI cleanup */
 void FUN_00411990(void) {
     /* TODO: Implementation needed */
