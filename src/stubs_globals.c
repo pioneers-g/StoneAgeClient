@@ -1,0 +1,291 @@
+/*
+ * Stone Age Client - Global Variables Stub Implementation
+ * Split from stubs.c to reduce file size
+ */
+
+#include <windows.h>
+#include "types.h"
+
+/* ========================================
+ * Pixel Format Variables
+ * ======================================== */
+
+u32 s_pixel_format = 0;
+u32 g_pixel_format = 0;
+int g_resolution_mode = 0;
+
+/* ========================================
+ * Mouse State Globals
+ * ======================================== */
+
+s32 g_mouse_state = 0;
+u32 g_mouse_state_flags = 0;
+void* g_mouse_hover_target = NULL;
+u32 g_hover_sprite = 0;
+s32 g_mouse_x = 0;
+s32 g_mouse_y = 0;
+int g_mouse_pressed = 0;
+u32 g_last_click_sprite = 0;
+
+/* ========================================
+ * Game State Globals
+ * ======================================== */
+
+int g_skip_enter_game = 0;
+int g_dialog_skip_flag = 0;
+u32 g_player_char_id = 0;
+u32 g_current_npc_id = 0;
+void* g_current_npc_context = NULL;
+int g_protocol_mode = 0;
+int g_in_battle = 0;
+int g_game_sub_state = 0;
+int g_game_state_flag = 0;
+int g_state_changed = 0;
+
+/* ========================================
+ * Map Position Variables
+ * ======================================== */
+
+s32 s_map_pos_x = 0;
+s32 s_map_pos_y = 0;
+u32 s_last_map_id = 0;
+u32 s_map_param = 0;
+s32 s_view_min_x = 0;
+s32 s_view_min_y = 0;
+s32 s_view_max_x = 640;
+s32 s_view_max_y = 480;
+s32 s_view_width = 640;
+s32 s_view_height = 480;
+u32 s_entity_count = 0;
+u32 s_npc_count = 0;
+u32 s_render_queue_count = 0;
+int s_fade_active = 0;
+s32 s_iso_camera_x = 0;
+s32 s_iso_camera_y = 0;
+
+/* ========================================
+ * Movement Variables
+ * ======================================== */
+
+s32 s_move_target = 0;
+int s_move_timer_active = 0;
+u32 s_current_field_id = 0;
+u32 s_field_sub_id = 0;
+u32 s_last_field_id = 0;
+u32 s_battle_field1 = 0;
+u32 s_battle_field2 = 0;
+u32 s_battle_field3 = 0;
+u32 s_update_value = 0;
+int s_map_entry_flag = 0;
+int s_game_state = 0;
+int s_game_substate = 0;
+int s_battle_flag = 0;
+int s_battle_substate = 0;
+int s_battle_active_flag = 0;
+int s_player_clear_flag = 0;
+u32 s_map_id = 0;
+u32 s_map_width = 0;
+u32 s_map_height = 0;
+
+/* ========================================
+ * Battle Unit Globals
+ * ======================================== */
+
+void* s_battle_units = NULL;
+u32 s_battle_unit_count = 0;
+u32 s_selected_unit = 0;
+u32 s_target_unit = 0;
+u32 s_battle_unit_flags = 0;
+void* s_battle_pet = NULL;
+
+/* ========================================
+ * Pet Data Globals
+ * ======================================== */
+
+void* s_pet_data = NULL;
+void* s_pet_skills = NULL;
+u32 s_pet_skill_count = 0;
+u32 s_selected_pet = 0;
+
+/* ========================================
+ * Party Data Globals
+ * ======================================== */
+
+void* s_party_entries = NULL;
+u32 s_party_count = 0;
+u32 s_party_flag = 0;
+int s_in_party = 0;
+
+/* ========================================
+ * Player Data Globals
+ * ======================================== */
+
+char s_player_name[64] = {0};
+u32 s_player_field1 = 0;
+u32 s_player_field2 = 0;
+u32 s_player_field3 = 0;
+u32 s_player_field4 = 0;
+u32 s_last_move_time = 0;
+
+/* ========================================
+ * Network Socket
+ * ======================================== */
+
+void* gSocket = NULL;
+
+/* ========================================
+ * Pet AI
+ * ======================================== */
+
+void* g_petai = NULL;
+
+/* ========================================
+ * Data Placeholders (Original Addresses)
+ * ======================================== */
+
+u32 DAT_04581d3c = 0;
+u32 DAT_04581d40 = 0;
+u32 DAT_04558c34 = 0;
+u32 DAT_0455b5ac = 0;
+u32 DAT_04ebe490 = 0;
+u32 DAT_005676a0 = 0;
+u32 DAT_00564e62 = 0;
+u32 DAT_0461b420 = 0;
+u32 DAT_0455ef9c = 0;
+u32 DAT_0461b658 = 0;
+u32 DAT_046308b8 = 0;
+u32 DAT_045829d8 = 0;
+u32 DAT_045829dc = 0;
+u32 DAT_004b83ec = 0;
+
+/* State check globals for FUN_0044b030 */
+s32 DAT_045e19b0 = 0;    /* Battle active flag */
+s32 DAT_004e21dc = 0;    /* Dialog active flag */
+s32 DAT_045e8ce0 = 0;    /* Menu active flag */
+char DAT_045f1a3b = 0;   /* State override 1 */
+char DAT_045f1a3a = 0;   /* State override 2 */
+
+/* Search globals for FUN_00421080 */
+u32 DAT_045f1b90 = 0;    /* Search target value */
+u32 DAT_045f1bc4 = 0;    /* Search enabled flag */
+
+/* VIP level for gold limit */
+u32 DAT_0462e3b4 = 0;    /* VIP level */
+
+/* Render queue count for FUN_0047e210 */
+u32 DAT_0464f488 = 0;    /* Render queue count (max 4096) */
+
+/* Network buffer globals for FUN_0045ec80/0045ee40 */
+u32 DAT_0461b408 = 0;    /* Receive buffer position */
+void* DAT_0461b41c = NULL; /* Receive buffer pointer (16KB) */
+u32 DAT_0461b3fc = 0;    /* Buffer initialized flag */
+
+/* Render mode global */
+u32 DAT_005ab6fc = 0;
+
+/* Sprite data arrays */
+u32 DAT_04633488[0x7001] = {0};  /* X positions */
+u32 DAT_0463348c[0x7001] = {0};  /* Y positions */
+u32 DAT_04633490[0x7001] = {0};  /* Sprite IDs */
+u32 DAT_04633494[0x7001] = {0};  /* Entity pointers */
+char DAT_04633498[0x7001] = {0}; /* Render modes */
+char DAT_0463349c[0x7001] = {0}; /* Blend modes */
+
+/* Sprite lookup tables - external references */
+extern u32 DAT_00a04c64[];
+extern u16 DAT_00e8f234[];
+extern u16 DAT_00e8f238[];
+extern u16 DAT_0081c7f4[];
+
+/* More state globals */
+u32 DAT_004bb414 = 0;
+u32 DAT_004bb418 = 0;
+u32 DAT_045602b0 = 0;
+u32 DAT_04633308 = 0;
+u32 DAT_04ebe270 = 0;
+u32 DAT_04ebe278 = 0;
+u32 DAT_04630df0 = 0;
+u32 DAT_04630dd8 = 0;
+u32 DAT_04630de4 = 0;
+u32 DAT_04630df4 = 0;
+u32 DAT_0049c3e0 = 0;
+u32 DAT_0054a90c = 0;
+u32 DAT_0465d7c4 = 0;
+u32 DAT_0465d7c0 = 0;
+u32 DAT_0054c83c = 0;
+u32 DAT_04560214 = 0;
+u32 DAT_04581190 = 0;
+u32 DAT_045e19bc = 0;
+u32 DAT_04581180 = 0;
+u32 DAT_045829ae = 0;
+u32 DAT_045829ac = 0;
+u32 DAT_04560258 = 0;
+u32 DAT_04581198 = 0;
+u32 DAT_046309f8 = 0;
+u32 DAT_0462ac0c = 0;
+u32 DAT_045967b8 = 0;
+u32 DAT_004d803c = 0;
+u32 DAT_004e1118 = 0;
+u32 DAT_004e2144 = 0;
+u32 DAT_004d351c = 0;
+u32 DAT_005ab6f8 = 0;
+u32 DAT_005ab708 = 0;
+u32 DAT_004cf830 = 0;
+u32 DAT_00567690 = 0;
+u32 DAT_005676b4 = 0;
+u32 DAT_004e2644 = 0;
+u32 DAT_04582a22 = 0;
+u32 DAT_04582a24 = 0;
+u32 DAT_04582a28 = 0;
+u32 DAT_04560e44 = 0;
+u32 DAT_04560e3c = 0;
+u32 DAT_04560e40 = 0;
+u32 DAT_04560e38 = 0;
+u32 DAT_04560e48 = 0;
+u32 DAT_045602ac = 0;
+u32 DAT_04569b5c = 0;
+u32 DAT_0456a62c = 0;
+u32 DAT_045602c0 = 0;
+u32 DAT_04569b64 = 0;
+u32 DAT_045829bc = 0;
+u32 DAT_045829c0 = 0;
+u32 DAT_045602cc = 0;
+u32 DAT_04569b68 = 0;
+u32 DAT_04581d48 = 0;
+u32 DAT_0456a64c = 0;
+u32 DAT_04581280 = 0;
+u32 DAT_04569b74 = 0;
+u32 DAT_0456a630 = 0;
+u32 DAT_0456a634 = 0;
+u32 DAT_0456a628 = 0;
+u32 DAT_0455f4ec = 0;
+u32 DAT_045829d0 = 0;
+u32 DAT_045829d4 = 0;
+u32 DAT_0464f64c = 0;
+u32 DAT_0464f7b0 = 0;
+u32 DAT_0464f48c = 0;
+u32 DAT_0464b488 = 0;
+u32 DAT_046333f0 = 0;
+u32 DAT_004bb424 = 0;
+u32 DAT_004bb428 = 0;
+u32 DAT_04560e54 = 0;
+/* DAT_04560214 already defined above */
+u32 DAT_004d2628 = 0;
+u32 DAT_0054ad18 = 0;
+float _DAT_0049c31c = 1.0f;
+
+/* Additional globals needed by render */
+u32 DAT_045829b8 = 0;
+u32 DAT_045829b4 = 0;
+
+/* Sprite lookup tables - pointers to be initialized from data files */
+/* These are large tables that should be loaded from game data */
+/* For now, use small placeholder arrays */
+u32 DAT_00a04c64[1] = {0};  /* Sprite ID to image index lookup */
+u16 DAT_00e8f234[1] = {0};  /* Sprite width lookup */
+u16 DAT_00e8f238[1] = {0};  /* Sprite height lookup */
+u16 DAT_0081c7f4[1] = {0};  /* High-res sprite lookup */
+
+/* Game data globals */
+void* g_inventory = NULL;
+void* g_map = NULL;
