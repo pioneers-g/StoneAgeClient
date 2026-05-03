@@ -15,8 +15,18 @@
 #include "test_framework.h"
 #include "../include/types.h"
 
-/* Test data path - use local copy for testing */
-#define TEST_AI_FILE "tests/data/AISetting.dat"
+/* Test data path - try multiple locations */
+#define TEST_AI_FILE_RELATIVE "tests/data/AISetting.dat"
+#define TEST_AI_FILE_ABSOLUTE "D:/code/StoneAgeClient/tests/data/AISetting.dat"
+
+/* Helper to find test file */
+static FILE* open_test_file(void) {
+    FILE* fp = fopen(TEST_AI_FILE_RELATIVE, "rb");
+    if (!fp) {
+        fp = fopen(TEST_AI_FILE_ABSOLUTE, "rb");
+    }
+    return fp;
+}
 
 /* Constants from binary analysis */
 #define AI_PRESET_DATA_SIZE    69     /* 0x45 bytes per preset data */
@@ -66,7 +76,7 @@ typedef struct {
 static void test_file_exists(void) {
     TEST_BEGIN("AI file exists");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
     if (fp) fclose(fp);
 
@@ -80,7 +90,7 @@ static void test_file_exists(void) {
 static void test_file_size(void) {
     TEST_BEGIN("AI file size");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     fseek(fp, 0, SEEK_END);
@@ -99,7 +109,7 @@ static void test_file_size(void) {
 static void test_preset_count(void) {
     TEST_BEGIN("Preset count calculation");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     fseek(fp, 0, SEEK_END);
@@ -127,7 +137,7 @@ static void test_preset_count(void) {
 static void test_header_encryption(void) {
     TEST_BEGIN("Header encryption");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     u8 header[16];
@@ -157,7 +167,7 @@ static void test_header_encryption(void) {
 static void test_first_preset_ai_mode(void) {
     TEST_BEGIN("First preset AI mode");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     fseek(fp, 0x10, SEEK_SET);
@@ -177,7 +187,7 @@ static void test_first_preset_ai_mode(void) {
 static void test_first_preset_primary_skill(void) {
     TEST_BEGIN("First preset primary skill");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     fseek(fp, 0x14, SEEK_SET);
@@ -197,7 +207,7 @@ static void test_first_preset_primary_skill(void) {
 static void test_preset_separator(void) {
     TEST_BEGIN("Preset separator pattern");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     /* Read separator at offset 0x55 (after first preset) */
@@ -226,7 +236,7 @@ static void test_preset_separator(void) {
 static void test_read_preset_structure(void) {
     TEST_BEGIN("Read full preset structure");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     AIPresetData preset;
@@ -341,7 +351,7 @@ static void test_auto_battle_validation(void) {
     TEST_BEGIN("Auto battle flag validation");
 
     /* From file: offset 0x44 should be auto battle flag */
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     fseek(fp, 0x10 + 0x44, SEEK_SET);
@@ -521,7 +531,7 @@ static void test_skill_field_parsing(void) {
 static void test_all_preset_ai_modes(void) {
     TEST_BEGIN("All preset AI modes");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     int valid_count = 0;
@@ -552,7 +562,7 @@ static void test_all_preset_ai_modes(void) {
 static void test_preset_data_consistency(void) {
     TEST_BEGIN("Preset data consistency");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     AIPresetData presets[3];
@@ -581,7 +591,7 @@ static void test_preset_data_consistency(void) {
 static void test_skill_level_array_values(void) {
     TEST_BEGIN("Skill level array values");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     AIPresetData preset;
@@ -709,7 +719,7 @@ static void test_skill_level_type_detection(void) {
 static void test_auto_battle_storage(void) {
     TEST_BEGIN("Auto battle flag storage");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     /* Read auto battle flag from each preset */
@@ -741,7 +751,7 @@ static void test_auto_battle_storage(void) {
 static void test_tertiary_skill_level(void) {
     TEST_BEGIN("Tertiary skill level");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     fseek(fp, 0x10 + 0x40, SEEK_SET);
@@ -764,7 +774,7 @@ static void test_tertiary_skill_level(void) {
 static void test_secondary_skill_levels(void) {
     TEST_BEGIN("Secondary skill levels");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     fseek(fp, 0x10 + 0x2C, SEEK_SET);
@@ -794,7 +804,7 @@ static void test_secondary_skill_levels(void) {
 static void test_file_read_function(void) {
     TEST_BEGIN("File read function");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     /* Simulate FUN_0049226a: read at offset, return success */
@@ -815,7 +825,7 @@ static void test_file_read_function(void) {
 static void test_complete_preset_validation(void) {
     TEST_BEGIN("Complete preset validation");
 
-    FILE* fp = fopen(TEST_AI_FILE, "rb");
+    FILE* fp = open_test_file();
     TEST_ASSERT(fp != NULL, "Cannot open AISetting.dat");
 
     AIPresetData preset;
@@ -919,7 +929,7 @@ int main(int argc, char** argv) {
     printf("Stone Age Client - Pet AI Tests\n");
     printf("Comprehensive Test Suite\n");
     printf("========================================\n");
-    printf("Test file: %s\n\n", TEST_AI_FILE);
+    printf("Test file: %s\n\n", TEST_AI_FILE_RELATIVE);
 
     RUN_TEST_SUITE(pet_ai_comprehensive);
 
