@@ -276,6 +276,11 @@ u32 DAT_04560e54 = 0;
 u32 DAT_004d2628 = 0;
 u32 DAT_0054ad18 = 0;
 float _DAT_0049c31c = 1.0f;
+float _DAT_04582998 = 0.0f;
+float _DAT_04582994 = 0.0f;
+float _DAT_0049c334 = 1.0f;
+float _DAT_0049c3e8 = 0.5f;
+float _DAT_0049c3e4 = 0.25f;
 
 /* Additional globals needed by render */
 u32 DAT_045829b8 = 0;

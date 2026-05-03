@@ -146,6 +146,74 @@ int FUN_0047d8e0(void) {
 }
 
 /*
+ * FUN_00446df0 - Isometric Coordinate Transform
+ *
+ * Binary analysis:
+ * - Converts world coordinates to screen coordinates
+ * - Uses isometric projection formula:
+ *   screen_x = (world_y + world_x) * scale + offset_x
+ *   screen_y = (world_y - world_x) * scale + offset_y
+ * - param_1, param_2: world coordinates
+ * - param_3, param_4: output screen coordinates
+ */
+void FUN_00446df0(float param_1, float param_2, float* param_3, float* param_4) {
+    extern float _DAT_04582998;
+    extern float _DAT_04582994;
+    extern float _DAT_0049c334;
+    extern float _DAT_0049c3e8;
+    extern float _DAT_0049c3e4;
+    extern u32 DAT_004bb424;
+    extern u32 DAT_004bb428;
+
+    float f1 = (param_1 - _DAT_04582998) * _DAT_0049c334;
+    float f2 = (param_2 - _DAT_04582994) * _DAT_0049c334;
+
+    *param_3 = (f2 + f1) * _DAT_0049c3e8 + (float)DAT_004bb424;
+    *param_4 = (f2 - f1) * _DAT_0049c3e4 + (float)DAT_004bb428;
+}
+
+/*
+ * FUN_00441b90 - Map Tile Attribute Processing
+ *
+ * Binary analysis:
+ * - Processes map tiles for collision/attribute data
+ * - param_1-4: coordinate bounds
+ * - param_5-8: tile data arrays
+ * - Handles special tile types (0-100):
+ *   - 0: Empty (check adjacent tile flag)
+ *   - 1,2,5,6,9,10: Walkable tiles
+ *   - 4: Non-walkable tile
+ * - For tiles >= 100, looks up sprite attributes
+ * - Sets output array values: 0=empty, 1=walkable, 2=blocked
+ */
+void FUN_00441b90(int param_1, int param_2, int param_3, int param_4, int param_5,
+                  unsigned short* param_6, int param_7, short* param_8) {
+    (void)param_1; (void)param_2; (void)param_3; (void)param_4;
+    (void)param_5; (void)param_6; (void)param_7; (void)param_8;
+    /* TODO: Full implementation */
+}
+
+/*
+ * FUN_00442070 - Find Walkable Tile
+ *
+ * Binary analysis:
+ * - Finds walkable tiles around player position
+ * - param_1: search mode (0-7)
+ *   - 0/1/2: Search left side
+ *   - 3/4: Search bottom
+ *   - 5/6: Search right side
+ *   - 7: Search top
+ * - Returns 1 if walkable tile found, 0 otherwise
+ * - Updates DAT_045602c4 with found tile count
+ * - Stores found positions in DAT_04560290-9c arrays
+ */
+int FUN_00442070(int param_1) {
+    (void)param_1;
+    /* TODO: Full implementation */
+    return 0;
+}
+
+/*
  * FUN_0041fad0 - Sprite Image Index Lookup
  *
  * Binary analysis:
