@@ -7,6 +7,10 @@
  * - 9-sprite grid decoration
  * - State machine: 0=opening, 1=complete, 2=drawing, 3=buttons
  * - Style mapping for sprite bases
+ *
+ * TODO: Fix buffer overflow - window_create allocates 0x40 bytes but WindowWidget
+ * structure is larger on 64-bit builds due to pointer size differences. Need to
+ * either use separate 32-bit compatible layout or allocate proper size.
  */
 
 #include <stdio.h>

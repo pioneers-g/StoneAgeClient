@@ -232,11 +232,19 @@ int sprite_get_data_offset(u32 sprite_id, u32* offset) {
  * ======================================== */
 
 static int test_rle_literal_simple(void) {
-    /* Single literal: 0x03 followed by 3 bytes */
-    u8 src[] = {'R', 'D', 1, 0, 0, 0,  /* Magic + width=1 */
-                4, 0, 0, 0,              /* height=4 */
-                8, 0, 0, 0,              /* data_size */
-                0x03, 'A', 'B', 'C'};    /* 3 literal bytes */
+    /* Header format from FUN_0048a550:
+     * Offset 0-1: 'R', 'D' magic
+     * Offset 2: compression flag (1 = RLE, 0 = raw)
+     * Offset 4: width (32-bit)
+     * Offset 8: height (32-bit)
+     * Offset 12: data_size (32-bit)
+     * Offset 16: RLE data starts
+     */
+    u8 src[] = {'R', 'D', 1, 0,       /* Magic + compression=1 */
+                1, 0, 0, 0,           /* width=1 */
+                4, 0, 0, 0,           /* height=4 */
+                4, 0, 0, 0,           /* data_size=4 */
+                0x03, 'A', 'B', 'C'}; /* 3 literal bytes (control + data) */
     u8 dst[16];
     u16 width, height;
 
@@ -248,11 +256,14 @@ static int test_rle_literal_simple(void) {
 }
 
 static int test_rle_run_fill(void) {
-    /* Run fill: 0x85 = 10000101 = fill 5 bytes with next value */
-    u8 src[] = {'R', 'D', 1, 0, 0, 0,
-                5, 0, 0, 0,
-                8, 0, 0, 0,
-                0x85, 0xFF};  /* Fill 5 bytes with 0xFF */
+    /* Run fill: 0x85 = 10000101 = fill 5 bytes with next value
+     * Header: Magic + compression=1 + width + height + data_size
+     */
+    u8 src[] = {'R', 'D', 1, 0,       /* Magic + compression=1 */
+                1, 0, 0, 0,           /* width=1 */
+                5, 0, 0, 0,           /* height=5 */
+                2, 0, 0, 0,           /* data_size=2 */
+                0x85, 0xFF};          /* Fill 5 bytes with 0xFF */
     u8 dst[16];
 
     int result = sprite_decode_rle(src, sizeof(src), dst, sizeof(dst), NULL, NULL);
@@ -263,10 +274,11 @@ static int test_rle_run_fill(void) {
 
 static int test_rle_transparent_fill(void) {
     /* Transparent fill: 0xC4 = 11000100 = fill 4 transparent bytes */
-    u8 src[] = {'R', 'D', 1, 0, 0, 0,
-                4, 0, 0, 0,
-                8, 0, 0, 0,
-                0xC4};  /* Fill 4 transparent bytes */
+    u8 src[] = {'R', 'D', 1, 0,       /* Magic + compression=1 */
+                1, 0, 0, 0,           /* width=1 */
+                4, 0, 0, 0,           /* height=4 */
+                1, 0, 0, 0,           /* data_size=1 */
+                0xC4};                /* Fill 4 transparent bytes */
     u8 dst[16];
     memset(dst, 0xAA, sizeof(dst));
 
@@ -278,10 +290,10 @@ static int test_rle_transparent_fill(void) {
 
 static int test_rle_uncompressed(void) {
     /* Uncompressed: header with byte 2 = 0 means direct copy */
-    u8 src[] = {'R', 'D', 0,             /* Magic + uncompressed flag */
-                4, 0, 0, 0,               /* width=4 */
-                2, 0, 0, 0,               /* height=2 */
-                8, 0, 0, 0,               /* data_size=8 */
+    u8 src[] = {'R', 'D', 0, 0,       /* Magic + uncompressed flag */
+                4, 0, 0, 0,           /* width=4 */
+                2, 0, 0, 0,           /* height=2 */
+                8, 0, 0, 0,           /* data_size=8 */
                 1, 2, 3, 4, 5, 6, 7, 8};  /* Raw pixel data */
     u8 dst[16];
     u16 width, height;
@@ -294,25 +306,31 @@ static int test_rle_uncompressed(void) {
 }
 
 static int test_rle_extended_count(void) {
-    /* Extended count: 0x9X = 12-bit count */
-    u8 src[] = {'R', 'D', 1, 0, 0, 0,
-                0x10, 0, 0, 0,  /* height=16 */
-                8, 0, 0, 0,
-                0x90, 0x10, 0xFF};  /* Fill 16 bytes with 0xFF */
+    /* Extended count: 0x90 = 10010000
+     * Format: [ctrl] [fill_value] [count_byte]
+     * Count = ((0x90 & 0x0F) << 8) | count_byte = 0 << 8 | 0x10 = 16
+     */
+    u8 src[] = {'R', 'D', 1, 0,       /* Magic + compression=1 */
+                1, 0, 0, 0,           /* width=1 */
+                16, 0, 0, 0,          /* height=16 */
+                3, 0, 0, 0,           /* data_size=3 */
+                0x90, 0xFF, 0x10};    /* ctrl=0x90, fill=0xFF, count_lo=0x10 */
     u8 dst[32];
     memset(dst, 0, sizeof(dst));
 
     int result = sprite_decode_rle(src, sizeof(src), dst, sizeof(dst), NULL, NULL);
 
-    return result == 16;
+    /* Count should be 16, fill value should be 0xFF */
+    return result == 16 && dst[0] == 0xFF && dst[15] == 0xFF;
 }
 
 static int test_rle_mixed(void) {
     /* Mix of literal and run */
-    u8 src[] = {'R', 'D', 1, 0, 0, 0,
-                8, 0, 0, 0,
-                16, 0, 0, 0,
-                0x02, 'A', 'B',      /* 2 literal: AB */
+    u8 src[] = {'R', 'D', 1, 0,       /* Magic + compression=1 */
+                7, 0, 0, 0,           /* width=7 */
+                1, 0, 0, 0,           /* height=1 */
+                7, 0, 0, 0,           /* data_size=7 */
+                0x02, 'A', 'B',       /* 2 literal: AB */
                 0x84, 'C',            /* 4 run: CCCC */
                 0x01, 'D'};           /* 1 literal: D */
     u8 dst[16];
