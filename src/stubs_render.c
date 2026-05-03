@@ -358,6 +358,27 @@ int FUN_0041fad0(unsigned int param_1, unsigned int* param_2) {
 }
 
 /*
+ * FUN_0047a6e0 - Clear Back Buffer
+ *
+ * Binary analysis:
+ * - Clears the back buffer surfaces for rendering
+ * - Uses DirectDraw surface blit to fill with black
+ *
+ * Process:
+ * 1. Blit to primary back buffer at DAT_0465d7c4
+ *    - Uses DDBLT_COLORFILL with DDBLT_WAIT
+ *    - Target: DAT_0054a90c + 0xc (primary surface)
+ * 2. If high-res mode (DAT_0054c83c != 0):
+ *    - Also clear secondary back buffer at DAT_0465d7c0
+ *    - Target: DAT_0054a90c + 0x10 (secondary surface)
+ *
+ * Called during scene transitions and screen clears
+ */
+void FUN_0047a6e0(void) {
+    /* TODO: Full implementation with DirectDraw surface blit */
+}
+
+/*
  * FUN_0041f900 - Sprite Dimensions Lookup
  *
  * Binary analysis:
