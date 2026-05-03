@@ -30,6 +30,7 @@ set(TEST_SOURCES
     test_entity_action_system_comprehensive.c
     test_entity_movement_system_comprehensive.c
     test_field_update_comprehensive.c
+    test_field_bgm_comprehensive.c
     test_battle_action_executor_comprehensive.c
     test_text_protocol_system_comprehensive.c
     test_main_game_loop_comprehensive.c
