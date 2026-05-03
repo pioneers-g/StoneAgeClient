@@ -12,6 +12,13 @@ extern u32 s_entity_count;
 extern void* s_battle_units;
 extern u32 s_battle_unit_count;
 
+/* Entity structure size from binary */
+#define ENTITY_STRUCT_SIZE 500
+
+/* External allocation functions - implemented in memory module */
+extern void* FUN_00491f70(int alignment, int size);  /* 16-byte aligned allocation */
+extern void FUN_00491fed(void* ptr);  /* Aligned free */
+
 /*
  * FUN_004010a0 - Entity Allocation and List Insertion
  *
@@ -20,7 +27,7 @@ extern u32 s_battle_unit_count;
  * - param_1: priority/sorting value (stored at offset 5)
  * - param_2: optional extra buffer size (stored at offset 0xc)
  * - Initializes:
- *   - offset 0x14: render callback pointer (initially 0)
+ *   - offset 0x08: render callback pointer (initially 0)
  *   - offset 0x15: priority byte
  *   - offset 0x9c: render order (-1)
  *   - offset 0x20: state (-2)
@@ -29,12 +36,37 @@ extern u32 s_battle_unit_count;
  * - Returns pointer to allocated entity or NULL on failure
  * - Shows error message on allocation failure
  */
-void* FUN_004010a0(int param_1) {
-    (void)param_1;
-    void* entity = calloc(1, 500);  /* 500-byte struct */
-    if (entity) {
-        s_entity_count++;
+void* FUN_004010a0(int param_1, int param_2) {
+    int* entity;
+    int* extra_buffer;
+
+    /* Allocate 500-byte entity structure (16-byte aligned) */
+    entity = (int*)FUN_00491f70(1, ENTITY_STRUCT_SIZE);
+    if (entity == NULL) {
+        MessageBoxA(NULL, "Failed to allocate entity", "GetAction Error", MB_OK);
+        return NULL;
     }
+
+    /* Allocate optional extra buffer */
+    if (param_2 != 0) {
+        extra_buffer = (int*)FUN_00491f70(1, param_2);
+        entity[3] = (int)extra_buffer;  /* offset 0x0c */
+        if (extra_buffer == NULL) {
+            FUN_00491fed(entity);
+            MessageBoxA(NULL, "Failed to allocate extra buffer", "GetYobi Error", MB_OK);
+            return NULL;
+        }
+    }
+
+    /* Initialize fields */
+    entity[2] = 0;                    /* offset 0x08: render callback */
+    *((unsigned char*)entity + 0x15) = (unsigned char)param_1;  /* priority */
+    entity[0x27] = -1;                /* offset 0x9c: render order */
+    entity[8] = -2;                   /* offset 0x20: state */
+
+    /* TODO: Insert into sorted linked list at DAT_04630fa0 */
+
+    s_entity_count++;
     return entity;
 }
 
@@ -42,15 +74,27 @@ void* FUN_004010a0(int param_1) {
  * FUN_004011d0 - Entity Free
  *
  * Binary analysis:
- * - Frees entity and removes from linked list
- * - Decrements entity count
+ * - Frees entity and its extra buffer
+ * - param_1: entity pointer
+ * - Does not decrement global count (done in original binary)
  */
 void FUN_004011d0(intptr_t entity_ptr) {
-    if (entity_ptr) {
-        free((void*)entity_ptr);
-        if (s_entity_count > 0) {
-            s_entity_count--;
-        }
+    int* entity = (int*)entity_ptr;
+
+    if (entity == 0) {
+        return;
+    }
+
+    /* Free extra buffer at offset 0x0c if present */
+    if (entity[3] != 0) {
+        FUN_00491fed((void*)entity[3]);
+    }
+
+    /* Free entity itself */
+    FUN_00491fed(entity);
+
+    if (s_entity_count > 0) {
+        s_entity_count--;
     }
 }
 
