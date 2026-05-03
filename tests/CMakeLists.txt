@@ -80,6 +80,7 @@ set(TEST_SOURCES
     test_battle_calc_comprehensive.c
     test_battle_unit_comprehensive.c
     test_character_protocol_comprehensive.c
+    test_ui_widget_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
