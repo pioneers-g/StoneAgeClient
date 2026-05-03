@@ -343,3 +343,25 @@ float _DAT_0049c458 = 0.0f;   /* Initial X position */
 float _DAT_0049c45c = 480.0f; /* Screen height */
 float _DAT_0049c460 = 640.0f; /* Screen width */
 float _DAT_0049c464 = 0.0f;   /* Initial Y position */
+
+/* ========================================
+ * Block Dissolve Transition Variables (FUN_0047b180)
+ * ======================================== */
+
+u32 DAT_04630e0c[64] = {0};    /* 8x8 tile states: 0=hidden, 1=visible, 2=transitioning */
+u32 DAT_046331cc[64] = {0};    /* Progress counter per tile */
+s32 DAT_0463108c[64] = {0};    /* Target offset per tile */
+s32 DAT_046330c8[64] = {0};    /* Current offset per tile */
+s32 DAT_04632fc0[64] = {0};    /* X position per tile */
+s32 DAT_04630f0c[64] = {0};    /* Y position per tile */
+u32 DAT_0463100c = 0;          /* Completed tile counter */
+u32 DAT_04631088 = 0;          /* Active tile counter */
+s32 DAT_004cf83c = -1;         /* Block dissolve init flag */
+
+/* ========================================
+ * Pixel Dissolve Variables (FUN_0047b7e0)
+ * ======================================== */
+
+s32 DAT_046311c0[464] = {0};   /* X positions for pixel dissolve grid */
+u32 DAT_04630e00 = 0;          /* Progress counter (0-64 scale) */
+u32 DAT_04633300 = 0;          /* Pixel dissolve state flag */

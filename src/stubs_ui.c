@@ -430,3 +430,105 @@ int FUN_0047aea0(int param_1) {
     }
     return 0;
 }
+
+/*
+ * FUN_0047b180 - Block/Tile Dissolve Transition
+ *
+ * Binary analysis:
+ * - 8x8 grid of tiles (64 total) that dissolve randomly
+ * - param_1: dissolve mode (0-3)
+ *   - 0: Random dissolve in (tiles appear randomly)
+ *   - 1: Random dissolve out (tiles disappear randomly)
+ *   - 2: Progressive dissolve in (tiles fill progressively)
+ *   - 3: Progressive dissolve out (tiles clear progressively)
+ * - Each tile is 80x60 pixels (0x50 x 0x3c)
+ * - Uses DAT_04630e0c array (64 entries) for tile states:
+ *   - 0: Hidden/inactive
+ *   - 1: Visible/active
+ *   - 2: Transitioning (fading in/out)
+ * - DAT_046331cc: Progress counter per tile
+ * - DAT_046330c8: Current offset for tile animation
+ * - Uses FUN_004472e0 for random tile selection
+ * - State in DAT_004cf83c (-1 = needs init, 0 = running, 1 = complete)
+ * - Counter DAT_0463100c tracks completed tiles
+ */
+int FUN_0047b180(int param_1) {
+    /* TODO: Full implementation with 8x8 tile grid dissolve */
+    (void)param_1;
+    return 1;
+}
+
+/*
+ * FUN_0047b7e0 - Pixel Dissolve Transition
+ *
+ * Binary analysis:
+ * - Creates a pixelated dissolve effect using a grid of dots
+ * - param_1: direction/speed (positive = dissolve in, negative = dissolve out)
+ * - Uses 0x1d0 (464) Y positions and 0x14 (20) pixel spacing
+ * - Grid positions stored in DAT_046311c0 (X) and following
+ * - Progress tracked in DAT_04630e00 (0-64 scale)
+ * - Each frame draws dots at grid positions with scaling
+ * - Half-resolution mode supported via DAT_04560214
+ * - State flag: DAT_04633300 (0 = not initialized, 1 = running)
+ */
+int FUN_0047b7e0(int param_1) {
+    /* TODO: Full implementation with pixel dissolve grid */
+    (void)param_1;
+    return 1;
+}
+
+/*
+ * FUN_0047b9f0 - Horizontal Blind Transition
+ *
+ * Binary analysis:
+ * - Creates horizontal blind/slit effect (like window blinds)
+ * - param_1: direction (positive = close blinds, negative = open blinds)
+ * - Progress tracked in DAT_04630e00 (0-480 range)
+ * - Each frame adds 8 pixels to blind height
+ * - Full screen: 640x480 (0x280 x 0x1e0)
+ * - Blind strips drawn from top to bottom progressively
+ * - State flag: DAT_04633300 (0 = not initialized, 1 = running)
+ */
+int FUN_0047b9f0(int param_1) {
+    extern u32 DAT_04630e00;
+    extern u32 DAT_04633300;
+    extern u32 DAT_005ab710;
+    extern u32 DAT_004cf830;
+
+    if (DAT_004cf830 == 1) {
+        DAT_004cf830 = 0;
+    } else if (DAT_04633300 == 0) {
+        DAT_04633300 = 1;
+        DAT_04630e00 = (param_1 >= 0) ? 0 : 480;
+    }
+
+    if (param_1 < 0) {
+        /* Open blinds (decrease blind height) */
+        if (DAT_04630e00 > 0) {
+            DAT_04630e00 -= 8;
+            return 0;
+        }
+        if (DAT_005ab710 == 2) {
+            DAT_04633300 = 0;
+            DAT_005ab710 = 3;
+            return 1;
+        }
+    } else {
+        /* Close blinds (increase blind height) */
+        if (DAT_04630e00 < 480) {
+            DAT_04630e00 += 8;
+            return 0;
+        }
+        if (DAT_005ab710 == 2) {
+            DAT_04633300 = 0;
+            DAT_005ab710 = 3;
+            return 1;
+        }
+    }
+
+    if (DAT_005ab710 == 3) {
+        DAT_005ab710 = 4;
+    }
+    DAT_04633300 = 0;
+    return 1;
+}
