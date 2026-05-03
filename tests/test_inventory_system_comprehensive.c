@@ -1,3 +1,6 @@
+/* Disable assertions to avoid popup dialogs on Windows */
+#define NDEBUG
+
 /*
  * Stone Age Client - Inventory System Comprehensive Tests
  * Tests for FUN_0045ffb0 case 0x42 (item inventory), case 0x4b (character data),

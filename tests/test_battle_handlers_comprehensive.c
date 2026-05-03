@@ -12,6 +12,9 @@
  * - Capture handler: Parses capture pet data with 80 entries
  */
 
+/* Disable assertions to avoid popup dialogs on Windows */
+#define NDEBUG
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

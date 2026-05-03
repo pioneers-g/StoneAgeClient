@@ -2,3 +2,4 @@ memory/
 out/
 build/
 bin/
+test_*.obj
