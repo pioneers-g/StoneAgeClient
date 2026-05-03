@@ -3137,3 +3137,257 @@ int FUN_00404850(int param_1) {
     /* Load and render battle map from SAB file */
     return 0;
 }
+
+/* FUN_00404e20 - Battle Background Renderer
+ * Renders battle background with special effects per map type
+ *
+ * Processing modes:
+ * - Mode 0: Standard rendering with surface blit
+ * - Mode 1: Arena/special map - horizontal stripe effect
+ * - Mode 2: Wave/distortion effect
+ *
+ * Mode selection:
+ * - Normal map (DAT_004d7f78 not 0x94-0x96): Mode 0
+ * - Arena maps (DAT_04581190 special values): Mode 1
+ * - Special maps with DAT_0461c7d4 == 2: Mode 1
+ * - Otherwise: Mode 2
+ *
+ * Special map IDs for arena rendering:
+ * - 0x331, 0x1f47, 0x1fa5, 0x1fa4, 0x1f5b-0x1f5d, 0x1f4f, 0x1fb1, 0x1fb2
+ *
+ * Surface info (DAT_0054a90c):
+ * - Offset 0x88: Surface width
+ * - Offset 0x8c: Surface height
+ * - Default size: 640x480 (0x280 x 0x1e0)
+ *
+ * Mode 0 - Standard:
+ * - Uses surface dimensions (clamped to max 640x480)
+ * - Blits from primary surface at offset 0xc
+ * - If alpha mode (DAT_0054c83c): Also blit secondary surface at 0x10
+ *
+ * Mode 1 - Arena stripes:
+ * - Horizontal stripe pattern
+ * - Y offset: DAT_0461c7d8 + DAT_004d7f7c
+ * - Stripe data from DAT_0049ea94 table (64 entries)
+ * - 8-pixel stripes, total 0x1e0 (480) pixels height
+ *
+ * Mode 2 - Wave effect:
+ * - Wave distortion using sine table
+ * - Amplitude from DAT_0049ea94 table
+ * - 4-pixel rows with wave offset
+ * - Creates rippling water/magic effect
+ *
+ * Alpha mode (DAT_0054c83c):
+ * - Enables secondary surface rendering
+ * - Uses DAT_0465d7c0 for alpha buffer
+ * - Renders both surfaces with transparency
+ *
+ * Called by: FUN_0047dc60 (render queue processor) in battle mode
+ */
+void FUN_00404e20(void) {
+    /* Render battle background with special effects */
+}
+
+/* FUN_00462f60 - NPC Dialog Handler
+ * Handles NPC dialog text and player responses
+ *
+ * Processing:
+ * 1. Initialize via FUN_00492d80
+ * 2. Check dialog state (DAT_0455ef2c and DAT_04560258)
+ * 3. Parse dialog text via FUN_00489f70
+ * 4. Extract NPC ID, dialog type, and options
+ *
+ * Dialog parsing (via FUN_00489f70):
+ * - Field 1: NPC ID (via FUN_0048a0a0 Base-62 decode)
+ * - Field 2: Dialog type (via FUN_004929fe)
+ * - Field 3: Response type (via FUN_004929fe)
+ * - Field 4: Action code (via FUN_004929fe)
+ * - Field 5+: Additional parameters
+ *
+ * Dialog types:
+ * - 0x29: Text response with custom string (max 21 chars)
+ * - Other: Standard dialog options
+ *
+ * Current NPC tracking:
+ * - DAT_0462be90: Current NPC ID
+ * - DAT_0462e3ac: Current NPC entity
+ * - DAT_046308b0: Special mode flag
+ *
+ * Entity handling:
+ * - If NPC ID matches current: Update existing entity
+ * - If different: Create new via FUN_0040f460 or queue action
+ * - Uses DAT_0462e3ac entity fields at offsets 0x1d4-0x1e8
+ *
+ * Response handling:
+ * - Special action 0x29: Store custom response text
+ * - FUN_004781f0: Update NPC state
+ * - FUN_0043b490/FUN_0048f900: Send response to server
+ *
+ * Player actions:
+ * - FUN_0040ddd0: Execute NPC action
+ * - FUN_0043b660: Process dialog response
+ * - FUN_00477d90: Update display
+ *
+ * Dialog queue:
+ * - Stack buffer at 0x1038 holds seen NPC IDs
+ * - Max 0x1000 (4096) entries tracked
+ * - Prevents duplicate processing
+ *
+ * Called by: Protocol dispatcher for NPC dialog commands
+ */
+void FUN_00462f60(void) {
+    /* Handle NPC dialog text and responses */
+}
+
+/* FUN_00411990 - Set Dialog Context
+ * Sets the current dialog/UI context for text input
+ *
+ * Parameter: param_1 - Dialog context pointer
+ *
+ * Simply stores the context in DAT_0054a4f4
+ * Used to track active dialog for text rendering
+ *
+ * Context structure (at DAT_0054a4f4):
+ * - Text buffer pointer
+ * - Cursor position
+ * - Input mode flags
+ * - Character limit
+ *
+ * Called by: Various UI functions to set active input context
+ */
+void FUN_00411990(void* param_1) {
+    /* Set dialog context */
+    DAT_0054a4f4 = param_1;
+}
+
+/* FUN_0047e720 - Sprite Render Queue Processor
+ * Processes sorted sprite render queue and blits sprites to surface
+ *
+ * Processing:
+ * 1. Update render counter: DAT_0464f488 += DAT_0464f48c
+ * 2. Iterate through sorted queue (sorted by layer)
+ * 3. For each sprite, check visibility and blit
+ *
+ * Queue structure (at DAT_0464b488):
+ * - Each entry: 24 bytes (0x18)
+ * - Offset 0: Layer value (determines sort order)
+ * - Entry count in DAT_0464f488
+ *
+ * Visibility check (via FUN_004808e0):
+ * - Returns non-zero if sprite is visible on screen
+ * - Skips rendering if not visible
+ *
+ * Rendering modes:
+ * - Alpha mode off (DAT_0054c83c == 0): Single surface blit
+ * - Alpha mode on: Dual surface blit with transparency
+ *
+ * Blit functions:
+ * - FUN_004142f0: Normal blit (no alpha)
+ * - FUN_00414190: Alpha blit with secondary surface
+ *
+ * High-resolution mode (DAT_04560214 == 1):
+ * - Shifts coordinates by 1 pixel for sub-pixel positioning
+ * - Creates smoother scrolling
+ *
+ * Sprite data array (at DAT_0466b7e0, stride 12):
+ * - Offset 0: Sprite surface
+ * - Offset 4: X offset
+ * - Offset 8: Y offset
+ * - Offset 16: Next sprite pointer
+ *
+ * Error detection:
+ * - Return value -0x7789fe52 indicates blit failure
+ * - Sets DAT_0464f7b0 = 1 to flag error
+ *
+ * Skip condition: DAT_04630dd8 == 10 (special state)
+ *
+ * Called by: FUN_0047dc60 (main render processor)
+ */
+void FUN_0047e720(void) {
+    /* Process sprite render queue and blit to surface */
+}
+
+/* FUN_0040f460 - Find Entity by ID
+ * Looks up entity pointer from entity ID
+ *
+ * Parameter: param_1 - Entity ID to find
+ *
+ * Processing:
+ * 1. Call FUN_0040e830 to get entity index from ID
+ * 2. If index < 0, return 0 (not found)
+ * 3. Return entity pointer from DAT_004e2bdc array
+ *
+ * Entity array (at DAT_004e2bdc):
+ * - Stride: 0x43 * 4 = 268 bytes per entity
+ * - Each entry: entity pointer
+ *
+ * Returns: Entity pointer or 0 if not found
+ */
+int FUN_0040f460(int param_1) {
+    /* Find entity by ID */
+    return 0;
+}
+
+/* FUN_0040ddd0 - Entity Action Dispatcher
+ * Dispatches entity actions based on action type (30+ action types)
+ *
+ * Parameters:
+ * - param_1: Entity pointer
+ * - param_2: X coordinate
+ * - param_3: Y coordinate
+ * - param_4: Target/parameter
+ * - param_5: Action type
+ * - param_6: Additional parameter
+ * - param_7: Sprite ID
+ * - param_8: Mode/variant
+ *
+ * Action types (param_5) and handlers:
+ * - 0: Set idle state (state=3, target=-1)
+ * - 1: Walk/move to position (FUN_0040b6e0 or FUN_0040b740)
+ * - 2: Set state 0 (stand)
+ * - 3: Set state 12 (action)
+ * - 4: Set state 1 (walk)
+ * - 5, 10: Set state 2
+ * - 0xb: Set state 5
+ * - 0xc: Set state 6
+ * - 0xd: Set state 7
+ * - 0xe: Set state 8
+ * - 0xf: Set state 9
+ * - 0x10: Set state 10
+ * - 0x11: Set state 4
+ * - 0x12: Set state 11
+ * - 0x13: Set state 3
+ * - 0x14: Emote effect (FUN_0040c1a0 or FUN_0040c210)
+ * - 0x15: Special effect (FUN_0040c050 or FUN_0040c020)
+ * - 0x16: Effect mode (FUN_0040c0e0 or FUN_0040c110)
+ * - 0x17: Set entity property (FUN_0040db20)
+ * - 0x1e: Set target and calculate direction
+ * - 0x1f: Reset to position with state 3
+ * - 0x20: Set animation (FUN_0040c240 or FUN_0040c270)
+ * - 0x22: Play animation (FUN_0040c2a0 or FUN_0040c2d0)
+ * - 0x28: Set direction (FUN_0040c140)
+ * - 0x29: Create child entity
+ * - 0x2a: Remove child entity
+ * - 0x32: Set direction or dispatch
+ * - 0x33: Create effect entity with parameters
+ * - 0x3c: Create emote entities (4 sprites)
+ *
+ * Entity structure offsets:
+ * - 0xc: Extra data pointer (contains entity info)
+ * - 0x110: Animation counter
+ * - 0x148: Action state
+ * - 0x14c: Previous state (-1 = none)
+ * - 0x150: Target parameter
+ * - 0xb0-0xbc: Position data
+ *
+ * Movement functions:
+ * - FUN_0040b6e0: Start movement to target
+ * - FUN_0040b740: Continue movement
+ * - FUN_0040bfc0: Update position
+ *
+ * Called by: Various entity handlers for NPC, player, and pet actions
+ */
+void FUN_0040ddd0(int entity, int x, int y, int target, int action_type,
+                  int param6, int sprite_id, int mode) {
+    /* Dispatch entity action based on type */
+}
