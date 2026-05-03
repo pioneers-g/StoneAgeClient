@@ -3391,3 +3391,101 @@ void FUN_0040ddd0(int entity, int x, int y, int target, int action_type,
                   int param6, int sprite_id, int mode) {
     /* Dispatch entity action based on type */
 }
+
+/* FUN_004781f0 - NPC State Update Handler
+ * Updates NPC entity state based on action type
+ *
+ * Parameters:
+ * - param_1: X position
+ * - param_2: Y position
+ * - param_3: Target/parameter value
+ * - param_4: Action type
+ * - param_5: Additional parameter
+ * - param_6: Sprite ID for effects
+ * - param_7: Mode/variant
+ *
+ * Action type to state mapping:
+ * - 0: Set state 3 (idle)
+ * - 1: Set state 4 (walk)
+ * - 2: Set target, state 0 (stand)
+ * - 3: Set target, state 12 (action)
+ * - 4: Set target, state 1 (walk start)
+ * - 5, 10: Set target, state 2
+ * - 0xb: Set target, state 5
+ * - 0xc: Set target, state 6
+ * - 0xd: Set target, state 7
+ * - 0xe: Set target, state 8
+ * - 0xf: Set target, state 9
+ * - 0x10: Set target, state 10
+ * - 0x11: Set target, state 4
+ * - 0x12: Set target, state 11
+ * - 0x13: Set target, state 3
+ * - 0x14: Move to position, set target
+ * - 0x15: Move with effect (FUN_00478090/780a0)
+ * - 0x16: Move with alternate effect (FUN_004780d0/780e0)
+ * - 0x17: Set property (FUN_00478190)
+ * - 0x1e: Set target only
+ * - 0x1f: Move to position, state 3
+ * - 0x22: Move with animation (FUN_004781b0/781e0)
+ * - 0x29: Create child entity at DAT_0462e3ac+0xc+0x14
+ * - 0x2a: Remove child entity
+ * - 0x33: Create effect entity with params
+ * - 0x3c: Create emote entities (4 sprites)
+ *
+ * Helper functions:
+ * - FUN_00477d90: Set entity state
+ * - FUN_00477d70: Set entity target
+ * - FUN_00477cb0: Move entity to position
+ *
+ * Uses DAT_0462e3ac as current NPC entity
+ */
+void FUN_004781f0(int param_1, int param_2, int param_3, int param_4,
+                  int param_5, int param_6, int param_7) {
+    /* Update NPC state based on action type */
+}
+
+/* FUN_0043b490 - Send Protocol Response
+ * Sends a simple protocol response to server
+ *
+ * Parameters:
+ * - param_1: Socket handle
+ * - param_2: Response value (encoded as Base-62)
+ *
+ * Processing:
+ * 1. Initialize buffer via FUN_0043e170
+ * 2. Encode param_2 as Base-62 via FUN_0043dce0
+ * 3. Append to buffer via FUN_0043dc90
+ * 4. Send via FUN_0043e100
+ *
+ * Format: "%u %s" (response value encoded)
+ *
+ * Used for: NPC dialog responses, simple protocol replies
+ */
+void FUN_0043b490(void* param_1, int param_2) {
+    /* Send protocol response */
+}
+
+/* FUN_0040b6e0 - Entity Path Queue Add
+ * Adds waypoint to entity movement path queue
+ *
+ * Parameters:
+ * - param_1: Entity pointer
+ * - param_2: X coordinate
+ * - param_3: Y coordinate
+ *
+ * Processing:
+ * 1. Check entity valid (param_1 != 0)
+ * 2. Check queue size at offset 0x110 (< 10)
+ * 3. If queue not full: add waypoint
+ * 4. If queue full: reset and call FUN_0040bfc0
+ *
+ * Path queue structure (per entity):
+ * - Offset 0x110: Queue count (max 10)
+ * - Offset 0xc0-0xe4: X coordinates (10 * 4 bytes)
+ * - Offset 0xe8-0x10c: Y coordinates (10 * 4 bytes)
+ *
+ * Called by: FUN_0040ddd0 for movement actions
+ */
+void FUN_0040b6e0(int entity, int x, int y) {
+    /* Add waypoint to entity movement path */
+}
