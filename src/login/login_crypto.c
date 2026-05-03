@@ -46,6 +46,12 @@ static const u8 s_pc2_d[32] = {
 
 /* S-box tables - extracted from DAT_004d58d8 through DAT_004d5fd8 */
 /* Each table has 64 entries of 32-bit values */
+/* TODO: S-box arrays are currently incomplete - only 32 of 64 entries defined.
+ * Need to extract complete 64-entry S-boxes from Ghidra memory addresses:
+ * S1: 0x004d58d8, S2: 0x004d59d8, S3: 0x004d5ad8, S4: 0x004d5bd8
+ * S5: 0x004d5cd8, S6: 0x004d5dd8, S7: 0x004d5ed8, S8: 0x004d5fd8
+ * Each S-box spans 256 bytes (64 × 4 bytes). The remaining 32 entries
+ * per S-box need to be extracted from the binary. */
 
 /* S1 - DAT_004d58d8 */
 static const u32 s_sbox1[64] = {

@@ -65,6 +65,14 @@ set(TEST_SOURCES
     test_config_module_comprehensive.c
     test_util_random_comprehensive.c
     test_util_timer_comprehensive.c
+    test_fileutil_comprehensive.c
+    test_assets_comprehensive.c
+    test_graphics_comprehensive.c
+    test_directx_comprehensive.c
+    test_login_crypto_comprehensive.c
+    test_field_entity_comprehensive.c
+    test_fade_comprehensive.c
+    test_minimap_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
