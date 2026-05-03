@@ -187,3 +187,112 @@ void FUN_0040f7a0(void) {}
  * - Spawn entry size: 0x10C bytes (0x43 dwords)
  */
 void FUN_0040f7d0(void) {}
+
+/*
+ * FUN_00476150 - Get Random Value with Range Check
+ *
+ * Binary analysis:
+ * - Gets a random value via FUN_0046b8a0
+ * - Returns 0 if value is -1 or 0xff
+ * - Otherwise returns the random value
+ * - Preserves DAT_0461c6c0 across call
+ */
+int FUN_00476150(void) {
+    return 0;
+}
+
+/*
+ * FUN_00476180 - Spawn Effect Entity
+ *
+ * Binary analysis:
+ * - Spawns visual effect entity (light, glow, etc.)
+ * - param_1: effect sprite ID
+ * - Sprite ID ranges:
+ *   - With DAT_0054c83c: 0x18d8e-0x18da5
+ *   - Without: 0x18dc5-0x18ddc
+ * - Only spawns if DAT_0461c2c0 == 0
+ * - Creates entity at (320, 240) with size 0x140x0xf0
+ * - Sets animation state 3, priority 2
+ */
+void FUN_00476180(int sprite_id) {
+    (void)sprite_id;
+}
+
+/*
+ * FUN_00476200 - Initialize Character Grid Entities
+ *
+ * Binary analysis:
+ * - Creates character entities for the field display
+ * - Clears DAT_0461c764 (21 entries) and DAT_04ebe428 (20 entries)
+ * - Creates main player entity at DAT_0461c674
+ * - Creates camera/view entity at DAT_0461c67c
+ * - Creates 20 character slot entities in DAT_04ebe428
+ * - Each entity: 0x25c bytes, priority 0x14, sprite 0x186c8/0x1879a
+ * - Grid layout: 5 rows x 4 columns starting at (453, 432)
+ * - Initializes animation via FUN_00477240
+ * - Sets position arrays at DAT_0461c6c4/c6c8/c220/c224
+ */
+int FUN_00476200(void) {
+    return 0;
+}
+
+/*
+ * FUN_00477240 - Character Animation Update
+ *
+ * Binary analysis:
+ * - Main animation state machine for character entities
+ * - param_1: entity pointer
+ * - param_2: force frame (0 = use default)
+ * - param_3: immediate return flag (1 = return immediately)
+ * - Checks if animation state changed via offsets 0xa0-0xaa
+ * - Handles sprite ID ranges:
+ *   - < 100: Clear animation
+ *   - < 100000: Standard sprite lookup
+ *   - 0x206a0+: Invalid
+ * - Uses animation tables at DAT_038484a8/84ac
+ * - Updates frame counter at offset 0xae
+ * - Plays sound effects via FUN_00488190 for special sprites
+ * - Returns 1 if animation complete, 0 otherwise
+ */
+int FUN_00477240(void* entity, int force_frame, int immediate) {
+    (void)entity; (void)force_frame; (void)immediate;
+    return 0;
+}
+
+/*
+ * FUN_004770c0 - Character Animation State Machine
+ *
+ * Binary analysis:
+ * - Handles animation state transitions for characters
+ * - param_1: entity pointer
+ * - Uses state at offset 0x1ec (packed: type in high byte, index in bits 16-23)
+ * - State types (high byte):
+ *   - 1: Forward animation cycle
+ *   - 2: Backward animation cycle
+ *   - 3: Special effect (toggle between 0x18de2/0x18dad)
+ * - Animation frames stored in local_24 array:
+ *   - 0x18824, 0x189e9, 0x18b3a, 0x189f6, 0x18cc2
+ *   - 0x18801, 0x18d7f, 0x18c30, 0x18c71
+ * - Increments frame index at offset 0x1f0 (wraps at 9)
+ * - Special sprite 0x18de7: transition frame
+ * - Special sprite 0x18e30: alternate transition
+ */
+void FUN_004770c0(void* entity) {
+    (void)entity;
+}
+
+/*
+ * FUN_0046b800 - Character Bobbing Animation
+ *
+ * Binary analysis:
+ * - Applies vertical bobbing effect to character
+ * - param_1: entity pointer
+ * - Only active when DAT_0461c7d4 > 1 or DAT_004d7f78 in range 0x94-0x96
+ * - Uses sine table at DAT_0049ea94 (64 entries)
+ * - Calculates bob offset: (Y >> 3 + DAT_004d7f7c + DAT_0461c7d8) & 0x3f
+ * - Adjusts Y coordinate and sprite offset
+ * - Stores offset at entity->companion->0x130
+ */
+void FUN_0046b800(void* entity) {
+    (void)entity;
+}
