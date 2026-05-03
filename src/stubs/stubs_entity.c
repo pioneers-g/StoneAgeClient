@@ -137,8 +137,114 @@ void FUN_0040ddd0(void* entity, int action) {
  * - This allows for path queueing up to 10 waypoints
  */
 void FUN_0040b6e0(void* entity, int target_x, int target_y) {
-    (void)entity; (void)target_x; (void)target_y;
-    /* TODO: Movement queue implementation */
+    unsigned short* queue_count;
+    int* x_queue;
+    int* y_queue;
+
+    if (entity == NULL) return;
+
+    /* Queue count at offset 0x110 */
+    queue_count = (unsigned short*)((char*)entity + 0x110);
+
+    /* Check if queue has space (< 10 entries) */
+    if (*queue_count < 10) {
+        /* X queue at offset 0xc0, Y queue at offset 0xe8 */
+        x_queue = (int*)((char*)entity + 0xc0);
+        y_queue = (int*)((char*)entity + 0xe8);
+
+        /* Add to queue */
+        x_queue[*queue_count] = target_x;
+        y_queue[*queue_count] = target_y;
+
+        /* Increment count */
+        (*queue_count)++;
+    } else {
+        /* Queue full - reset and call immediate movement */
+        *queue_count = 0;
+        /* FUN_0040bfc0(entity, target_x, target_y); - immediate move */
+    }
+}
+
+/*
+ * FUN_0040b740 - Entity Movement with Interpolation
+ *
+ * Binary analysis:
+ * - Adds smooth path interpolation to entity movement
+ * - Calculates intermediate waypoints for diagonal movement
+ * - param_1: entity pointer
+ * - param_2: target X coordinate
+ * - param_3: target Y coordinate
+ * - Uses current position from entity at offsets 0xb8 (X) and 0xbc (Y)
+ *   or last queued position if queue not empty
+ * - For diagonal moves (delta = 2 in both axes), adds midpoint
+ * - Handles path queue overflow (> 10 entries)
+ */
+void FUN_0040b740(void* entity, int target_x, int target_y) {
+    short* queue_count;
+    int* x_queue;
+    int* y_queue;
+    int current_x, current_y;
+    int delta_x, delta_y;
+    int abs_dx, abs_dy;
+    int waypoints[3][2];  /* Max 3 waypoints: midpoint, target */
+    int num_waypoints = 1;
+    int i;
+
+    if (entity == NULL) return;
+
+    queue_count = (short*)((char*)entity + 0x110);
+    x_queue = (int*)((char*)entity + 0xc0);
+    y_queue = (int*)((char*)entity + 0xe8);
+
+    /* Get current position or last queued position */
+    if (*queue_count < 1) {
+        current_x = *(int*)((char*)entity + 0xb8);
+        current_y = *(int*)((char*)entity + 0xbc);
+    } else {
+        current_x = x_queue[*queue_count - 1];
+        current_y = y_queue[*queue_count - 1];
+    }
+
+    /* Calculate delta */
+    delta_x = target_x - current_x;
+    delta_y = target_y - current_y;
+    abs_dx = (delta_x < 0) ? -delta_x : delta_x;
+    abs_dy = (delta_y < 0) ? -delta_y : delta_y;
+
+    /* Check for diagonal movement (delta = 2 in both axes) */
+    if (abs_dx == 2 && abs_dy == 2) {
+        /* Add midpoint for smooth diagonal */
+        waypoints[0][0] = current_y + delta_y / 2;  /* Y */
+        waypoints[0][1] = current_x + delta_x / 2;  /* X */
+        num_waypoints = 2;
+    } else if (abs_dx == 2) {
+        /* Diagonal in X only */
+        waypoints[0][0] = target_y;
+        waypoints[0][1] = current_x + delta_x / 2;
+        num_waypoints = 2;
+    } else if (abs_dy == 2) {
+        /* Diagonal in Y only */
+        waypoints[0][0] = current_y + delta_y / 2;
+        waypoints[0][1] = target_x;
+        num_waypoints = 2;
+    }
+
+    /* Add target as final waypoint */
+    waypoints[num_waypoints - 1][0] = target_y;
+    waypoints[num_waypoints - 1][1] = target_x;
+
+    /* Check if we have room in queue */
+    if ((unsigned int)(*queue_count + num_waypoints) < 11) {
+        for (i = 0; i < num_waypoints; i++) {
+            x_queue[*queue_count] = waypoints[i][1];
+            y_queue[*queue_count] = waypoints[i][0];
+            (*queue_count)++;
+        }
+    } else {
+        /* Queue would overflow - reset and use immediate move */
+        *queue_count = 0;
+        /* FUN_0040bfc0(entity, target_x, target_y); */
+    }
 }
 
 /* Entity query stubs */

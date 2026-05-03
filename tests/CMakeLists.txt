@@ -72,6 +72,7 @@ set(TEST_SOURCES
     test_directx_comprehensive.c
     test_login_crypto_comprehensive.c
     test_field_entity_comprehensive.c
+    test_entity_movement_comprehensive.c
     test_fade_comprehensive.c
     test_minimap_comprehensive.c
     test_pathfind_comprehensive.c
