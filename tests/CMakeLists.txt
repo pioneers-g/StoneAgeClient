@@ -112,6 +112,7 @@ set(TEST_SOURCES
     test_sprite_core_module_comprehensive.c
     test_sprite_lookup_module_comprehensive.c
     test_assets_module_comprehensive.c
+    test_entity_flags_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers

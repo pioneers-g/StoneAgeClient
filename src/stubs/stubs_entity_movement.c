@@ -442,14 +442,14 @@ void FUN_0040be60(void* entity) {
     if (entity == NULL) return;
 
     /* Calculate target position */
-    target_x = (float)(*(int*)((char*)entity + ENTITY_OFFSET_CURRENT_X)) * _DAT_0049c31c;
-    target_y = (float)(*(int*)((char*)entity + ENTITY_OFFSET_CURRENT_Y)) * _DAT_0049c31c;
+    target_x = (float)(*(int*)((char*)entity + ENTITY_OFFSET_CURRENT_X)) * 1.0f;
+    target_y = (float)(*(int*)((char*)entity + ENTITY_OFFSET_CURRENT_Y)) * 1.0f;
 
     vel_x = *(float*)((char*)entity + ENTITY_OFFSET_VEL_X);
     vel_y = *(float*)((char*)entity + ENTITY_OFFSET_VEL_Y);
 
     /* Check if velocity is near zero */
-    if (vel_x == _DAT_0049c318 && vel_y == _DAT_0049c318) {
+    if (vel_x == 0.001f && vel_y == 0.001f) {
         /* Stopped - set idle state */
         if (*(short*)((char*)entity + ENTITY_OFFSET_MOVE_FLAG) != 0) {
             *(int*)((char*)entity + 0x148) = 3;  /* State: idle */
