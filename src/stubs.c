@@ -315,19 +315,46 @@ void FUN_00418370(void) {
     /* Complex state machine - see Ghidra decompilation for full logic */
 }
 
-/* FUN_00424f50 - Battle action executor dispatcher */
+/* FUN_00424f50 - Battle action executor dispatcher
+ * Routes battle actions to specific UI/action handlers based on DAT_004b83ec
+ *
+ * Case mapping:
+ * 0,10,0x2d: Attack UI (FUN_00426380) with mode parameter
+ * 1,0xb: Attack variant (FUN_00426380)
+ * 2: Skill UI (FUN_00426850)
+ * 3: Item UI (FUN_00426cc0)
+ * 4: Pet UI (FUN_00427190)
+ * 5: Escape (FUN_004276a0)
+ * 6-8: Pet actions (FUN_00428280)
+ * 9: Capture (FUN_0042acf0)
+ * 0xc,0xd: Capture UI (FUN_0042ce40)
+ * 0xe: Pet skill 1 (FUN_0042e8f0)
+ * 0xf: Pet skill 2 (FUN_0042f370)
+ * 0x12: Special action (FUN_00430b50)
+ * 0x13,0x14: Combo (FUN_00431560)
+ * 0x15: Team action (FUN_00431d60)
+ * 0x16,0x2c: Formation 0/1 (FUN_00432a10)
+ * 0x17,0x2b: Special 0/1 (FUN_00433030)
+ * 0x18: Field action (FUN_00436af0)
+ * 0x19: Wait (FUN_004338d0)
+ * 0x1a: Defend (FUN_004340a0)
+ * 0x1b: Counter (FUN_00434610)
+ * 0x1d: Summon (FUN_00434d60)
+ * 0x1e: Recall (FUN_004354f0)
+ * 0x1f: Pet switch (FUN_004366b0)
+ * 0x20: Pet skill 3 (FUN_00435b40)
+ * 0x21: Pet skill 4 (FUN_00435f70)
+ * 0x22: Pet skill 5 (FUN_00436220)
+ * 0x23: Pet special (FUN_00437200)
+ * 0x24,0x27: Ride action (FUN_00438080)
+ * 0x25,0x26: Dismount (FUN_00438880)
+ * 0x28: Pet item (FUN_00427cc0)
+ * 0x29: Pet heal (FUN_0042bb40)
+ * 0x2a: Pet buff (FUN_0042b150)
+ * 0x67-0x69: Extended actions
+ */
 void FUN_00424f50(void) {
-    /* TODO: Routes to specific battle action handlers:
-     * - 0,10: attack UI (FUN_00426380)
-     * - 1,11: attack variant
-     * - 2: skill UI (FUN_00426850)
-     * - 3: item UI (FUN_00426cc0)
-     * - 4: pet UI (FUN_00427190)
-     * - 5: escape (FUN_004276a0)
-     * - 6-8: pet actions (FUN_00428280)
-     * - 9: capture (FUN_0042acf0)
-     * - 12,13: capture UI (FUN_0042ce40)
-     */
+    /* Dispatcher based on DAT_004b83ec action type */
 }
 
 /* FUN_00411990 - Dialog/UI cleanup */
@@ -438,13 +465,37 @@ void FUN_00412a40(void) {
     /* TODO: Implementation needed */
 }
 
-/* FUN_0047dc60 - Render queue process (complex sprite rendering) */
+/* FUN_0047dc60 - Render queue processor (main sprite rendering loop)
+ * Processes the sprite render queue for each frame
+ *
+ * Mode selection (DAT_005ab6fc):
+ * 0: Normal field rendering - calls FUN_00412a40, FUN_0047d850, FUN_0047e720
+ * 3: Battle mode - clears scroll, calls FUN_00404e20
+ * Other: Quick update path
+ *
+ * Entity loop (DAT_0464f488 entities):
+ * - Each entity has position at DAT_04633488 + index*0x18
+ * - Checks flags at DAT_04633490 for render mode
+ * - Alpha mode (DAT_0054c83c) uses different blitter
+ *
+ * Render modes (flags):
+ * - Bit 31: Special handling via FUN_00412eb0
+ * - Bit 29: Direction-based animation
+ * - Bit 28: Alt animation
+ * - Bit 30: Extended render
+ *
+ * Blitter functions:
+ * - FUN_004142f0: Normal blit (no alpha)
+ * - FUN_00414190: Alpha blit
+ * - FUN_0047fae0: RLE compressed sprite
+ * - FUN_0047e970: 16-bit alpha blend
+ * - FUN_0047f170: 8-bit alpha
+ * - FUN_0047f710: Extended blend
+ *
+ * Cleanup: Clears DAT_04633488 array (0x7001 entries)
+ */
 void FUN_0047dc60(void) {
-    /* TODO: Complex implementation handles:
-     * - Sprite rendering with alpha blending
-     * - Multiple render modes (normal, alpha, scaled)
-     * - Entity position tracking
-     */
+    /* Complex sprite rendering - see Ghidra decompilation */
 }
 
 /* FUN_00401170 - Field entity update loop */
