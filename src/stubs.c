@@ -5,7 +5,9 @@
 
 #include <windows.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "types.h"
 
 /* ========================================
@@ -274,35 +276,180 @@ LRESULT window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 /* Item functions */
 const char* item_get_name(u32 id) { (void)id; return "Unknown"; }
 
-/* Placeholder functions from original binary */
-void FUN_00418370(void) {}
-void FUN_00424f50(void) {}
-void FUN_00411990(void) {}
-void FUN_0041adf0(void) {}
-void FUN_0041a8d0(void) {}
-void FUN_0041bba0(void) {}
-void FUN_0044ac00(void) {}
-void FUN_004445c0(void) {}
-void FUN_00445070(void) {}
-void FUN_004419a0(void) {}
-void FUN_00440e90(void) {}
-void FUN_00410850(void) {}
-void FUN_004117e0(void) {}
-void FUN_0047d8c0(void) {}
-void FUN_00412a40(void) {}
-void FUN_0047dc60(void) {}
-void FUN_00401170(void) {}
-void FUN_00492cd2(void) {}
-void FUN_00448610(void) {}
-void FUN_004011c0(void) {}
-void FUN_0041d860(void) {}
-void FUN_00421080(void) {}
-void FUN_0044b030(void) {}
-void FUN_0048a200(void) {}
-void FUN_004923a7(void) {}
-void FUN_00488190(void) {}
-void FUN_0043b980(void) {}
-void FUN_0048fdc0(void) {}
+/* ========================================
+ * Placeholder functions from original binary
+ * These are implemented as stubs pending full reverse engineering
+ * ======================================== */
+
+/* FUN_00418370 - Main game loop update (complex, many state checks) */
+void FUN_00418370(void) {
+    /* TODO: Full implementation requires analysis of:
+     * - DAT_005676a4, DAT_045602a8, DAT_04581198 state flags
+     * - Network heartbeat timing (500ms interval)
+     * - Game state transitions
+     */
+}
+
+/* FUN_00424f50 - Battle action executor dispatcher */
+void FUN_00424f50(void) {
+    /* TODO: Routes to specific battle action handlers:
+     * - 0,10: attack UI (FUN_00426380)
+     * - 1,11: attack variant
+     * - 2: skill UI (FUN_00426850)
+     * - 3: item UI (FUN_00426cc0)
+     * - 4: pet UI (FUN_00427190)
+     * - 5: escape (FUN_004276a0)
+     * - 6-8: pet actions (FUN_00428280)
+     * - 9: capture (FUN_0042acf0)
+     * - 12,13: capture UI (FUN_0042ce40)
+     */
+}
+
+/* FUN_00411990 - Dialog/UI cleanup */
+void FUN_00411990(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_0041adf0 - Set delay value to 1000 */
+void FUN_0041adf0(void) {
+    /* Sets DAT_0054cbac = 1000 (delay/sleep value) */
+}
+
+/* FUN_0041a8d0 - Set counter value to 1000 */
+void FUN_0041a8d0(void) {
+    /* Sets DAT_0054dbd8 = 1000 (counter/timer value) */
+}
+
+/* FUN_0041bba0 - Clear game state flags and free resources */
+void FUN_0041bba0(void) {
+    /* TODO: Clears multiple state flags and frees UI resources
+     * - DAT_004aa070 = 0
+     * - Calls FUN_004011c0 on multiple handles
+     */
+}
+
+/* FUN_0044ac00 - UI/render function */
+void FUN_0044ac00(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_004445c0 - Render function */
+void FUN_004445c0(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_00445070 - Render update */
+void FUN_00445070(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_004419a0 - UI update */
+void FUN_004419a0(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_00440e90 - Input handling */
+void FUN_00440e90(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_00410850 - Game state update */
+void FUN_00410850(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_004117e0 - State transition */
+void FUN_004117e0(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_0047d8c0 - Render queue init */
+void FUN_0047d8c0(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_00412a40 - Animation update */
+void FUN_00412a40(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_0047dc60 - Render queue process (complex sprite rendering) */
+void FUN_0047dc60(void) {
+    /* TODO: Complex implementation handles:
+     * - Sprite rendering with alpha blending
+     * - Multiple render modes (normal, alpha, scaled)
+     * - Entity position tracking
+     */
+}
+
+/* FUN_00401170 - Field entity update loop */
+void FUN_00401170(void) {
+    /* Iterates entity list and calls update callbacks
+     * - Uses DAT_004d7e3c as entity list head
+     * - Checks entity state at offset +0x24
+     */
+}
+
+/* FUN_00492cd2 - String/format function */
+void FUN_00492cd2(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_00448610 - Window widget creation (9-sprite grid) */
+void FUN_00448610(void) {
+    /* Implemented in ui_window.c - window_create() */
+}
+
+/* FUN_004011c0 - Set entity delete flag */
+void FUN_004011c0(intptr_t entity) {
+    if (entity != 0) {
+        *(int*)(entity + 0x24) = 1;  /* Mark for deletion */
+    }
+}
+
+/* FUN_0041d860 - UI layout function */
+void FUN_0041d860(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_00421080 - Character select update */
+void FUN_00421080(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_0044b030 - Battle UI check */
+void FUN_0044b030(void) {
+    /* TODO: Returns battle UI state */
+}
+
+/* FUN_0048a200 - Protocol function */
+void FUN_0048a200(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_004923a7 - String format/build */
+void FUN_004923a7(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_00488190 - BGM/Sound loading */
+void FUN_00488190(void) {
+    /* TODO: Complex sound loading with:
+     * - DirectSound buffer management
+     * - Volume/pan settings
+     * - Multiple sound channels
+     */
+}
+
+/* FUN_0043b980 - Network protocol */
+void FUN_0043b980(void) {
+    /* TODO: Implementation needed */
+}
+
+/* FUN_0048fdc0 - Utility function */
+void FUN_0048fdc0(void) {
+    /* TODO: Implementation needed */
+}
 
 /* Character position */
 void character_get_position(u16* x, u16* y) { if (x) *x = 0; if (y) *y = 0; }
