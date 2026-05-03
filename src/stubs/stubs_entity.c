@@ -124,277 +124,7 @@ void FUN_0040ddd0(void* entity, int action) {
     /* TODO: Full action dispatch implementation */
 }
 
-/*
- * FUN_0040b6e0 - Entity Movement Queue Add
- *
- * Binary analysis:
- * - Adds a movement target to entity's path queue
- * - param_1: entity pointer
- * - param_2: target X coordinate
- * - param_3: target Y coordinate
- * - Queue stored at offset 0xc0 (X) and 0xe8 (Y), max 10 entries
- * - Queue count at offset 0x110
- * - If queue is full (10 entries), resets count to 0 and calls FUN_0040bfc0
- * - This allows for path queueing up to 10 waypoints
- */
-void FUN_0040b6e0(void* entity, int target_x, int target_y) {
-    unsigned short* queue_count;
-    int* x_queue;
-    int* y_queue;
-
-    if (entity == NULL) return;
-
-    /* Queue count at offset 0x110 */
-    queue_count = (unsigned short*)((char*)entity + 0x110);
-
-    /* Check if queue has space (< 10 entries) */
-    if (*queue_count < 10) {
-        /* X queue at offset 0xc0, Y queue at offset 0xe8 */
-        x_queue = (int*)((char*)entity + 0xc0);
-        y_queue = (int*)((char*)entity + 0xe8);
-
-        /* Add to queue */
-        x_queue[*queue_count] = target_x;
-        y_queue[*queue_count] = target_y;
-
-        /* Increment count */
-        (*queue_count)++;
-    } else {
-        /* Queue full - reset and call immediate movement */
-        *queue_count = 0;
-        /* FUN_0040bfc0(entity, target_x, target_y); - immediate move */
-    }
-}
-
-/*
- * FUN_0040b740 - Entity Movement with Interpolation
- *
- * Binary analysis:
- * - Adds smooth path interpolation to entity movement
- * - Calculates intermediate waypoints for diagonal movement
- * - param_1: entity pointer
- * - param_2: target X coordinate
- * - param_3: target Y coordinate
- * - Uses current position from entity at offsets 0xb8 (X) and 0xbc (Y)
- *   or last queued position if queue not empty
- * - For diagonal moves (delta = 2 in both axes), adds midpoint
- * - Handles path queue overflow (> 10 entries)
- */
-void FUN_0040b740(void* entity, int target_x, int target_y) {
-    short* queue_count;
-    int* x_queue;
-    int* y_queue;
-    int current_x, current_y;
-    int delta_x, delta_y;
-    int abs_dx, abs_dy;
-    int waypoints[3][2];  /* Max 3 waypoints: midpoint, target */
-    int num_waypoints = 1;
-    int i;
-
-    if (entity == NULL) return;
-
-    queue_count = (short*)((char*)entity + 0x110);
-    x_queue = (int*)((char*)entity + 0xc0);
-    y_queue = (int*)((char*)entity + 0xe8);
-
-    /* Get current position or last queued position */
-    if (*queue_count < 1) {
-        current_x = *(int*)((char*)entity + 0xb8);
-        current_y = *(int*)((char*)entity + 0xbc);
-    } else {
-        current_x = x_queue[*queue_count - 1];
-        current_y = y_queue[*queue_count - 1];
-    }
-
-    /* Calculate delta */
-    delta_x = target_x - current_x;
-    delta_y = target_y - current_y;
-    abs_dx = (delta_x < 0) ? -delta_x : delta_x;
-    abs_dy = (delta_y < 0) ? -delta_y : delta_y;
-
-    /* Check for diagonal movement (delta = 2 in both axes) */
-    if (abs_dx == 2 && abs_dy == 2) {
-        /* Add midpoint for smooth diagonal */
-        waypoints[0][0] = current_y + delta_y / 2;  /* Y */
-        waypoints[0][1] = current_x + delta_x / 2;  /* X */
-        num_waypoints = 2;
-    } else if (abs_dx == 2) {
-        /* Diagonal in X only */
-        waypoints[0][0] = target_y;
-        waypoints[0][1] = current_x + delta_x / 2;
-        num_waypoints = 2;
-    } else if (abs_dy == 2) {
-        /* Diagonal in Y only */
-        waypoints[0][0] = current_y + delta_y / 2;
-        waypoints[0][1] = target_x;
-        num_waypoints = 2;
-    }
-
-    /* Add target as final waypoint */
-    waypoints[num_waypoints - 1][0] = target_y;
-    waypoints[num_waypoints - 1][1] = target_x;
-
-    /* Check if we have room in queue */
-    if ((unsigned int)(*queue_count + num_waypoints) < 11) {
-        for (i = 0; i < num_waypoints; i++) {
-            x_queue[*queue_count] = waypoints[i][1];
-            y_queue[*queue_count] = waypoints[i][0];
-            (*queue_count)++;
-        }
-    } else {
-        /* Queue would overflow - reset and use immediate move */
-        *queue_count = 0;
-        /* FUN_0040bfc0(entity, target_x, target_y); */
-    }
-}
-
-/*
- * FUN_0040bb00 - Entity Queue Shift
- *
- * Binary analysis:
- * - Shifts entity movement queue left by one position
- * - Decrements queue count
- * - param_1: entity pointer
- * - Called when entity reaches a waypoint
- */
-void FUN_0040bb00(void* entity) {
-    short* queue_count;
-    int* x_queue;
-    int* y_queue;
-    int i;
-
-    if (entity == NULL) return;
-
-    queue_count = (short*)((char*)entity + 0x110);
-    if (*queue_count <= 0) return;
-
-    /* Decrement count */
-    (*queue_count)--;
-
-    /* Shift queue left */
-    if (*queue_count > 0) {
-        x_queue = (int*)((char*)entity + 0xc0);
-        y_queue = (int*)((char*)entity + 0xe8);
-
-        for (i = 0; i < *queue_count; i++) {
-            x_queue[i] = x_queue[i + 1];
-            y_queue[i] = y_queue[i + 1];
-        }
-    }
-}
-
-/*
- * FUN_0040b880 - Entity Set Target Position with Speed
- *
- * Binary analysis:
- * - Sets entity movement target with speed calculation
- * - param_1: entity pointer
- * - param_2: target X (world coordinates)
- * - param_3: target Y (world coordinates)
- * - Calculates velocity based on distance and speed constants
- * - Uses SQRT for distance calculation
- * - Sets direction via FUN_00447150
- */
-void FUN_0040b880(void* entity, float target_x, float target_y) {
-    short queue_count;
-    float speed, dx, dy, dist;
-    extern float _DAT_0049c32c, _DAT_0049c308, _DAT_0049c330, _DAT_0049c30c;
-    extern float _DAT_0049c318, _DAT_0049c328, _DAT_0049c324;
-
-    if (entity == NULL) return;
-
-    queue_count = *(short*)((char*)entity + 0x110);
-
-    /* Determine speed based on queue count */
-    speed = _DAT_0049c32c;
-    if (queue_count < 6) {
-        speed = _DAT_0049c308;
-        if (queue_count < 4) {
-            speed = _DAT_0049c330;
-            if (queue_count > 1) {
-                speed = _DAT_0049c30c;
-            }
-        }
-    }
-
-    /* Calculate direction vector */
-    dx = ((int)target_x << 6) - *(float*)((char*)entity + 0x114);
-    dy = ((int)target_y << 6) - *(float*)((char*)entity + 0x118);
-
-    /* Calculate distance */
-    dist = (float)sqrt(dx * dx + dy * dy);
-
-    /* Normalize or zero if too close */
-    if (dist <= _DAT_0049c318) {
-        dx = 0.0f;
-        dy = 0.0f;
-    } else {
-        dx = dx / dist;
-        dy = dy / dist;
-    }
-
-    /* Set position and velocity */
-    *(int*)((char*)entity + 0xb8) = (int)target_x;
-    *(float*)((char*)entity + 0xbc) = target_y;
-    *(float*)((char*)entity + 0x11c) = dx * speed * _DAT_0049c328;
-    *(float*)((char*)entity + 0x120) = dy * speed * _DAT_0049c328;
-
-    /* Set direction if moving */
-    if (dx != 0.0f || dy != 0.0f) {
-        float direction = (float)0;  /* FUN_00447150(dx, dy) + _DAT_0049c324 */
-        /* FUN_004470d0(&direction) - normalize direction */
-        *(int*)((char*)entity + 0x150) = (int)direction;
-        *(short*)((char*)entity + 0x112) = 1;
-    }
-}
-
-/*
- * FUN_0040b9e0 - Entity Set Target Position Simple
- *
- * Binary analysis:
- * - Sets entity movement target without speed modification
- * - param_1: entity pointer
- * - param_2: target X (world coordinates)
- * - param_3: target Y (world coordinates)
- * - Simpler version of FUN_0040b880
- */
-void FUN_0040b9e0(void* entity, float target_x, float target_y) {
-    float dx, dy, dist;
-    extern float _DAT_0049c318, _DAT_0049c328;
-
-    if (entity == NULL) return;
-
-    /* Calculate direction vector */
-    dx = ((int)target_x << 6) - *(float*)((char*)entity + 0x114);
-    dy = ((int)target_y << 6) - *(float*)((char*)entity + 0x118);
-
-    /* Calculate distance */
-    dist = (float)sqrt(dx * dx + dy * dy);
-
-    /* Normalize or zero if too close */
-    if (dist <= _DAT_0049c318) {
-        dx = 0.0f;
-        dy = 0.0f;
-    } else {
-        dx = dx / dist;
-        dy = dy / dist;
-    }
-
-    /* Set position and velocity */
-    *(float*)((char*)entity + 0xb8) = target_x;
-    *(int*)((char*)entity + 0xbc) = (int)target_y;
-    *(float*)((char*)entity + 0x11c) = dx * _DAT_0049c328;
-    *(float*)((char*)entity + 0x120) = dy * _DAT_0049c328;
-
-    /* Set direction if moving */
-    if (dx != 0.0f || dy != 0.0f) {
-        float direction = (float)0;  /* FUN_00447150(dx, dy) */
-        *(int*)((char*)entity + 0x150) = (int)direction;
-        *(short*)((char*)entity + 0x112) = 1;
-    }
-}
-
-/* Entity query stubs */
+/* Entity query stubs - movement functions moved to stubs_entity_movement.c */
 void* entity_get_by_id(int id) {
     (void)id;
     return NULL;
@@ -478,6 +208,75 @@ int FUN_0040f3c0(int entity_type) {
         return 0x100;
     }
     return 0x1000;
+}
+
+/*
+ * FUN_0040e8c0 - Check Entity at Position with Flags
+ *
+ * Binary analysis:
+ * - Checks if an entity exists at the given position with matching flags
+ * - param_1: X coordinate
+ * - param_2: Y coordinate
+ * - param_3: entity flags mask (checked at offset 0x46 from slot)
+ * - Returns: 1 if found, 0 if not found
+ * - Entity array at DAT_004e2bdc (stride 0x43 = 67 dwords)
+ * - Checks: active flag (offset -0x5e), pointer valid, position match, flag match
+ */
+int FUN_0040e8c0(int x, int y, u16 flags) {
+    /* TODO: Full implementation with entity array */
+    (void)x;
+    (void)y;
+    (void)flags;
+    return 0;
+}
+
+/*
+ * FUN_0040e930 - Check Entity at Position with Flags and Type
+ *
+ * Binary analysis:
+ * - Checks if an entity exists at position with flags AND type match
+ * - param_1: X coordinate
+ * - param_2: Y coordinate
+ * - param_3: entity flags mask (offset 0x46)
+ * - param_4: entity type mask (offset 0x28 from slot)
+ * - Returns: 1 if found, 0 if not found
+ * - Same as FUN_0040e8c0 but with additional type check
+ */
+int FUN_0040e930(int x, int y, u16 flags, u32 type_mask) {
+    /* TODO: Full implementation with entity array */
+    (void)x;
+    (void)y;
+    (void)flags;
+    (void)type_mask;
+    return 0;
+}
+
+/*
+ * FUN_0040f180 - Create or Update Entity with Name
+ *
+ * Binary analysis:
+ * - Creates new entity or updates existing one by ID
+ * - param_1: entity ID
+ * - param_2: entity type/model
+ * - param_3: X coordinate
+ * - param_4: Y coordinate
+ * - param_5: extra data
+ * - param_6: unknown field
+ * - param_7: entity name string (max 60 chars in slot, 17 chars in entity)
+ * - Uses FUN_0040e830 to find existing entity
+ * - Uses FUN_0040f310 to allocate new slot if not found
+ * - Uses FUN_0040b5e0 to create entity structure
+ * - Sets flags at offset 0x134 to 0x800
+ */
+void FUN_0040f180(int entity_id, int type, int x, int y, int extra, int param_6, const char* name) {
+    /* TODO: Full implementation */
+    (void)entity_id;
+    (void)type;
+    (void)x;
+    (void)y;
+    (void)extra;
+    (void)param_6;
+    (void)name;
 }
 
 /*
