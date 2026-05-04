@@ -189,6 +189,7 @@ set(TEST_SOURCES
     test_player_position_sync_functions_comprehensive.c
     test_flag_set_player_value_functions_comprehensive.c
     test_game_state_setter_functions_v2_comprehensive.c
+    test_direction_char_functions_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
