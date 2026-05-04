@@ -386,6 +386,22 @@ float FUN_00447520(float a, float b, float t) {
 }
 
 /*
+ * FUN_00492403 - Linear Congruential Generator (LCG) Random
+ *
+ * Binary analysis:
+ * - Standard LCG random number generator
+ * - Uses formula: state = state * 0x343fd + 0x269ec3
+ * - Returns: (state >> 16) & 0x7fff (15-bit value)
+ * - State stored in DAT_004d7160
+ */
+u32 FUN_00492403(void) {
+    extern u32 DAT_004d7160;  /* LCG state */
+
+    DAT_004d7160 = DAT_004d7160 * 0x343fd + 0x269ec3;
+    return (DAT_004d7160 >> 16) & 0x7fff;
+}
+
+/*
  * FUN_004423d0 - Clamp Coordinates to Map Bounds
  *
  * Binary analysis:

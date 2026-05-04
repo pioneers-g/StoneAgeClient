@@ -478,3 +478,6 @@ float _DAT_0456a640 = 1.0f;    /* Movement scale factor */
 /* Random shuffle table for FUN_00447310 */
 int DAT_04582a40[100] = {0};
 int DAT_04582bd0 = 0;  /* Current index in shuffle table */
+
+/* LCG random state for FUN_00492403 */
+u32 DAT_004d7160 = 0;

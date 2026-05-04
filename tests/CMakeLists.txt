@@ -133,6 +133,7 @@ set(TEST_SOURCES
     test_direction_to_char_comprehensive.c
     test_angle_normalize_comprehensive.c
     test_linked_list_comprehensive.c
+    test_lcg_random_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
