@@ -563,3 +563,30 @@ char* FUN_004789d0(int slot_index) {
 
     return &DAT_04630a00[slot_index * 0x44];
 }
+
+/*
+ * FUN_00478bf0 - Clear Player Slot Data
+ *
+ * Binary analysis:
+ * - Clears player slot data at DAT_04630a00 + slot * 0x44
+ * - param_1: slot index (0 or 1 only)
+ * - Returns 0 on success, -1 if invalid slot
+ */
+int FUN_00478bf0(int slot_index) {
+    extern char DAT_04630a00[];
+    u32* slot_data;
+    int i;
+
+    if (slot_index < 0 || slot_index >= 2) {
+        return -1;
+    }
+
+    /* Clear 17 dwords (0x44 bytes) */
+    slot_data = (u32*)&DAT_04630a00[slot_index * 0x44];
+    for (i = 0x11; i > 0; i--) {
+        *slot_data = 0;
+        slot_data++;
+    }
+
+    return 0;
+}

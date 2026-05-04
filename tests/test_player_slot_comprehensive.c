@@ -66,6 +66,27 @@ static char* FUN_004789d0(int slot_index) {
     return &test_slot_data[slot_index * SLOT_STRIDE];
 }
 
+/*
+ * FUN_00478bf0 - Clear Player Slot Data
+ */
+static int FUN_00478bf0(int slot_index) {
+    u32* slot_data;
+    int i;
+
+    if (slot_index < 0 || slot_index >= SLOT_COUNT) {
+        return -1;
+    }
+
+    /* Clear 17 dwords (0x44 bytes) */
+    slot_data = (u32*)&test_slot_data[slot_index * SLOT_STRIDE];
+    for (i = 0x11; i > 0; i--) {
+        *slot_data = 0;
+        slot_data++;
+    }
+
+    return 0;
+}
+
 /* ========================================
  * Test Cases
  * ======================================== */
@@ -173,6 +194,61 @@ TEST(slot_stride_correct) {
 }
 
 /* ========================================
+ * Clear Slot Function Tests
+ * ======================================== */
+
+TEST(clear_slot_function_valid) {
+    reset_slots();
+
+    char* name0 = FUN_004789d0(0);
+    strcpy(name0, "PlayerToClear");
+
+    ASSERT(FUN_004789a0(0) == 1);
+
+    int result = FUN_00478bf0(0);
+    ASSERT(result == 0);
+    ASSERT(FUN_004789a0(0) == 0);
+}
+
+TEST(clear_slot_function_invalid) {
+    reset_slots();
+
+    ASSERT(FUN_00478bf0(-1) == -1);
+    ASSERT(FUN_00478bf0(2) == -1);
+    ASSERT(FUN_00478bf0(100) == -1);
+}
+
+TEST(clear_slot_preserves_other) {
+    reset_slots();
+
+    char* name0 = FUN_004789d0(0);
+    char* name1 = FUN_004789d0(1);
+    strcpy(name0, "Slot0");
+    strcpy(name1, "Slot1");
+
+    FUN_00478bf0(0);
+
+    ASSERT(FUN_004789a0(0) == 0);
+    ASSERT(FUN_004789a0(1) == 1);
+    ASSERT(strcmp(name1, "Slot1") == 0);
+}
+
+TEST(clear_both_slots) {
+    reset_slots();
+
+    char* name0 = FUN_004789d0(0);
+    char* name1 = FUN_004789d0(1);
+    strcpy(name0, "Slot0");
+    strcpy(name1, "Slot1");
+
+    FUN_00478bf0(0);
+    FUN_00478bf0(1);
+
+    ASSERT(FUN_004789a0(0) == 0);
+    ASSERT(FUN_004789a0(1) == 0);
+}
+
+/* ========================================
  * Main Test Runner
  * ======================================== */
 
@@ -197,6 +273,12 @@ int main(void) {
     RUN_TEST(both_slots_independent);
     RUN_TEST(clear_slot);
     RUN_TEST(slot_stride_correct);
+
+    printf("\nClear Slot Function Tests:\n");
+    RUN_TEST(clear_slot_function_valid);
+    RUN_TEST(clear_slot_function_invalid);
+    RUN_TEST(clear_slot_preserves_other);
+    RUN_TEST(clear_both_slots);
 
     printf("\n=== Results ===\n");
     printf("Tests run: %d\n", test_passed + test_failed);
