@@ -162,6 +162,9 @@ set(TEST_SOURCES
     test_object_state_setters_comprehensive.c
     test_scene_transition_functions_comprehensive.c
     test_config_save_restore_comprehensive.c
+    test_flag_manipulation_functions_comprehensive.c
+    test_party_slot_functions_comprehensive.c
+    test_object_setter_functions_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
