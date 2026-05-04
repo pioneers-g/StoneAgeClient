@@ -413,3 +413,90 @@ void FUN_004423d0(short* left, short* top, short* right, short* bottom) {
         *bottom = (short)DAT_04569b70;
     }
 }
+
+/*
+ * FUN_00444580 - Direction Index to Character
+ *
+ * Binary analysis:
+ * - Converts direction index (0-7) to a character for display
+ * - param_1: direction index (0-7)
+ * - param_2: uppercase flag (0 = lowercase, non-zero = uppercase)
+ * - Returns: character representing the direction
+ * - Directions 0-2: 'f'/'F' (forward variants)
+ * - Directions 3-7: '^'/'>' variants
+ */
+char FUN_00444580(int direction, int uppercase) {
+    if (direction >= 0 && direction < 3) {
+        if (uppercase == 0) {
+            return (char)direction + 'f';
+        }
+        return (char)direction + 'F';
+    }
+    if (direction < 8) {
+        if (uppercase == 0) {
+            return (char)direction + '^';
+        }
+        return (char)direction + '>';
+    }
+    return 'f';
+}
+
+/*
+ * FUN_00444920 - Insert Node After in Linked List
+ *
+ * Binary analysis:
+ * - Inserts a new node after an existing node in a doubly-linked list
+ * - param_1: existing node (insert after this)
+ * - param_2: new node to insert
+ * - Node structure has prev at offset 0x24 and next at offset 0x28
+ */
+void FUN_00444920(void* existing, void* new_node) {
+    void** existing_ptr = (void**)existing;
+    void** new_ptr = (void**)new_node;
+
+    if (existing == NULL || new_node == NULL) {
+        return;
+    }
+
+    /* Set new node's prev to existing */
+    new_ptr[9] = existing;  /* offset 0x24 = 9 * 4 */
+
+    /* Set new node's next to existing's next */
+    new_ptr[10] = existing_ptr[10];  /* offset 0x28 = 10 * 4 */
+
+    /* Update existing's next's prev to new node */
+    if (existing_ptr[10] != NULL) {
+        void** next_ptr = (void**)existing_ptr[10];
+        next_ptr[9] = new_node;
+    }
+
+    /* Set existing's next to new node */
+    existing_ptr[10] = new_node;
+}
+
+/*
+ * FUN_00444950 - Append Node to Linked List Tail
+ *
+ * Binary analysis:
+ * - Appends a new node at the tail of a doubly-linked list
+ * - param_1: current tail node
+ * - param_2: new node to append
+ * - Node structure has prev at offset 0x24 and next at offset 0x28
+ */
+void FUN_00444950(void* tail, void* new_node) {
+    void** tail_ptr = (void**)tail;
+    void** new_ptr = (void**)new_node;
+
+    if (tail == NULL || new_node == NULL) {
+        return;
+    }
+
+    /* Set new node's prev to tail */
+    new_ptr[9] = tail;  /* offset 0x24 = 9 * 4 */
+
+    /* Set new node's next to tail's next (usually NULL) */
+    new_ptr[10] = tail_ptr[10];  /* offset 0x28 = 10 * 4 */
+
+    /* Update tail's next to new node */
+    tail_ptr[10] = new_node;
+}

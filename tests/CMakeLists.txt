@@ -130,6 +130,9 @@ set(TEST_SOURCES
     test_clamp_value_comprehensive.c
     test_linear_interpolation_comprehensive.c
     test_coordinate_clamp_comprehensive.c
+    test_direction_to_char_comprehensive.c
+    test_angle_normalize_comprehensive.c
+    test_linked_list_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
