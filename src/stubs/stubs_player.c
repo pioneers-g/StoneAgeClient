@@ -527,3 +527,39 @@ void FUN_00478980(void) {
         entry += 0xc;
     } while ((size_t)entry < 0x4630a0c);
 }
+
+/*
+ * FUN_004789a0 - Check Player Slot Occupied
+ *
+ * Binary analysis:
+ * - Checks if player slot data exists at DAT_04630a00 + slot * 0x44
+ * - param_1: slot index (0 or 1 only)
+ * - Returns 1 if slot has data, 0 if empty, -1 if invalid slot
+ */
+u32 FUN_004789a0(int slot_index) {
+    extern char DAT_04630a00[];
+
+    if (slot_index < 0 || slot_index >= 2) {
+        return 0xffffffff;  /* Invalid slot */
+    }
+
+    return (DAT_04630a00[slot_index * 0x44] != '\0') ? 1 : 0;
+}
+
+/*
+ * FUN_004789d0 - Get Player Slot Name Pointer
+ *
+ * Binary analysis:
+ * - Returns pointer to player slot name at DAT_04630a00 + slot * 0x44
+ * - param_1: slot index (0 or 1 only)
+ * - Returns pointer or NULL if invalid
+ */
+char* FUN_004789d0(int slot_index) {
+    extern char DAT_04630a00[];
+
+    if (slot_index < 0 || slot_index >= 2) {
+        return NULL;
+    }
+
+    return &DAT_04630a00[slot_index * 0x44];
+}

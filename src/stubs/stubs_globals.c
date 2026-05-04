@@ -445,5 +445,8 @@ void* DAT_04ec08c4 = NULL;     /* IME context data */
 /* Entity flags array - stride 0x43 (67 dwords) per entity, max 1500 entities */
 u32 DAT_004e2b4c[1500 * 67] = {0};
 
+/* Player slot data array - 2 slots, stride 0x44 (68 bytes) for name and stats */
+char DAT_04630a00[2 * 0x44] = {0};
+
 /* Entity movement constant */
 float _DAT_0456a640 = 1.0f;    /* Movement scale factor */

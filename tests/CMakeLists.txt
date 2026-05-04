@@ -117,6 +117,7 @@ set(TEST_SOURCES
     test_text_queue_comprehensive.c
     test_string_unescape_comprehensive.c
     test_render_blend_mode_comprehensive.c
+    test_player_slot_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
