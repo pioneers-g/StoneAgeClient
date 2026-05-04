@@ -138,6 +138,7 @@ set(TEST_SOURCES
     test_string_swap_comprehensive.c
     test_player_flag_bits_comprehensive.c
     test_game_state_functions_comprehensive.c
+    test_player_helper_functions_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
