@@ -119,6 +119,7 @@ set(TEST_SOURCES
     test_render_blend_mode_comprehensive.c
     test_player_slot_comprehensive.c
     test_direction_offset_comprehensive.c
+    test_normalize_angle_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers

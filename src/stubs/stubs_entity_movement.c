@@ -28,6 +28,27 @@ extern float _DAT_0049c30c;  /* Speed for queue 2-3: 1.2f */
 extern float _DAT_0049c318;  /* Minimum distance threshold: 0.001f */
 extern float _DAT_0049c328;  /* Speed multiplier: 1.0f */
 extern float _DAT_0049c324;  /* Direction offset: 0.0f */
+extern float _DAT_0049c3f0;  /* 2*PI for angle normalization */
+extern float _DAT_0049c3f8;  /* 2*PI upper bound */
+extern float _DAT_0049c3d8;  /* 0.0f lower bound */
+
+/*
+ * FUN_004470d0 - Normalize Direction Angle
+ *
+ * Binary analysis:
+ * - Normalizes angle to range [0, 2*PI)
+ * - param_1: pointer to angle in radians
+ * - Uses DAT_0049c3f0 (2*PI) and DAT_0049c3f8/DAT_0049c3d8 for bounds
+ */
+void FUN_004470d0(float* angle) {
+    /* Wrap angle to [0, 2*PI) */
+    while (*angle >= _DAT_0049c3f8) {
+        *angle -= _DAT_0049c3f0;
+    }
+    while (*angle < _DAT_0049c3d8) {
+        *angle += _DAT_0049c3f0;
+    }
+}
 
 /*
  * FUN_0040b6e0 - Entity Movement Queue Add

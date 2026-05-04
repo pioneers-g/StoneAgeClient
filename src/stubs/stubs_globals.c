@@ -338,6 +338,13 @@ float _DAT_0049c318 = 0.001f;  /* Minimum distance threshold */
 float _DAT_0049c328 = 1.0f;    /* Speed multiplier */
 float _DAT_0049c324 = 0.0f;    /* Direction offset */
 
+/* Angle normalization constants */
+#define PI 3.14159265358979323846f
+#define TWO_PI (2.0f * PI)
+float _DAT_0049c3f0 = TWO_PI;     /* 2*PI for angle normalization */
+float _DAT_0049c3f8 = TWO_PI;     /* Upper bound for angle */
+float _DAT_0049c3d8 = 0.0f;       /* Lower bound for angle */
+
 /* Additional globals needed by render */
 u32 DAT_045829b8 = 0;
 u32 DAT_045829b4 = 0;
