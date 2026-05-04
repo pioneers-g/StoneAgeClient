@@ -153,6 +153,7 @@ set(TEST_SOURCES
     test_player_flag_manipulation_comprehensive.c
     test_game_state_setter_functions_comprehensive.c
     test_config_copy_functions_comprehensive.c
+    test_sprite_cache_functions_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
