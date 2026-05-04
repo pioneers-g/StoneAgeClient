@@ -167,6 +167,8 @@ set(TEST_SOURCES
     test_object_setter_functions_comprehensive.c
     test_object_state_functions_comprehensive.c
     test_hex_parser_functions_comprehensive.c
+    test_hex_parser_2_functions_comprehensive.c
+    test_pattern_search_functions_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
