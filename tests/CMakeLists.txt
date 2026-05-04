@@ -156,6 +156,7 @@ set(TEST_SOURCES
     test_sprite_cache_functions_comprehensive.c
     test_resource_cleanup_functions_comprehensive.c
     test_input_flag_processing_comprehensive.c
+    test_flag_operations_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
