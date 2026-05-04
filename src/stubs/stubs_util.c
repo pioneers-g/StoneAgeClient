@@ -231,3 +231,60 @@ void FUN_00444fb0(int* x, int* y) {
 }
 
 /* FUN_004777e0 is defined in stubs_ui.c */
+
+/*
+ * FUN_00447370 - Distance Squared
+ *
+ * Binary analysis:
+ * - Calculates squared distance between two points
+ * - param_1: x1 coordinate
+ * - param_2: y1 coordinate
+ * - param_3: x2 coordinate
+ * - param_4: y2 coordinate
+ * - Returns: (x2-x1)^2 + (y2-y1)^2
+ * - Used for distance comparisons without sqrt
+ */
+float FUN_00447370(float x1, float y1, float x2, float y2) {
+    float dx = x2 - x1;
+    float dy = y2 - y1;
+    return dx * dx + dy * dy;
+}
+
+/*
+ * FUN_004473f0 - Check Sprite ID Range
+ *
+ * Binary analysis:
+ * - Checks if sprite ID is in specific range (0x623e, 0x6299)
+ * - param_1: sprite ID
+ * - Returns: 1 if in range, 0 otherwise
+ * - Range appears to be special effect sprites
+ */
+int FUN_004473f0(int sprite_id) {
+    if (sprite_id > 0x623e && sprite_id < 0x6299) {
+        return 1;
+    }
+    return 0;
+}
+
+/*
+ * FUN_00447310 - Initialize Random Shuffle Table
+ *
+ * Binary analysis:
+ * - Initializes a 100-element shuffle table with sequential indices
+ * - Uses rand() % 100 for starting position
+ * - Table at DAT_04582a40 (100 integers)
+ * - Used for randomizing game elements
+ */
+void FUN_00447310(void) {
+    extern int DAT_04582a40[100];
+    int start = rand() % 100;
+    int i;
+
+    for (i = 0; i < 100; i++) {
+        DAT_04582a40[start] = i;
+        start++;
+        if (start > 99) {
+            start = 0;
+        }
+    }
+}

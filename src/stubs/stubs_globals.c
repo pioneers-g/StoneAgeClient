@@ -467,3 +467,6 @@ char DAT_04630a00[2 * 0x44] = {0};
 
 /* Entity movement constant */
 float _DAT_0456a640 = 1.0f;    /* Movement scale factor */
+
+/* Random shuffle table for FUN_00447310 */
+int DAT_04582a40[100] = {0};
