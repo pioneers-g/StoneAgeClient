@@ -140,6 +140,7 @@ set(TEST_SOURCES
     test_game_state_functions_comprehensive.c
     test_player_helper_functions_comprehensive.c
     test_entity_id_functions_comprehensive.c
+    test_hex_parser_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
