@@ -176,6 +176,7 @@ set(TEST_SOURCES
     test_string_swap_buffer_functions_comprehensive.c
     test_player_value_setter_functions_comprehensive.c
     test_party_member_check_functions_comprehensive.c
+    test_pet_slot_clear_functions_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
