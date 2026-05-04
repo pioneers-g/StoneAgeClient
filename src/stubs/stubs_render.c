@@ -597,3 +597,41 @@ int FUN_004142f0(short screen_x, short screen_y, u32 surface_handle) {
     (void)surface_handle;
     return 1;
 }
+
+/*
+ * FUN_0047e640 - Add Sprite to Render Queue with Blend Mode
+ *
+ * Binary analysis:
+ * - Wrapper for FUN_0047e210 with blend mode support
+ * - param_1: X position (combined with param_3)
+ * - param_2: Y position (combined with param_4)
+ * - param_3: X offset/sub-position
+ * - param_4: Y offset/sub-position
+ * - param_5: sprite layer
+ * - param_6: sprite ID
+ * - param_7: blend mode (0=add, 1=subtract, 2=multiply)
+ *
+ * Blend modes:
+ * - 0: Additive blending (0xa0000000 flag)
+ * - 1: Subtractive blending (0x90000000 flag)
+ * - 2: Multiplicative blending (0xc0000000 flag)
+ */
+void FUN_0047e640(int x1, int y1, u32 x2, u32 y2, int layer, u32 sprite_id, int blend_mode) {
+    u32 combined_x = (x1 << 16) | x2;
+    u32 combined_y = (y1 << 16) | y2;
+
+    switch (blend_mode) {
+        case 0:  /* Additive */
+            FUN_0047e210(combined_x, combined_y, layer, sprite_id | 0xa0000000, 0);
+            break;
+        case 1:  /* Subtractive */
+            FUN_0047e210(combined_x, combined_y, layer, sprite_id | 0x90000000, 0);
+            break;
+        case 2:  /* Multiplicative */
+            FUN_0047e210(combined_x, combined_y, layer, sprite_id | 0xc0000000, 0);
+            break;
+        default:  /* Normal */
+            FUN_0047e210(combined_x, combined_y, layer, sprite_id, 0);
+            break;
+    }
+}
