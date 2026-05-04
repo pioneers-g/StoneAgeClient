@@ -344,6 +344,12 @@ float _DAT_0049c324 = 0.0f;    /* Direction offset */
 float _DAT_0049c3f0 = TWO_PI;     /* 2*PI for angle normalization */
 float _DAT_0049c3f8 = TWO_PI;     /* Upper bound for angle */
 float _DAT_0049c3d8 = 0.0f;       /* Lower bound for angle */
+float _DAT_0049c3d0 = 0.0f;       /* Direction offset */
+
+/* Atan2 quadrant constants */
+float _DAT_0049c408 = PI / 2.0f;      /* PI/2 = 1.5708... */
+float _DAT_0049c400 = 3.0f * PI / 2.0f; /* 3*PI/2 = 4.7124... */
+float _DAT_0049c404 = 5.0f * PI / 4.0f; /* 5*PI/4 = 3.927... */
 
 /* Additional globals needed by render */
 u32 DAT_045829b8 = 0;

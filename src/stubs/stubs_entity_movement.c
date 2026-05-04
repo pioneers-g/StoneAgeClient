@@ -31,6 +31,10 @@ extern float _DAT_0049c324;  /* Direction offset: 0.0f */
 extern float _DAT_0049c3f0;  /* 2*PI for angle normalization */
 extern float _DAT_0049c3f8;  /* 2*PI upper bound */
 extern float _DAT_0049c3d8;  /* 0.0f lower bound */
+extern float _DAT_0049c408;  /* PI/2 */
+extern float _DAT_0049c400;  /* 3*PI/2 */
+extern float _DAT_0049c404;  /* 5*PI/4 */
+extern float _DAT_0049c3d0;  /* Direction offset */
 
 /*
  * FUN_004470d0 - Normalize Direction Angle
@@ -48,6 +52,85 @@ void FUN_004470d0(float* angle) {
     while (*angle < _DAT_0049c3d8) {
         *angle += _DAT_0049c3f0;
     }
+}
+
+/*
+ * FUN_00447150 - Calculate Direction Angle from Vector
+ *
+ * Binary analysis:
+ * - Calculates angle in radians from dx, dy vector components
+ * - param_1: dx (x component of direction vector)
+ * - param_2: dy (y component of direction vector)
+ * - Returns: angle in radians [0, 2*PI)
+ * - Uses quadrant detection and atan lookup table
+ * - Original uses DAT_004bc2b0 as atan lookup table
+ * - This implementation uses standard atan2f as approximation
+ */
+float FUN_00447150(float dx, float dy) {
+    float angle;
+    int quadrant = 0;
+
+    /* Handle zero vector case */
+    if (dx == _DAT_0049c3d8 && dy == _DAT_0049c3d8) {
+        return _DAT_0049c318;  /* Return small value for zero vector */
+    }
+
+    /* Determine quadrant and make values positive */
+    if (dx < _DAT_0049c318) {
+        quadrant |= 1;
+        dx = -dx;
+    }
+    if (dy < _DAT_0049c318) {
+        quadrant |= 2;
+        dy = -dy;
+    }
+    if (dx < dy) {
+        quadrant |= 4;
+    }
+
+    /* Calculate atan using standard library */
+    /* Original uses lookup table at DAT_004bc2b0 */
+    if (dx == 0.0f) {
+        angle = _DAT_0049c408;  /* PI/2 */
+    } else {
+        angle = atan2f(dy, dx);
+    }
+
+    /* Adjust angle based on quadrant */
+    switch (quadrant) {
+        case 0:  /* First quadrant: both positive, dx >= dy */
+            /* angle is correct */
+            break;
+        case 1:  /* Second quadrant: dx negative, dy positive */
+            angle = _DAT_0049c408 - angle;  /* PI/2 - angle */
+            break;
+        case 2:  /* Third quadrant: dx positive, dy negative */
+            angle = _DAT_0049c3f0 - angle;  /* 2*PI - angle */
+            break;
+        case 3:  /* Fourth quadrant: both negative */
+            angle = angle + _DAT_0049c408;  /* angle + PI/2 */
+            break;
+        case 4:  /* dx < dy, first quadrant */
+            angle = _DAT_0049c400 - angle;  /* 3*PI/2 - angle */
+            break;
+        case 5:  /* dx < dy, second quadrant */
+            angle = angle + _DAT_0049c400;  /* angle + 3*PI/2 */
+            break;
+        case 6:  /* dx < dy, third quadrant */
+            angle = angle + _DAT_0049c404;  /* angle + 5*PI/4 */
+            break;
+        case 7:  /* dx < dy, fourth quadrant */
+            angle = _DAT_0049c404 - angle;  /* 5*PI/4 - angle */
+            break;
+    }
+
+    /* Subtract direction offset and normalize */
+    angle = angle - _DAT_0049c3d0;
+
+    /* Normalize to [0, 2*PI) */
+    FUN_004470d0(&angle);
+
+    return angle;
 }
 
 /*
