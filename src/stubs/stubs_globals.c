@@ -176,6 +176,9 @@ u32 DAT_0462e3b0 = 0;    /* Player render color */
 /* Entity array for pet/summon checking - 20 entries, stride 0x184 */
 u32 DAT_0462bf50[20 * 0x62] = {0};    /* Entity array with sprite IDs at start of each entry */
 
+/* Player slot array - used for party/member tracking */
+u32 DAT_0463091c[20 * 12] = {0};      /* Player slot entries, stride 0x30 */
+
 /* Player entity globals */
 void* DAT_0462e3ac = NULL;  /* Player entity pointer */
 u32 DAT_0462bf2c = 0;       /* Player flags (bit 8 = riding) */
@@ -220,6 +223,8 @@ extern u16 DAT_0081c7f4[];
 /* More state globals */
 u32 DAT_004bb414 = 0;
 u32 DAT_004bb418 = 0;
+u32 _DAT_004bb41c = 0;
+u32 _DAT_004bb420 = 0;
 u32 DAT_045602b0 = 0;
 u32 DAT_04633308 = 0;
 u32 DAT_04ebe270 = 0;
@@ -314,6 +319,14 @@ float _DAT_04582994 = 0.0f;
 float _DAT_0049c334 = 1.0f;
 float _DAT_0049c3e8 = 0.5f;
 float _DAT_0049c3e4 = 0.25f;
+
+/* World position globals for FUN_00440df0 */
+float DAT_0456a644 = 0.0f;
+float DAT_0456a648 = 0.0f;
+u32 DAT_0458118c = 0;
+u32 DAT_04581184 = 0;
+float _DAT_045827fc = 0.0f;
+float _DAT_04582800 = 0.0f;
 
 /* Entity movement speed constants */
 float _DAT_0049c32c = 1.0f;    /* Default speed */
