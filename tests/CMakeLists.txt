@@ -129,6 +129,7 @@ set(TEST_SOURCES
     test_tile_walkable_comprehensive.c
     test_clamp_value_comprehensive.c
     test_linear_interpolation_comprehensive.c
+    test_coordinate_clamp_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers

@@ -279,6 +279,7 @@ u32 DAT_045829c0 = 0;
 u32 DAT_045602cc = 0;
 u32 DAT_04569b68 = 0;
 u32 DAT_04569b70 = 0;    /* Map/field coordinate */
+u32 DAT_0458119c = 0;    /* Map width */
 u32 DAT_04581d48 = 0;
 u32 DAT_0456a64c = 0;
 u32 DAT_04581280 = 0;

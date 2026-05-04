@@ -384,3 +384,32 @@ int FUN_004474e0(int value, int min_val, int max_val) {
 float FUN_00447520(float a, float b, float t) {
     return a + (b - a) * t;
 }
+
+/*
+ * FUN_004423d0 - Clamp Coordinates to Map Bounds
+ *
+ * Binary analysis:
+ * - Clamps coordinate rectangle to map boundaries
+ * - param_1: pointer to left X (clamped to >= 0)
+ * - param_2: pointer to top Y (clamped to >= 0)
+ * - param_3: pointer to right X (clamped to DAT_0458119c)
+ * - param_4: pointer to bottom Y (clamped to DAT_04569b70)
+ * - Used for ensuring coordinates are within valid map range
+ */
+void FUN_004423d0(short* left, short* top, short* right, short* bottom) {
+    extern u32 DAT_0458119c;  /* Map width */
+    extern u32 DAT_04569b70;  /* Map height */
+
+    if (*left < 0) {
+        *left = 0;
+    }
+    if (*top < 0) {
+        *top = 0;
+    }
+    if ((u32)*right > DAT_0458119c) {
+        *right = (short)DAT_0458119c;
+    }
+    if ((u32)*bottom > DAT_04569b70) {
+        *bottom = (short)DAT_04569b70;
+    }
+}
