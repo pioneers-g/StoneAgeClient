@@ -4,6 +4,7 @@
  */
 
 #include <windows.h>
+#include <mmsystem.h>
 #include <string.h>
 #include "types.h"
 
@@ -462,4 +463,67 @@ void FUN_00478910(void) {
     } while ((size_t)entry < 0x4630a0c);
 
     FUN_004780a0();  /* Clear player ride flag */
+}
+
+/*
+ * FUN_004780e0 - Clear Player Special Render Flag
+ *
+ * Binary analysis:
+ * - Clears bit 14 (0x4000) in DAT_0462bf2c
+ */
+void FUN_004780e0(void) {
+    DAT_0462bf2c &= 0xffffbfff;
+}
+
+/*
+ * FUN_004780f0 - Set Player Movement Flag to 1
+ *
+ * Binary analysis:
+ * - Sets movement flag at offset 0x112 in player entity to 1
+ */
+void FUN_004780f0(void) {
+    if (DAT_0462e3ac != NULL) {
+        *(unsigned short*)((char*)DAT_0462e3ac + 0x112) = 1;
+    }
+}
+
+/*
+ * FUN_00478160 - Set Player Timeout Flag and Timer
+ *
+ * Binary analysis:
+ * - Sets bit 13 (0x2000) in DAT_0462bf2c
+ * - Sets timeout timer at entity->offset 0xc + 0xc
+ * - param_1: timeout duration in milliseconds
+ */
+void FUN_00478160(int timeout_ms) {
+    extern u32 DAT_046308a8;
+    DWORD current_time;
+    int entity_data;
+
+    if (DAT_0462e3ac != NULL) {
+        DAT_0462bf2c |= 0x2000;
+        entity_data = *(int*)((char*)DAT_0462e3ac + 0xc);
+        if (entity_data != 0) {
+            current_time = timeGetTime();
+            *(DWORD*)(entity_data + 0xc) = current_time + timeout_ms;
+        }
+    }
+}
+
+/*
+ * FUN_00478980 - Clear Player Slot Array
+ *
+ * Binary analysis:
+ * - Clears player slot array starting at DAT_0463091c
+ * - Stride 0x30 (0xc dwords) per entry
+ * - Iterates until address 0x4630a0c
+ */
+void FUN_00478980(void) {
+    extern u32 DAT_0463091c[];
+    u32* entry = DAT_0463091c;
+
+    do {
+        *entry = 0;
+        entry += 0xc;
+    } while ((size_t)entry < 0x4630a0c);
 }

@@ -97,6 +97,32 @@ static void FUN_00478110(void) {
     }
 }
 
+/* Clear special render flag - FUN_004780e0 */
+static void clear_special_render_flag_inline(void) {
+    test_player_flags &= 0xffffbfff;
+}
+
+/* Set movement flag to 1 - FUN_004780f0 */
+static void set_movement_flag_one_inline(void) {
+    if (test_player_entity != NULL) {
+        *(unsigned short*)(test_entity_data + ENTITY_MOVE_FLAG_OFFSET) = 1;
+    }
+}
+
+/* Player slot array for testing */
+#define SLOT_ARRAY_COUNT 20
+static u32 test_slot_array[SLOT_ARRAY_COUNT * 12] = {0};
+
+/* Clear player slot array - FUN_00478980 */
+static void clear_player_slot_array_inline(void) {
+    u32* entry = test_slot_array;
+    int max_count = SLOT_ARRAY_COUNT * 12;
+    do {
+        *entry = 0;
+        entry += 12;
+    } while ((entry - test_slot_array) < max_count);
+}
+
 /* ========================================
  * Test Helper Functions
  * ======================================== */
@@ -310,6 +336,66 @@ TEST(all_flags_combination) {
 }
 
 /* ========================================
+ * Clear Special Render Flag Tests (0x4000)
+ * ======================================== */
+
+TEST(clear_special_render_flag) {
+    setup_test();
+    FUN_004780d0();  /* Set first */
+
+    clear_special_render_flag_inline();  /* FUN_004780e0 */
+    ASSERT((test_player_flags & 0x4000) == 0);
+}
+
+TEST(clear_special_render_preserves_others) {
+    setup_test();
+    FUN_00478090();  /* Ride 0x100 */
+    FUN_004780d0();  /* Special render 0x4000 */
+
+    clear_special_render_flag_inline();
+    ASSERT((test_player_flags & 0x100) != 0);
+    ASSERT((test_player_flags & 0x4000) == 0);
+}
+
+/* ========================================
+ * Set Movement Flag Tests
+ * ======================================== */
+
+TEST(set_movement_flag_to_one) {
+    setup_test();
+    *(unsigned short*)(test_entity_data + ENTITY_MOVE_FLAG_OFFSET) = 0;
+
+    set_movement_flag_one_inline();  /* FUN_004780f0 */
+    ASSERT(*(unsigned short*)(test_entity_data + ENTITY_MOVE_FLAG_OFFSET) == 1);
+}
+
+TEST(set_movement_flag_null_entity) {
+    setup_test();
+    test_player_entity = NULL;
+
+    /* Should not crash */
+    set_movement_flag_one_inline();
+}
+
+/* ========================================
+ * Player Slot Array Clear Tests
+ * ======================================== */
+
+TEST(clear_player_slot_array) {
+    /* Set up some test data at indices that get cleared (0, 12, 24, etc) */
+    test_slot_array[0] = 0x12345678;
+    test_slot_array[12] = 0xCAFEBABE;
+    test_slot_array[24] = 0xDEADBEEF;
+
+    clear_player_slot_array_inline();  /* FUN_00478980 */
+
+    /* The function clears every 12th element (indices 0, 12, 24, ...) */
+    ASSERT(test_slot_array[0] == 0);
+    ASSERT(test_slot_array[12] == 0);
+    ASSERT(test_slot_array[24] == 0);
+}
+
+/* ========================================
  * Main Test Runner
  * ======================================== */
 
@@ -328,6 +414,8 @@ int main(void) {
 
     printf("\nSpecial Render Flag Tests (0x4000):\n");
     RUN_TEST(set_special_render_flag);
+    RUN_TEST(clear_special_render_flag);
+    RUN_TEST(clear_special_render_preserves_others);
 
     printf("\nAnimation Flag Tests (0x800):\n");
     RUN_TEST(clear_animation_flag);
@@ -345,11 +433,16 @@ int main(void) {
     printf("\nMovement Flag Tests:\n");
     RUN_TEST(clear_movement_flag);
     RUN_TEST(clear_movement_flag_null_entity);
+    RUN_TEST(set_movement_flag_to_one);
+    RUN_TEST(set_movement_flag_null_entity);
 
     printf("\nMultiple Flag Tests:\n");
     RUN_TEST(multiple_flags_independent);
     RUN_TEST(clear_one_preserves_others);
     RUN_TEST(all_flags_combination);
+
+    printf("\nPlayer Slot Array Tests:\n");
+    RUN_TEST(clear_player_slot_array);
 
     printf("\n=== Results ===\n");
     printf("Tests run: %d\n", test_passed + test_failed);
