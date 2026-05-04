@@ -174,6 +174,8 @@ set(TEST_SOURCES
     test_time_calc_functions_comprehensive.c
     test_peek_second_hex_functions_comprehensive.c
     test_string_swap_buffer_functions_comprehensive.c
+    test_player_value_setter_functions_comprehensive.c
+    test_party_member_check_functions_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
