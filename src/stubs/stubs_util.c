@@ -177,4 +177,57 @@ int FUN_00492973(const char* str) {
     return result * sign;
 }
 
+/*
+ * FUN_00444fb0 - Apply Direction Offset
+ *
+ * Binary analysis:
+ * - Modifies x,y coordinates based on direction (0-7)
+ * - Direction is stored in DAT_004bb758
+ * - Direction mapping:
+ *   0: North (y -= 2)
+ *   1: Northeast (x += 1, y -= 1)
+ *   2: East (x += 2)
+ *   3: Southeast (x += 1, y += 1)
+ *   4: South (y += 2)
+ *   5: Southwest (x -= 1, y += 1)
+ *   6: West (x -= 2)
+ *   7: Northwest (x -= 1, y -= 1)
+ */
+void FUN_00444fb0(int* x, int* y) {
+    extern s32 DAT_004bb758;
+
+    if (DAT_004bb758 < 0) return;
+
+    switch (DAT_004bb758) {
+        case 0:  /* North */
+            *y -= 2;
+            break;
+        case 1:  /* Northeast */
+            *x += 1;
+            *y -= 1;
+            break;
+        case 2:  /* East */
+            *x += 2;
+            break;
+        case 3:  /* Southeast */
+            *x += 1;
+            *y += 1;
+            break;
+        case 4:  /* South */
+            *y += 2;
+            break;
+        case 5:  /* Southwest */
+            *x -= 1;
+            *y += 1;
+            break;
+        case 6:  /* West */
+            *x -= 2;
+            break;
+        case 7:  /* Northwest */
+            *x -= 1;
+            *y -= 1;
+            break;
+    }
+}
+
 /* FUN_004777e0 is defined in stubs_ui.c */

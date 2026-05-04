@@ -309,6 +309,7 @@ u32 DAT_046333c4 = 0;    /* View offset Y calc */
 u32 DAT_046333cc = 0;    /* View offset Y */
 u32 DAT_004bb424 = 0;
 u32 DAT_004bb428 = 0;
+s32 DAT_004bb758 = -1;    /* Current direction (0-7) for offset calculation */
 u32 DAT_04560e54 = 0;
 /* DAT_04560214 already defined above */
 u32 DAT_004d2628 = 0;
