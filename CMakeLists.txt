@@ -130,6 +130,9 @@ set(EXCLUDE_FILES
 
     # Duplicate gameconfig (g_config is in main.c)
     "${CMAKE_CURRENT_SOURCE_DIR}/src/game/gameconfig.c"
+
+    # Old entity stubs (split into stubs_entity_core.c, stubs_entity_slot.c, stubs_entity_character.c)
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/stubs/stubs_entity.c"
 )
 
 list(REMOVE_ITEM SOURCES ${EXCLUDE_FILES})
