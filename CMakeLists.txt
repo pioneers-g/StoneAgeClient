@@ -133,6 +133,9 @@ set(EXCLUDE_FILES
 
     # Old entity stubs (split into stubs_entity_core.c, stubs_entity_slot.c, stubs_entity_character.c)
     "${CMAKE_CURRENT_SOURCE_DIR}/src/stubs/stubs_entity.c"
+
+    # Old skill.c (split into skill_core.c, skill_casting.c)
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/skill/skill.c"
 )
 
 list(REMOVE_ITEM SOURCES ${EXCLUDE_FILES})
