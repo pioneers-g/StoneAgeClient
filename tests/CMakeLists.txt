@@ -143,6 +143,7 @@ set(TEST_SOURCES
     test_hex_parser_comprehensive.c
     test_player_flag_functions_comprehensive.c
     test_utility_functions_comprehensive.c
+    test_slot_functions_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
