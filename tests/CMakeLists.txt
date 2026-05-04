@@ -179,6 +179,7 @@ set(TEST_SOURCES
     test_pet_slot_clear_functions_comprehensive.c
     test_pet_slot_check_functions_comprehensive.c
     test_pet_name_match_functions_comprehensive.c
+    test_pet_data_clear_functions_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
