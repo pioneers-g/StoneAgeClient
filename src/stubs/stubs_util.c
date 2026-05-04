@@ -544,3 +544,4 @@ void FUN_00446e40(float world_x, float world_y, float* screen_x, float* screen_y
     *screen_y = iso_factor + (world_x - offset_x) + _DAT_04582994;
 }
 
+
