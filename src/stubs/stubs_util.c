@@ -516,3 +516,31 @@ void FUN_00444950(void* tail, void* new_node) {
     /* Update tail's next to new node */
     tail_ptr[10] = new_node;
 }
+
+/*
+ * FUN_00446e40 - Isometric Coordinate Transformation
+ *
+ * Binary analysis:
+ * - Converts world coordinates (x, y) to screen coordinates (iso_x, iso_y)
+ * - Uses isometric projection formula
+ * - param_1: world X coordinate
+ * - param_2: world Y coordinate
+ * - param_3: output screen X
+ * - param_4: output screen Y
+ * - Uses DAT_004bb424, DAT_004bb428 as offsets
+ * - Uses _DAT_0049c3ec as isometric scale factor
+ */
+void FUN_00446e40(float world_x, float world_y, float* screen_x, float* screen_y) {
+    extern u32 DAT_004bb424;  /* Offset X */
+    extern u32 DAT_004bb428;  /* Offset Y */
+    extern float _DAT_0049c3ec;  /* Isometric scale (0.5) */
+    extern float _DAT_04582998;  /* Screen offset X */
+    extern float _DAT_04582994;  /* Screen offset Y */
+
+    float offset_x = (float)DAT_004bb424;
+    float iso_factor = (world_y - (float)DAT_004bb428) * _DAT_0049c3ec;
+
+    *screen_x = ((world_x - offset_x) - iso_factor) + _DAT_04582998;
+    *screen_y = iso_factor + (world_x - offset_x) + _DAT_04582994;
+}
+

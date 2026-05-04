@@ -321,6 +321,7 @@ float _DAT_04582994 = 0.0f;
 float _DAT_0049c334 = 1.0f;
 float _DAT_0049c3e8 = 0.5f;
 float _DAT_0049c3e4 = 0.25f;
+float _DAT_0049c3ec = 0.5f;  /* Isometric scale factor */
 
 /* World position globals for FUN_00440df0 */
 float DAT_0456a644 = 0.0f;
