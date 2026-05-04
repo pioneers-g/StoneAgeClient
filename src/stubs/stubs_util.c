@@ -288,3 +288,42 @@ void FUN_00447310(void) {
         }
     }
 }
+
+/*
+ * FUN_00447340 - Get Next Shuffle Value
+ *
+ * Binary analysis:
+ * - Returns next value from the shuffle table (circular buffer)
+ * - Table at DAT_04582a40 (100 integers)
+ * - Index at DAT_04582bd0, increments and wraps at 100
+ * - Used for randomizing game elements without repetition
+ */
+int FUN_00447340(void) {
+    extern int DAT_04582a40[100];
+    extern int DAT_04582bd0;  /* Current index in shuffle table */
+
+    int* ptr = &DAT_04582a40[DAT_04582bd0];
+    int result = *ptr;
+
+    DAT_04582bd0++;
+    if (DAT_04582bd0 > 99) {
+        DAT_04582bd0 = 0;
+    }
+
+    return result;
+}
+
+/*
+ * FUN_004472e0 - Random Number in Range
+ *
+ * Binary analysis:
+ * - Returns random integer in range [param_1, param_2]
+ * - Uses rand() internally
+ * - Returns 0 if param_2 == -1
+ */
+int FUN_004472e0(int min_val, int max_val) {
+    if (max_val == -1) {
+        return 0;
+    }
+    return rand() % (max_val - min_val + 1) + min_val;
+}

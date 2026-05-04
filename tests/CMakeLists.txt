@@ -124,6 +124,8 @@ set(TEST_SOURCES
     test_sprite_range_check_comprehensive.c
     test_random_shuffle_comprehensive.c
     test_direction_angle_comprehensive.c
+    test_shuffle_next_comprehensive.c
+    test_random_range_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
