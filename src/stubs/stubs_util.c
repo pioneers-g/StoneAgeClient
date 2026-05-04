@@ -327,3 +327,60 @@ int FUN_004472e0(int min_val, int max_val) {
     }
     return rand() % (max_val - min_val + 1) + min_val;
 }
+
+/*
+ * FUN_00443510 - Check if Tile is Walkable
+ *
+ * Binary analysis:
+ * - Checks if a tile at given coordinates is walkable (type 2)
+ * - param_1: x coordinate
+ * - param_2: y coordinate
+ * - Returns: true if tile type is 2, false otherwise
+ * - Uses map data at DAT_04581280 with stride DAT_045602b0
+ * - Coordinate offset from DAT_04560e3c and DAT_04560e44
+ * - Note: Original data is u32, but treats lower 12 bits as tile type
+ */
+int FUN_00443510(int x, int y) {
+    extern u32 DAT_04581280;
+    extern u32 DAT_045602b0;  /* Map stride */
+    extern u32 DAT_04560e3c;  /* Map offset Y */
+    extern u32 DAT_04560e44;  /* Map offset X */
+
+    /* Calculate index into tile data array */
+    /* Original uses u16 pointer arithmetic, we use u32 */
+    u16* tile_data = (u16*)&DAT_04581280;
+    int index = ((y - (int)DAT_04560e3c) * (int)DAT_045602b0 - (int)DAT_04560e44) + x;
+    u16 tile = tile_data[index];
+
+    return (tile & 0xfff) == 2;
+}
+
+/*
+ * FUN_004474e0 - Clamp Value to Range
+ *
+ * Binary analysis:
+ * - Clamps a value to be within [min, max] range
+ * - param_1: value to clamp
+ * - param_2: minimum value
+ * - param_3: maximum value
+ * - Returns: clamped value
+ */
+int FUN_004474e0(int value, int min_val, int max_val) {
+    if (value < min_val) return min_val;
+    if (value > max_val) return max_val;
+    return value;
+}
+
+/*
+ * FUN_00447520 - Linear Interpolation
+ *
+ * Binary analysis:
+ * - Performs linear interpolation between two values
+ * - param_1: start value
+ * - param_2: end value
+ * - param_3: interpolation factor (0.0 to 1.0)
+ * - Returns: interpolated value
+ */
+float FUN_00447520(float a, float b, float t) {
+    return a + (b - a) * t;
+}
