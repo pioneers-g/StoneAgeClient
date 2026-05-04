@@ -349,6 +349,15 @@ u16 DAT_00e8f234[1] = {0};  /* Sprite width lookup */
 u16 DAT_00e8f238[1] = {0};  /* Sprite height lookup */
 u16 DAT_0081c7f4[1] = {0};  /* High-res sprite lookup */
 
+/* Sprite data table - placeholder (actual game uses 500000 * 10 dwords) */
+/* TODO: Implement dynamic allocation for full table */
+#define SPRITE_TABLE_SIZE 10000
+u32 DAT_0081c7e0[SPRITE_TABLE_SIZE * 10] = {0};
+
+/* File handles for sprite data */
+HANDLE DAT_005ab7d8 = INVALID_HANDLE_VALUE;
+HANDLE DAT_00a04c60 = INVALID_HANDLE_VALUE;
+
 /* Game data globals */
 void* g_inventory = NULL;
 void* g_map = NULL;

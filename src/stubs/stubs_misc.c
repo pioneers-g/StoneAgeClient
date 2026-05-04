@@ -310,3 +310,58 @@ void* FUN_00491bd0(void) {
     extern void* DAT_04ec08c4;
     return DAT_04ec08c4;
 }
+
+/*
+ * FUN_0041fbb0 - Load Sprite Data Table
+ *
+ * Binary analysis:
+ * - Loads sprite data from two files into DAT_0081c7e0
+ * - Clears the sprite table (500000 * 10 dwords = 20MB)
+ * - Opens param_2 (index file) and param_1 (data file)
+ * - Reads 40-byte records (10 dwords) from index file
+ * - Uses first dword as index to store in table
+ * - Returns 0 on success, -1 on index file error, -2 on data file error
+ *
+ * param_1: data file path
+ * param_2: index file path
+ */
+int FUN_0041fbb0(const char* data_file, const char* index_file) {
+    extern HANDLE DAT_005ab7d8;
+    extern HANDLE DAT_00a04c60;
+    extern u32 DAT_0081c7e0[];
+
+    DWORD bytes_read;
+    int record[10];
+    int i;
+
+    /* Clear sprite table */
+    memset(DAT_0081c7e0, 0, sizeof(DAT_0081c7e0));
+
+    /* Open index file */
+    DAT_005ab7d8 = CreateFileA(index_file, GENERIC_READ, FILE_SHARE_READ,
+                               NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (DAT_005ab7d8 == INVALID_HANDLE_VALUE) {
+        return -1;
+    }
+
+    /* Open data file */
+    DAT_00a04c60 = CreateFileA(data_file, GENERIC_READ, FILE_SHARE_READ,
+                               NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (DAT_00a04c60 == INVALID_HANDLE_VALUE) {
+        CloseHandle(DAT_005ab7d8);
+        return -2;
+    }
+
+    /* Read index records */
+    while (ReadFile(DAT_005ab7d8, record, sizeof(record), &bytes_read, NULL) && bytes_read == sizeof(record)) {
+        int index = record[0];
+        if (index >= 0 && index < 500000) {
+            for (i = 0; i < 10; i++) {
+                DAT_0081c7e0[index * 10 + i] = record[i];
+            }
+        }
+    }
+
+    CloseHandle(DAT_005ab7d8);
+    return 0;
+}
