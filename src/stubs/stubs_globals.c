@@ -171,6 +171,10 @@ u32 DAT_045f1bc4 = 0;    /* Search enabled flag */
 
 /* VIP level for gold limit */
 u32 DAT_0462e3b4 = 0;    /* VIP level */
+u32 DAT_0462e3b0 = 0;    /* Player render color */
+
+/* Entity array for pet/summon checking - 20 entries, stride 0x184 */
+u32 DAT_0462bf50[20 * 0x62] = {0};    /* Entity array with sprite IDs at start of each entry */
 
 /* Player entity globals */
 void* DAT_0462e3ac = NULL;  /* Player entity pointer */

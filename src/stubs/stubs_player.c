@@ -178,3 +178,59 @@ void FUN_00477d90(int state) {
         }
     }
 }
+
+/*
+ * FUN_00478130 - Get Player Movement Flag
+ *
+ * Binary analysis:
+ * - Returns the movement flag at offset 0x112 from player entity
+ * - Returns 0 if player entity is NULL
+ */
+int FUN_00478130(void) {
+    if (DAT_0462e3ac == NULL) {
+        return 0;
+    }
+    return (int)*(short*)((char*)DAT_0462e3ac + 0x112);
+}
+
+/*
+ * FUN_00478190 - Set Player Render Color
+ *
+ * Binary analysis:
+ * - Sets global DAT_0462e3b0 and entity offset 0x98 (render color)
+ * - param_1: color value
+ */
+void FUN_00478190(u32 color) {
+    extern u32 DAT_0462e3b0;
+    DAT_0462e3b0 = color;
+    if (DAT_0462e3ac != NULL) {
+        *(u32*)((char*)DAT_0462e3ac + 0x98) = color;
+    }
+}
+
+/*
+ * FUN_004781b0 - Check Pet and Set Combat Flag
+ *
+ * Binary analysis:
+ * - Iterates through entity array at DAT_0462bf50
+ * - Stride is 0x184 (0x61 dwords) per entry
+ * - If any entry has sprite ID 0x89c4, sets combat flag 0x10000
+ * - Max 20 entities checked (end at 0x462ccf4)
+ */
+void FUN_004781b0(void) {
+    int found = 0;
+    extern u32 DAT_0462bf50[];
+    int* entry = (int*)DAT_0462bf50;
+
+    while ((int)entry < 0x462ccf4) {
+        if (*entry == 0x89c4) {
+            found = 1;
+            break;
+        }
+        entry += 0x61;  /* Stride 0x184 bytes = 0x61 dwords */
+    }
+
+    if (found) {
+        DAT_0462bf2c |= 0x10000;
+    }
+}
