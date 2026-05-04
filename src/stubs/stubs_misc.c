@@ -96,7 +96,51 @@ void FUN_004011c0(int param_1) {
         *(int*)(param_1 + 0x24) = 1;
     }
 }
-void FUN_0041d860(void) {}
+
+/*
+ * Text render queue globals
+ * Max 1024 entries (0x400), stride 0x110 (272 bytes)
+ */
+#define TEXT_QUEUE_MAX 1024
+extern u32 DAT_005ab6f8;      /* Text queue count */
+
+/*
+ * FUN_0041d7c0 - Add Text to Render Queue
+ *
+ * Binary analysis:
+ * - Adds text entry to render queue at DAT_005676f8
+ * - Max 1024 entries (0x400)
+ * - Each entry: 0x110 bytes (stride)
+ * - param_1: X position
+ * - param_2: Y position
+ * - param_3: color/type byte
+ * - param_4: style byte
+ * - param_5: text string
+ * - param_6: sprite/color data
+ * - param_7: additional flags
+ * - Returns queue index on success, -2 if queue full
+ */
+int FUN_0041d7c0(u16 x, u16 y, u8 type, u8 style, const char* text, u32 sprite, u32 flags) {
+    if (DAT_005ab6f8 >= TEXT_QUEUE_MAX) {
+        return -2;  /* Queue full */
+    }
+
+    /* Entry at DAT_005676f8 + index * 0x110 */
+    /* TODO: Actual implementation needs proper memory layout */
+    (void)x; (void)y; (void)type; (void)style; (void)text; (void)sprite; (void)flags;
+    DAT_005ab6f8++;
+    return DAT_005ab6f8 - 1;
+}
+
+/*
+ * FUN_0041d860 - Add Text to Queue (Simplified)
+ *
+ * Binary analysis:
+ * - Wrapper for FUN_0041d7c0 with flags=0
+ */
+void FUN_0041d860(u16 x, u16 y, u8 type, u8 style, const char* text, u32 sprite) {
+    FUN_0041d7c0(x, y, type, style, text, sprite, 0);
+}
 
 void FUN_0048a200(const char* param_1, ...) {
     (void)param_1;
