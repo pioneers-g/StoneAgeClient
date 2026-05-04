@@ -186,6 +186,7 @@ set(TEST_SOURCES
     test_flag_player_field_functions_comprehensive.c
     test_player_direction_state_functions_comprehensive.c
     test_player_sprite_direction_functions_comprehensive.c
+    test_player_position_sync_functions_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
