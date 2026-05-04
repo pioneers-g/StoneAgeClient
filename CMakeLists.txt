@@ -136,6 +136,9 @@ set(EXCLUDE_FILES
 
     # Old skill.c (split into skill_core.c, skill_casting.c)
     "${CMAKE_CURRENT_SOURCE_DIR}/src/skill/skill.c"
+
+    # Old party.c (split into party_core.c, party_module.c)
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/party/party.c"
 )
 
 list(REMOVE_ITEM SOURCES ${EXCLUDE_FILES})
