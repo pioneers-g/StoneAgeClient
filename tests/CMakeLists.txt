@@ -172,6 +172,8 @@ set(TEST_SOURCES
     test_item_count_functions_comprehensive.c
     test_state_setter_functions_comprehensive.c
     test_time_calc_functions_comprehensive.c
+    test_peek_second_hex_functions_comprehensive.c
+    test_string_swap_buffer_functions_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
