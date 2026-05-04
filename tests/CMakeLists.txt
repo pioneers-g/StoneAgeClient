@@ -146,6 +146,7 @@ set(TEST_SOURCES
     test_slot_functions_comprehensive.c
     test_base62_parser_comprehensive.c
     test_camera_system_comprehensive.c
+    test_angle_normalize_functions_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers
