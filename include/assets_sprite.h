@@ -62,6 +62,15 @@ int sprite_get_dimensions(u32 sprite_id, u16* width, u16* height);
 int sprite_get_data_offset(u32 sprite_id, u32* offset);
 
 /**
+ * Get sprite origin/hotspot - FUN_0041f980
+ * @param sprite_id Sprite ID (0-549999)
+ * @param origin_x Output: sprite origin X (hotspot offset)
+ * @param origin_y Output: sprite origin Y (hotspot offset)
+ * @return 1 on success, 0 on failure
+ */
+int sprite_get_origin(u32 sprite_id, s16* origin_x, s16* origin_y);
+
+/**
  * Load sprite data into buffer - FUN_0041fb10 helper
  * @param sprite_id Sprite ID (0-499999 for standard sprites)
  * @param buffer Destination buffer

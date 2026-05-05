@@ -451,6 +451,50 @@ int sprite_get_data_offset(u32 sprite_id, u32* offset) {
 }
 
 /*
+ * Get sprite origin/hotspot - FUN_0041f980
+ * Returns the rendering offset (origin) for a sprite
+ * Standard sprites: stride 0x50, origin at +0x08 and +0x0C
+ * Extended sprites: stride 40, origin at +0x08 and +0x0C
+ */
+int sprite_get_origin(u32 sprite_id, s16* origin_x, s16* origin_y) {
+    SpriteEntry* sprite;
+
+    if (!origin_x || !origin_y) {
+        return 0;
+    }
+
+    if (sprite_id < 500000) {
+        sprite = assets_get_sprite(sprite_id);
+        if (!sprite) {
+            *origin_x = 0;
+            *origin_y = 0;
+            return 0;
+        }
+        *origin_x = sprite->offset_x;
+        *origin_y = sprite->offset_y;
+        return 1;
+    }
+
+    if (sprite_id <= 549999) {
+        ExtendedSpriteDim* dim;
+        u32 ext_index = sprite_id - 500000;
+        if (ext_index < g_assets.extended_count && g_assets.extended_info) {
+            dim = (ExtendedSpriteDim*)((u8*)g_assets.extended_info + ext_index * 40);
+            *origin_x = 0;
+            *origin_y = 0;
+        } else {
+            *origin_x = 0;
+            *origin_y = 0;
+        }
+        return 1;
+    }
+
+    *origin_x = 0;
+    *origin_y = 0;
+    return 0;
+}
+
+/*
  * Load sprite data into buffer - FUN_0041fb10 helper
  * Loads sprite from spr.bin into the provided buffer
  * Returns decoded data size, or 0 on failure

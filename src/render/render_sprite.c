@@ -150,6 +150,15 @@ int render_get_sprite_dimensions(u32 sprite_id, u16* width, u16* height) {
 }
 
 /*
+ * Get sprite origin/hotspot - FUN_0041f980
+ * Returns the rendering offset for a sprite (where the sprite's origin is relative to its top-left)
+ */
+int render_get_sprite_origin(u32 sprite_id, s16* origin_x, s16* origin_y) {
+    extern int sprite_get_origin(u32, s16*, s16*);
+    return sprite_get_origin(sprite_id, origin_x, origin_y);
+}
+
+/*
  * Get sprite data pointer - FUN_0041fad0
  * Returns pointer/index for sprite data
  *

@@ -307,8 +307,8 @@ void FUN_004445e0(int param_1, int param_2, int param_3, int param_4, int param_
     (void)param_6; (void)param_7; (void)param_8;
 }
 int FUN_0041f980(int param_1, short* param_2, short* param_3) {
-    (void)param_1; (void)param_2; (void)param_3;
-    return 1;
+    extern int sprite_get_origin(unsigned int, short*, short*);
+    return sprite_get_origin((unsigned int)param_1, param_2, param_3);
 }
 
 /*
