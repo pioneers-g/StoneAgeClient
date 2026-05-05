@@ -353,26 +353,27 @@ static void render_queue_process_entry(int index, int use_alpha) {
     y = s_queue_y[index];
     blend_mode = s_queue_blend_mode[index];
 
-    /* Check if hidden (flag 0x80000000) */
+    /* Check for special render flags (0x80000000) - FUN_0047dc60 pattern */
     if (sprite_id & 0x80000000) {
-        /* Handle special render flags - FUN_0047dc60 pattern */
         u32 flags = sprite_id & 0x70000000;
         if (flags != 0) {
-            /* Special rendering - FUN_00412eb0 */
+            /* FUN_00412eb0: primitive rect rendering */
             RECT rect;
+            int mode;
             rect.left = x & 0xFFFF;
             rect.top = y & 0xFFFF;
             rect.right = (x >> 16) & 0xFFFF;
             rect.bottom = (y >> 16) & 0xFFFF;
 
+            /* Mode from flags: 0x20000000=0, 0x10000000=1, 0x40000000=2 */
             if (flags & 0x20000000) {
-                /* Fill mode 0 */
-                /* render_fill_rect implementation */
+                mode = 0;
             } else if (flags & 0x10000000) {
-                /* Fill mode 1 */
-            } else if (flags & 0x40000000) {
-                /* Fill mode 2 */
+                mode = 1;
+            } else {
+                mode = 2;
             }
+            render_primitive_rect(&rect, sprite_id, mode);
         }
         return;
     }
@@ -393,7 +394,7 @@ static void render_queue_process_entry(int index, int use_alpha) {
     /* Render based on blend mode - FUN_0047dc60 pattern */
     switch (blend_mode) {
         case 0:
-            /* Normal transparent blit */
+            /* Normal transparent blit - FUN_004142f0 */
             render_blit_transparent(sprite->surface, g_graphics.offscreen_surface,
                 0, 0, sprite->width, sprite->height, x, y, 0);
             break;

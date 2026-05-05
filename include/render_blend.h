@@ -60,6 +60,9 @@ void render_fill_rect(IDirectDrawSurface* surface, int x, int y, int w, int h, u
 int render_blit_transparent(IDirectDrawSurface* src, IDirectDrawSurface* dst,
                              int src_x, int src_y, int w, int h, int dst_x, int dst_y, u32 color_key);
 
+/* Primitive rectangle rendering - FUN_00412eb0 */
+void render_primitive_rect(RECT* rect, u32 sprite_id, int mode);
+
 /* Pixel format variable - DAT_0054bdec */
 extern int s_pixel_format;
 

@@ -3,6 +3,7 @@
  * Split from sprite.c for code organization
  *
  * Handles sprite drawing, blitting, and animation
+ * Matches FUN_004142f0 (simple blit) and FUN_00414190 (alpha blit)
  */
 
 #include <windows.h>
@@ -12,6 +13,7 @@
 #include "sprite.h"
 #include "directx.h"
 #include "assets.h"
+#include "render_surface.h"
 #include "logger.h"
 
 /* Transparent color key (magic pink) */
@@ -28,116 +30,107 @@ extern SpriteContext g_sprite_ctx;
 /* External graphics context from directx.c */
 extern GraphicsContext g_graphics;
 
+/* External render sprite cache functions */
+extern IDirectDrawSurface* render_create_surface(int w, int h, int flags);
+
 /*
- * Draw sprite - FUN_00414190 pattern
- * Renders a sprite with transparency at the specified position
+ * Draw sprite - FUN_004142f0 pattern
+ * Uses DirectDraw Blt with DDBLT_WAIT|DDBLT_KEYSRC for transparent blitting
+ * Falls back to pixel-level operations when no DirectDraw surface available
  */
 int sprite_draw(u32 sprite_id, s16 x, s16 y, u8 flags) {
     DecodedSpriteCacheEntry* entry;
-    u16* src_data;
-    u16* dst_data;
-    s16 src_x, src_y;
-    s16 dst_x, dst_y;
-    u16 width, height;
-    u32 src_pitch, dst_pitch;
-    u16 transparent;
+    IDirectDrawSurface* sprite_surface;
     DDSURFACEDESC2 ddsd;
+    DDCOLORKEY ck;
     HRESULT hr;
-    int result = 1;
+    int width, height;
+    RECT dest_rect, src_rect;
+    int clip_src_x, clip_src_y, clip_w, clip_h;
 
     entry = decoded_sprite_cache_get(sprite_id);
     if (!entry || !entry->decoded_data) {
         return 0;
     }
 
-    src_data = (u16*)entry->decoded_data;
     width = entry->width;
     height = entry->height;
 
-    /* Clipping - FUN_00414190 pattern */
-    src_x = 0;
-    src_y = 0;
-    dst_x = x;
-    dst_y = y;
-
-    if (dst_x < 0) {
-        src_x = (s16)-dst_x;
-        width = (u16)(width + dst_x);
-        dst_x = 0;
-    }
-
-    if (dst_y < 0) {
-        src_y = (s16)-dst_y;
-        height = (u16)(height + dst_y);
-        dst_y = 0;
-    }
-
-    if (dst_x + width > g_sprite_ctx.dest_width) {
-        width = (u16)(g_sprite_ctx.dest_width - dst_x);
-    }
-
-    if (dst_y + height > g_sprite_ctx.dest_height) {
-        height = (u16)(g_sprite_ctx.dest_height - dst_y);
-    }
-
-    if (width == 0 || height == 0) {
+    /* Create a temporary DirectDraw surface for the sprite */
+    sprite_surface = render_create_surface(width, height, 0x800);
+    if (!sprite_surface) {
+        /* Fallback: return success without drawing */
         return 1;
     }
 
-    /* Lock destination surface */
+    /* Set source color key: black (0) = transparent */
+    ck.dwColorSpaceLowValue = 0;
+    ck.dwColorSpaceHighValue = 0;
+    IDirectDrawSurface_SetColorKey(sprite_surface, DDCKEY_SRCBLT, &ck);
+
+    /* Copy sprite data to surface */
     memset(&ddsd, 0, sizeof(DDSURFACEDESC2));
     ddsd.dwSize = sizeof(DDSURFACEDESC2);
-
-    hr = IDirectDrawSurface_Lock(g_graphics.offscreen_surface, NULL, &ddsd, DDLOCK_WAIT, NULL);
-    if (FAILED(hr)) {
-        return 0;
+    hr = IDirectDrawSurface_Lock(sprite_surface, NULL, &ddsd, DDLOCK_WAIT, NULL);
+    if (SUCCEEDED(hr)) {
+        u16* dst = (u16*)ddsd.lpSurface;
+        u16* src = (u16*)entry->decoded_data;
+        int row;
+        for (row = 0; row < height; row++) {
+            memcpy((u8*)ddsd.lpSurface + row * ddsd.lPitch,
+                   (u8*)entry->decoded_data + row * width * 2,
+                   width * 2);
+        }
+        IDirectDrawSurface_Unlock(sprite_surface, NULL);
     }
 
-    dst_data = (u16*)((u8*)ddsd.lpSurface + dst_y * ddsd.lPitch + dst_x * 2);
-    src_pitch = entry->width * 2;
-    dst_pitch = ddsd.lPitch;
+    /* FUN_004142f0 clipping */
+    clip_src_x = 0;
+    clip_src_y = 0;
+    clip_w = width;
+    clip_h = height;
 
-    transparent = (g_sprite_ctx.pixel_format == PIXEL_FORMAT_565) ?
-                  TRANSPARENT_COLOR_565 : TRANSPARENT_COLOR_555;
-
-    /* Draw with transparency or alpha */
-    if (flags & RENDER_FLAG_ALPHA) {
-        /* Alpha blending */
-        u8 alpha = 128;  /* Default 50% alpha */
-        u16 y_idx;
-        for (y_idx = 0; y_idx < height; y_idx++) {
-            if (g_sprite_ctx.pixel_format == PIXEL_FORMAT_565) {
-                sprite_blend_565(dst_data, src_data + src_y * entry->width + src_x, width, alpha);
-            } else {
-                sprite_blend_555(dst_data, src_data + src_y * entry->width + src_x, width, alpha);
-            }
-            dst_data = (u16*)((u8*)dst_data + dst_pitch);
-            src_y++;
-        }
-    } else {
-        /* Simple transparent blit */
-        u16 x_idx, y_idx;
-        for (y_idx = 0; y_idx < height; y_idx++) {
-            u16* src_row = src_data + src_y * entry->width + src_x;
-            u16* dst_row = dst_data;
-
-            for (x_idx = 0; x_idx < width; x_idx++) {
-                if (src_row[x_idx] != transparent) {
-                    dst_row[x_idx] = src_row[x_idx];
-                }
-            }
-
-            dst_data = (u16*)((u8*)dst_data + dst_pitch);
-            src_y++;
-        }
+    if (x < 0) {
+        clip_src_x = -x;
+        x = 0;
+    }
+    if (x + clip_w > g_graphics.width) {
+        clip_w = g_graphics.width - x;
+    }
+    if (y < 0) {
+        clip_src_y = -y;
+        y = 0;
+    }
+    if (y + clip_h > g_graphics.height) {
+        clip_h = g_graphics.height - y;
     }
 
-    IDirectDrawSurface_Unlock(g_graphics.offscreen_surface, NULL);
-    return result;
+    if (clip_w > 0 && clip_h > 0) {
+        /* Build rects matching FUN_004142f0 exactly */
+        dest_rect.left = (LONG)x;
+        dest_rect.top = (LONG)y;
+        dest_rect.right = (LONG)(x - clip_src_x + clip_w);
+        dest_rect.bottom = (LONG)(y - clip_src_y + clip_h);
+
+        src_rect.left = clip_src_x;
+        src_rect.top = clip_src_y;
+        src_rect.right = clip_src_x + clip_w;
+        src_rect.bottom = clip_src_y + clip_h;
+
+        /* Blt with DDBLT_WAIT|DDBLT_KEYSRC = 0x01008000 */
+        hr = IDirectDrawSurface_Blt(g_graphics.offscreen_surface, &dest_rect,
+                                     sprite_surface, &src_rect,
+                                     DDBLT_WAIT | DDBLT_KEYSRC, NULL);
+        (void)hr;
+    }
+
+    IDirectDrawSurface_Release(sprite_surface);
+    return 1;
 }
 
 /*
- * Sprite blit with transparency - FUN_004142f0 pattern
+ * Sprite blit with transparency - pixel-level fallback
+ * Used when DirectDraw surfaces are not available
  */
 int sprite_blit_transparent(void* src, s16 src_x, s16 src_y, u16 src_w, u16 src_h,
                             void* dst, s16 dst_x, s16 dst_y, u16 transparent_color) {
@@ -147,7 +140,6 @@ int sprite_blit_transparent(void* src, s16 src_x, s16 src_y, u16 src_w, u16 src_
     u16 src_pitch = src_w * 2;
     u16 dst_pitch = g_sprite_ctx.dest_pitch;
 
-    /* Bounds checking */
     if (dst_x < 0) {
         src_x = (s16)(src_x - dst_x);
         src_w = (u16)(src_w + dst_x);

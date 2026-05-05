@@ -225,6 +225,14 @@ int render_load_sprite(u32 sprite_id) {
         return 0;
     }
 
+    /* Set source color key: black (0) = transparent - FUN_004142f0 uses DDBLT_KEYSRC */
+    {
+        DDCOLORKEY ck;
+        ck.dwColorSpaceLowValue = 0;
+        ck.dwColorSpaceHighValue = 0;
+        IDirectDrawSurface_SetColorKey(entry->surface, DDCKEY_SRCBLT, &ck);
+    }
+
     entry->width = (u16)width;
     entry->height = (u16)height;
     entry->timestamp = timeGetTime();
@@ -304,6 +312,14 @@ int render_load_extended_sprite(u32 sprite_id) {
     if (!entry->surface) {
         if (sprite_data) free(sprite_data);
         return 0;
+    }
+
+    /* Set source color key: black = transparent */
+    {
+        DDCOLORKEY ck;
+        ck.dwColorSpaceLowValue = 0;
+        ck.dwColorSpaceHighValue = 0;
+        IDirectDrawSurface_SetColorKey(entry->surface, DDCKEY_SRCBLT, &ck);
     }
 
     entry->width = (u16)width;

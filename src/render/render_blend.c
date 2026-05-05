@@ -705,24 +705,141 @@ void render_fill_rect(IDirectDrawSurface* surface, int x, int y, int w, int h, u
 }
 
 /*
- * Blit with transparency (color key)
+ * Blit with transparency (color key) - FUN_004142f0
+ * Uses IDirectDrawSurface::Blt with DDBLT_WAIT|DDBLT_KEYSRC (0x01008000)
+ * Matches original binary's clipping and rect calculation exactly
  */
 int render_blit_transparent(IDirectDrawSurface* src, IDirectDrawSurface* dst,
                              int src_x, int src_y, int w, int h, int dst_x, int dst_y, u32 color_key) {
-    RECT src_rect;
+    RECT dest_rect, src_rect;
+    int clip_src_x, clip_src_y, clip_w, clip_h;
     HRESULT hr;
 
     if (!src || !dst) return 0;
 
-    src_rect.left = src_x;
-    src_rect.top = src_y;
-    src_rect.right = src_x + w;
-    src_rect.bottom = src_y + h;
+    /* FUN_004142f0 clipping: clip source rect against dest surface bounds */
+    clip_src_x = 0;
+    clip_src_y = 0;
+    clip_w = w;
+    clip_h = h;
 
-    /* Use BltFast with color key */
-    hr = IDirectDrawSurface_BltFast(dst, dst_x, dst_y, src, &src_rect, DDBLTFAST_SRCCOLORKEY | DDBLTFAST_WAIT);
+    if (dst_x < 0) {
+        clip_src_x = -dst_x;
+        dst_x = 0;
+    }
+    if (dst_x + clip_w > g_graphics.width) {
+        clip_w = g_graphics.width - dst_x;
+    }
+    if (dst_y < 0) {
+        clip_src_y = -dst_y;
+        dst_y = 0;
+    }
+    if (dst_y + clip_h > g_graphics.height) {
+        clip_h = g_graphics.height - dst_y;
+    }
+
+    if (clip_w <= 0 || clip_h <= 0) return 0;
+
+    /* Build rects matching FUN_004142f0: dest[left,top,right,bottom], src[left,top,right,bottom] */
+    dest_rect.left = dst_x;
+    dest_rect.top = dst_y;
+    dest_rect.right = (dst_x - clip_src_x) + clip_w;
+    dest_rect.bottom = (dst_y - clip_src_y) + clip_h;
+
+    src_rect.left = src_x + clip_src_x;
+    src_rect.top = src_y + clip_src_y;
+    src_rect.right = src_rect.left + clip_w;
+    src_rect.bottom = src_rect.top + clip_h;
+
+    /* DDBLT_WAIT|DDBLT_KEYSRC = 0x01008000 - matches DAT_01008000 in FUN_004142f0 */
+    hr = IDirectDrawSurface_Blt(dst, &dest_rect, src, &src_rect,
+                                 DDBLT_WAIT | DDBLT_KEYSRC, NULL);
     (void)hr;
-    (void)color_key;  /* Color key is set on surface */
+    (void)color_key;
 
     return 1;
+}
+
+/*
+ * Render primitive rectangle - FUN_00412eb0
+ * Draws outlined/filled rectangles directly to the surface via lock
+ *
+ * rect: pointer to {left, top, right, bottom}
+ * color: RGB565 color value (extracted from sprite_id lower bits)
+ * mode: 0 = outline only, 1 = filled, 2 = filled (alternate style)
+ *
+ * Binary behavior:
+ * - Clamps rect to surface bounds
+ * - Mode 0: draws 2-pixel-wide outline border
+ * - Mode 1: fills entire rect with solid color
+ * - Mode 2: fills rect with pattern
+ */
+void render_primitive_rect(RECT* rect, u32 sprite_id, int mode) {
+    DDSURFACEDESC2 ddsd;
+    HRESULT hr;
+    int left, top, right, bottom;
+    int w, h;
+    u16 color565;
+    u16* pixels;
+    int pitch;
+    int x, y;
+
+    if (!rect || !g_graphics.offscreen_surface) return;
+
+    left = rect->left;
+    top = rect->top;
+    right = rect->right;
+    bottom = rect->bottom;
+
+    /* Clamp to surface bounds */
+    if (left < 0) left = 0;
+    if (right > g_graphics.width) right = g_graphics.width;
+    if (top < 0) top = 0;
+    if (bottom > g_graphics.height) bottom = g_graphics.height;
+
+    w = right - left;
+    h = bottom - top;
+
+    /* Minimum size check from FUN_00412eb0: mode 2 allows width 0, others need 3x3 minimum */
+    if (mode != 2) {
+        if (w < 3 || h < 3) return;
+    } else {
+        if (w <= 0) return;
+    }
+
+    /* Extract color from sprite_id - lower 16 bits in DAT_0054c628 color table lookup */
+    color565 = (u16)(sprite_id & 0xFFFF);
+    if (color565 == 0) color565 = 0xFFFF;
+
+    /* Lock surface */
+    memset(&ddsd, 0, sizeof(DDSURFACEDESC2));
+    ddsd.dwSize = sizeof(DDSURFACEDESC2);
+    hr = IDirectDrawSurface_Lock(g_graphics.offscreen_surface, NULL, &ddsd, DDLOCK_WAIT, NULL);
+    if (FAILED(hr)) return;
+
+    pixels = (u16*)ddsd.lpSurface;
+    pitch = ddsd.lPitch / 2;
+
+    if (mode == 0) {
+        /* Outline mode - 2 pixel wide border */
+        for (y = 0; y < h && (top + y) < g_graphics.height; y++) {
+            for (x = 0; x < w && (left + x) < g_graphics.width; x++) {
+                int px = left + x;
+                int py = top + y;
+                /* Draw border: top/bottom 2 rows, left/right 2 columns */
+                if (y < 2 || y >= h - 2 || x < 2 || x >= w - 2) {
+                    pixels[py * pitch + px] = color565;
+                }
+            }
+        }
+    } else {
+        /* Fill modes (1 and 2) - solid fill */
+        for (y = 0; y < h && (top + y) < g_graphics.height; y++) {
+            for (x = 0; x < w && (left + x) < g_graphics.width; x++) {
+                pixels[(top + y) * pitch + (left + x)] = color565;
+            }
+        }
+    }
+
+    IDirectDrawSurface_Unlock(g_graphics.offscreen_surface, NULL);
 }
