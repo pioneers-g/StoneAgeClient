@@ -545,8 +545,10 @@ static int load_sprite_from_info(u32 sprite_id, void** out_data, u32* out_width,
     SpriteEntry* sprite;
     u8* src_data;
     u32 src_size;
-    void* decoded_data;
-    u32 decoded_size;
+    u8* paletted_data;
+    u32 paletted_size;
+    void* rgb565_data;
+    u32 rgb565_size;
     int width, height;
 
     if (sprite_id >= MAX_STANDARD_SPRITE) {
@@ -562,25 +564,37 @@ static int load_sprite_from_info(u32 sprite_id, void** out_data, u32* out_width,
         return 0;
     }
 
-    /* Allocate decode buffer */
-    decoded_size = sprite->width * sprite->height * 2;
-    decoded_data = malloc(decoded_size);
-    if (!decoded_data) {
+    /* Decode sprite as 8-bit paletted (width*height bytes) */
+    paletted_size = sprite->width * sprite->height;
+    paletted_data = (u8*)malloc(paletted_size);
+    if (!paletted_data) {
         return 0;
     }
 
-    /* Get source data */
     src_data = (u8*)g_assets.spr_data + sprite->data_offset;
     src_size = sprite->data_size;
 
-    /* Decode sprite */
-    if (!sprite_decode_from_data(src_data, src_size, decoded_data, decoded_size,
-                                  &width, &height, &decoded_size)) {
-        free(decoded_data);
+    if (!sprite_decode_from_data(src_data, src_size, paletted_data, paletted_size,
+                                  &width, &height, &paletted_size)) {
+        free(paletted_data);
         return 0;
     }
 
-    *out_data = decoded_data;
+    /* Convert 8-bit paletted to 16-bit RGB565 using global palette */
+    if (g_assets.palette_loaded) {
+        rgb565_data = sprite_apply_palette(paletted_data, (u32)(width * height),
+                                            g_assets.palette, &rgb565_size);
+        free(paletted_data);
+        if (!rgb565_data) {
+            return 0;
+        }
+    } else {
+        /* No palette: treat decoded data as raw 16-bit (fallback) */
+        rgb565_data = paletted_data;
+        rgb565_size = paletted_size;
+    }
+
+    *out_data = rgb565_data;
     *out_width = (u32)width;
     *out_height = (u32)height;
     return 1;
@@ -595,8 +609,10 @@ static int load_extended_sprite(u32 sprite_id, void** out_data, u32* out_width, 
     u8* sprite_data;
     DWORD bytes_read;
     BOOL success;
-    void* decoded_data;
-    u32 decoded_size;
+    u8* paletted_data;
+    u32 paletted_size;
+    void* rgb565_data;
+    u32 rgb565_size;
     int width, height;
 
     ext_index = sprite_id - 500000;
@@ -639,6 +655,14 @@ static int load_extended_sprite(u32 sprite_id, void** out_data, u32* out_width, 
 
     SetFilePointer(s_extended_sprite_file, info->file_offset, NULL, FILE_BEGIN);
 
+    /* Read palette data first - FUN_0041fc90 reads palette_size+4 bytes */
+    {
+        u8 ext_palette[1024];
+        u32 pal_size = info->palette_size + 4;
+        if (pal_size > sizeof(ext_palette)) pal_size = sizeof(ext_palette);
+        ReadFile(s_extended_sprite_file, ext_palette, pal_size, &bytes_read, NULL);
+    }
+
     /* Read sprite data */
     sprite_data = (u8*)malloc(info->data_size);
     if (!sprite_data) {
@@ -651,25 +675,37 @@ static int load_extended_sprite(u32 sprite_id, void** out_data, u32* out_width, 
         return 0;
     }
 
-    /* Allocate decode buffer */
-    decoded_size = 64 * 64 * 2;
-    decoded_data = malloc(decoded_size);
-    if (!decoded_data) {
+    /* Decode sprite as 8-bit paletted */
+    paletted_size = 64 * 64;
+    paletted_data = (u8*)malloc(paletted_size);
+    if (!paletted_data) {
         free(sprite_data);
         return 0;
     }
 
-    /* Decode sprite */
-    if (!sprite_decode_from_data(sprite_data, info->data_size, decoded_data, decoded_size,
-                                  &width, &height, &decoded_size)) {
+    if (!sprite_decode_from_data(sprite_data, info->data_size, paletted_data, paletted_size,
+                                  &width, &height, &paletted_size)) {
         free(sprite_data);
-        free(decoded_data);
+        free(paletted_data);
         return 0;
     }
 
     free(sprite_data);
 
-    *out_data = decoded_data;
+    /* Convert to 16-bit RGB565 using global palette */
+    if (g_assets.palette_loaded) {
+        rgb565_data = sprite_apply_palette(paletted_data, (u32)(width * height),
+                                            g_assets.palette, &rgb565_size);
+        free(paletted_data);
+        if (!rgb565_data) {
+            return 0;
+        }
+    } else {
+        rgb565_data = paletted_data;
+        rgb565_size = paletted_size;
+    }
+
+    *out_data = rgb565_data;
     *out_width = (u32)width;
     *out_height = (u32)height;
 

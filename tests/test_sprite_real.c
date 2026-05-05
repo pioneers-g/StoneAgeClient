@@ -235,9 +235,10 @@ static void test_rle_control_byte(void) {
 static void test_sprite_decode_raw(void) {
     TEST_BEGIN("Sprite decode raw");
 
+    /* Raw sprite: 2x2 = 4 pixels, 8-bit paletted (4 bytes decoded) */
     u8 src[] = {'R', 'D', 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
                 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00};
+                0x0A, 0x0B, 0x0C, 0x0D};
     u8 dst[16];
     int width, height;
     u32 data_size;
@@ -248,7 +249,8 @@ static void test_sprite_decode_raw(void) {
     TEST_ASSERT(result == 1);
     TEST_ASSERT(width == 2);
     TEST_ASSERT(height == 2);
-    TEST_ASSERT(data_size == 8);  /* 2x2 pixels * 2 bytes */
+    TEST_ASSERT(data_size == 4);  /* 2x2 pixels * 1 byte (8-bit paletted) */
+    TEST_ASSERT(dst[0] == 0x0A && dst[3] == 0x0D);
 
     TEST_END();
 }

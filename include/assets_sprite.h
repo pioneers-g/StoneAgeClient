@@ -18,6 +18,17 @@ int sprite_decode_alpha(void* src, u32 src_size, void* dst, u32 dst_size, int wi
 int sprite_decode_from_data(void* src_data, u32 src_size, void* dst_buffer,
                             u32 dst_size, int* out_width, int* out_height, u32* out_data_size);
 
+/**
+ * Convert 8-bit paletted sprite data to 16-bit RGB565.
+ * @param palette_8bit Decoded 8-bit sprite data (1 byte per pixel)
+ * @param pixel_count Number of pixels (width * height)
+ * @param palette_bgra Palette in BGRA format (256 * 4 bytes)
+ * @param out_size Output: size of returned buffer in bytes
+ * @return Newly allocated RGB565 buffer, or NULL on failure
+ */
+void* sprite_apply_palette(const u8* palette_8bit, u32 pixel_count,
+                            const u8* palette_bgra, u32* out_size);
+
 /* ========================================
  * Sprite Cache Functions
  * ======================================== */

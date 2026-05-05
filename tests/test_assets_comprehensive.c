@@ -208,7 +208,7 @@ static int game_data_available(void) {
 
 /*
  * Decode sprite from spr.bin format
- * Matches FUN_0048a550 exactly
+ * Matches FUN_0048a550 exactly - 8-bit paletted output
  */
 int sprite_decode_from_data(void* src_data, u32 src_size, void* dst_buffer,
                             u32 dst_size, int* out_width, int* out_height, u32* out_data_size) {
@@ -224,9 +224,7 @@ int sprite_decode_from_data(void* src_data, u32 src_size, void* dst_buffer,
         return 0;
     }
 
-    /* Check magic - "RD" from FUN_0048a550 */
     if (src[0] != 'R' || src[1] != 'D') {
-        /* Non-RD format, try raw decode */
         if (src_size > dst_size) src_size = dst_size;
         memcpy(dst, src, src_size);
         if (out_width) *out_width = 0;
@@ -235,7 +233,6 @@ int sprite_decode_from_data(void* src_data, u32 src_size, void* dst_buffer,
         return 1;
     }
 
-    /* Read header - FUN_0048a550 pattern */
     compression = src[2];
     width = *(u32*)(src + 4);
     height = *(u32*)(src + 8);
@@ -245,15 +242,15 @@ int sprite_decode_from_data(void* src_data, u32 src_size, void* dst_buffer,
 
     total_pixels = width * height;
 
-    if (total_pixels * 2 > dst_size) {
+    /* 8-bit paletted: 1 byte per pixel */
+    if (total_pixels > dst_size) {
         return 0;
     }
 
     src_pos = 16;
 
     if (compression == 0) {
-        /* Raw data - direct copy */
-        u32 copy_size = total_pixels * 2;
+        u32 copy_size = total_pixels;
         if (src_pos + copy_size > src_size) {
             copy_size = src_size - src_pos;
         }
@@ -262,7 +259,6 @@ int sprite_decode_from_data(void* src_data, u32 src_size, void* dst_buffer,
         return 1;
     }
 
-    /* RLE decompression - exact FUN_0048a550 pattern */
     while (src_pos < src_size && dst_pos < total_pixels) {
         u8 ctrl = src[src_pos++];
         u32 count;
@@ -270,7 +266,6 @@ int sprite_decode_from_data(void* src_data, u32 src_size, void* dst_buffer,
         u32 i;
 
         if (ctrl & 0x80) {
-            /* RLE run */
             if ((ctrl & 0x40) == 0) {
                 if (src_pos >= src_size) break;
                 pixel_byte = src[src_pos++];
@@ -292,12 +287,9 @@ int sprite_decode_from_data(void* src_data, u32 src_size, void* dst_buffer,
             }
 
             for (i = 0; i < count && dst_pos < total_pixels; i++) {
-                dst[dst_pos * 2] = pixel_byte;
-                dst[dst_pos * 2 + 1] = pixel_byte;
-                dst_pos++;
+                dst[dst_pos++] = pixel_byte;
             }
         } else {
-            /* Literal run */
             if (ctrl & 0x10) {
                 if (src_pos >= src_size) break;
                 count = ((ctrl & 0x0F) << 8) | src[src_pos++];
@@ -305,19 +297,15 @@ int sprite_decode_from_data(void* src_data, u32 src_size, void* dst_buffer,
                 count = ctrl & 0x0F;
             }
 
-            if (count > 0xFFFFE) {
-                break;
-            }
+            if (count > 0xFFFFE) break;
 
-            for (i = 0; i < count && src_pos + 1 < src_size && dst_pos < total_pixels; i++) {
-                dst[dst_pos * 2] = src[src_pos++];
-                dst[dst_pos * 2 + 1] = src[src_pos++];
-                dst_pos++;
+            for (i = 0; i < count && src_pos < src_size && dst_pos < total_pixels; i++) {
+                dst[dst_pos++] = src[src_pos++];
             }
         }
     }
 
-    if (out_data_size) *out_data_size = dst_pos * 2;
+    if (out_data_size) *out_data_size = dst_pos;
     return 1;
 }
 
@@ -450,15 +438,14 @@ static int test_rle_decode_too_small(void) {
 }
 
 static int test_rle_decode_raw_sprite(void) {
-    /* Create a simple raw (uncompressed) sprite */
-    u8 src[32] = {
+    /* Raw sprite: 2x2 = 4 pixels, 8-bit paletted (4 bytes decoded) */
+    u8 src[20] = {
         'R', 'D',           /* Magic */
         0, 0,               /* Compression = 0 (raw) */
         2, 0, 0, 0,         /* Width = 2 */
         2, 0, 0, 0,         /* Height = 2 */
         0, 0, 0, 0,         /* Compressed size (unused for raw) */
-        0xFF, 0xFF, 0x00, 0x00,  /* Pixel data: 4 pixels (2 bytes each) */
-        0xFF, 0xFF, 0x00, 0x00
+        0x0A, 0x0B, 0x0C, 0x0D  /* 4 palette indices */
     };
 
     u8 dst[100];
@@ -467,63 +454,60 @@ static int test_rle_decode_raw_sprite(void) {
 
     int result = sprite_decode_from_data(src, sizeof(src), dst, sizeof(dst), &w, &h, &size);
 
-    return result == 1 && w == 2 && h == 2 && size == 8;
+    return result == 1 && w == 2 && h == 2 && size == 4 &&
+           dst[0] == 0x0A && dst[3] == 0x0D;
 }
 
 static int test_rle_decode_compressed_sprite(void) {
-    /* Create a simple RLE compressed sprite */
-    /* 4x4 pixels, all white (0xFFFF) using RLE */
-    u8 src[32] = {
+    /* RLE sprite: 4x4 = 16 pixels, fill all with palette index 0xFF
+     * Stream order: [ctrl] [pixel_byte] [count_ext] */
+    u8 src[19] = {
         'R', 'D',           /* Magic */
         1, 0,               /* Compression = 1 (RLE) */
         4, 0, 0, 0,         /* Width = 4 */
         4, 0, 0, 0,         /* Height = 4 */
         4, 0, 0, 0,         /* Compressed size */
-        0x80 | 0x10,        /* RLE run, 12-bit count follows */
-        16 - 1,             /* Count = 16 pixels - 1 = 15 (total 16) */
-        0xFF                /* Pixel byte (fill both bytes) */
+        0x80 | 0x10,        /* RLE run, 12-bit count */
+        0xFF,               /* Pixel byte (palette index to fill) */
+        0x10                /* Count extension = 16 */
     };
 
     u8 dst[100];
     int w, h;
     u32 size;
 
-    int result = sprite_decode_from_data(src, 19, dst, sizeof(dst), &w, &h, &size);
+    int result = sprite_decode_from_data(src, sizeof(src), dst, sizeof(dst), &w, &h, &size);
 
-    return result == 1 && w == 4 && h == 4 && size == 32;
+    return result == 1 && w == 4 && h == 4 && size == 16 &&
+           dst[0] == 0xFF && dst[15] == 0xFF;
 }
 
 static int test_rle_decode_literal_run(void) {
-    /* Create sprite with literal (non-RLE) pixels */
-    /* Literal run: ctrl byte with bit 7 = 0 */
-    u8 src[32] = {
+    /* Literal run: copies 1 byte per pixel (8-bit paletted) */
+    u8 src[24] = {
         'R', 'D',           /* Magic */
         1, 0,               /* Compression = 1 */
         2, 0, 0, 0,         /* Width = 2 */
         2, 0, 0, 0,         /* Height = 2 */
         0, 0, 0, 0,         /* Compressed size (unused in decoder) */
-        /* RLE data starts at byte 16 */
+        /* RLE data at byte 16 */
         0x04,               /* Literal run, count = 4 (low nibble) */
-        0xAA, 0xBB,         /* Pixel 1 */
-        0xCC, 0xDD,         /* Pixel 2 */
-        0x11, 0x22,         /* Pixel 3 */
-        0x33, 0x44          /* Pixel 4 */
+        0xAA, 0xBB, 0xCC, 0xDD  /* 4 palette indices */
     };
 
     u8 dst[100];
     int w, h;
     u32 size;
 
-    /* Need enough data: header(16) + ctrl(1) + 4*2 pixels(8) = 25 bytes minimum */
-    int result = sprite_decode_from_data(src, 25, dst, sizeof(dst), &w, &h, &size);
+    int result = sprite_decode_from_data(src, 21, dst, sizeof(dst), &w, &h, &size);
 
-    /* Should decode 4 pixels = 8 bytes */
-    return result == 1 && w == 2 && h == 2 && size == 8;
+    return result == 1 && w == 2 && h == 2 && size == 4 &&
+           dst[0] == 0xAA && dst[1] == 0xBB && dst[2] == 0xCC && dst[3] == 0xDD;
 }
 
 static int test_rle_decode_rle_run_zero_fill(void) {
-    /* RLE run with zero fill (bit 6 set) */
-    u8 src[32] = {
+    /* RLE run with zero fill (bit 6 set): fills palette index 0 */
+    u8 src[17] = {
         'R', 'D',           /* Magic */
         1, 0,               /* Compression = 1 */
         2, 0, 0, 0,         /* Width = 2 */
@@ -536,23 +520,22 @@ static int test_rle_decode_rle_run_zero_fill(void) {
     int w, h;
     u32 size;
 
-    int result = sprite_decode_from_data(src, 17, dst, sizeof(dst), &w, &h, &size);
+    int result = sprite_decode_from_data(src, sizeof(src), dst, sizeof(dst), &w, &h, &size);
 
-    return result == 1 && w == 2 && h == 2 && size == 8 &&
-           dst[0] == 0 && dst[1] == 0 && dst[6] == 0 && dst[7] == 0;
+    return result == 1 && w == 2 && h == 2 && size == 4 &&
+           dst[0] == 0 && dst[1] == 0 && dst[2] == 0 && dst[3] == 0;
 }
 
 static int test_rle_decode_mixed_runs(void) {
     /* Mixed literal and RLE runs */
-    u8 src[64] = {
+    u8 src[24] = {
         'R', 'D',           /* Magic */
         1, 0,               /* Compression = 1 */
         4, 0, 0, 0,         /* Width = 4 */
         1, 0, 0, 0,         /* Height = 1 */
         16, 0, 0, 0,        /* Compressed size */
         0x02,               /* Literal run, count = 2 */
-        0xAA, 0xBB,         /* Pixels */
-        0xCC, 0xDD,
+        0xAA, 0xBB,         /* 2 palette indices */
         0x80 | 0x02,        /* RLE run, count = 2 */
         0xFF                /* Fill byte */
     };
@@ -561,9 +544,10 @@ static int test_rle_decode_mixed_runs(void) {
     int w, h;
     u32 size;
 
-    int result = sprite_decode_from_data(src, 27, dst, sizeof(dst), &w, &h, &size);
+    int result = sprite_decode_from_data(src, 23, dst, sizeof(dst), &w, &h, &size);
 
-    return result == 1 && w == 4 && h == 1 && size == 8;
+    return result == 1 && w == 4 && h == 1 && size == 4 &&
+           dst[0] == 0xAA && dst[1] == 0xBB && dst[2] == 0xFF && dst[3] == 0xFF;
 }
 
 static int test_rle_decode_non_rd_format(void) {
