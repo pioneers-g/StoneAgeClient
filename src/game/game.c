@@ -370,18 +370,23 @@ void game_process_state(void) {
 
         case GAME_STATE_LOGIN_INIT:
             /* State 100: Login screen initialization */
-            /* FUN_004779d0 - Render init */
-            /* FUN_00418330 - Clear screen */
-            /* FUN_0040f7d0 - UI init */
-            /* FUN_00424b50 - Character init */
-            /* FUN_0044aed0 - Some update */
-            /* FUN_00411990 - Network init */
             ui_update();
             g_game.state = GAME_STATE_LOGIN;
             break;
 
         case GAME_STATE_LOGIN:
-            /* State 0x65: Login screen - wait for server */
+            /* State 0x65: Login screen - handle input and update */
+            {
+                int login_result = login_screen_handle_input();
+                if (login_result == 1 && g_login.username[0] && g_login.password[0]) {
+                    /* Login pressed - attempt authentication */
+                    login_auth(g_login.username, g_login.password);
+                    g_game.state = GAME_STATE_LOGIN_WAIT;
+                } else if (login_result == 2) {
+                    /* Exit pressed */
+                    g_game.is_running = 0;
+                }
+            }
             ui_update();
             if (login_get_state() >= LOGIN_STATE_SERVER_LIST) {
                 g_game.render_mode = RENDER_MODE_NORMAL;

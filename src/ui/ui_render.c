@@ -4,11 +4,14 @@
  */
 
 #include <windows.h>
+#include <stdio.h>
 #include <string.h>
 #include "types.h"
 #include "ui.h"
 #include "ui_render.h"
 #include "render.h"
+#include "login.h"
+#include "input.h"
 
 /* ========================================
  * Element Rendering
@@ -330,18 +333,25 @@ void ui_render_sprite_dialog(u32 sprite_id, int x, int y, int w, int h) {
  * ======================================== */
 
 void ui_render_login_screen(void) {
+    extern LoginContext g_login;
     int center_x = 320;
     int center_y = 240;
     int dialog_width = 300;
     int dialog_height = 280;
     int dialog_x = center_x - dialog_width / 2;
     int dialog_y = center_y - dialog_height / 2;
+    int mouse_x = 0, mouse_y = 0;
+    DWORD tick;
+    int cursor_visible;
 
-    /* Background */
-    render_fill_rect(NULL, 0, 0, 640, 480, 0x0842);
+    /* Background sprite 0x66bd at center - FUN_00420b70 pattern */
+    render_queue_add_sprite(0x140, 0xf0, 0, 0x66bd, 0);
+
+    /* Solid background behind sprites (fallback when no sprite data) */
+    render_fill_rect(NULL, 0, 0, 640, 480, 0x0000);
 
     /* Title logo area */
-    render_text_centered(center_x, 80, "Stone Age", COLOR_YELLOW);
+    render_text_centered(center_x, 60, "Stone Age", COLOR_YELLOW);
 
     /* Login dialog box */
     render_fill_rect(NULL, dialog_x, dialog_y, dialog_width, dialog_height, 0x0421);
@@ -349,31 +359,87 @@ void ui_render_login_screen(void) {
     render_draw_rect(NULL, dialog_x + 1, dialog_y + 1, dialog_width - 2, dialog_height - 2, 0x8410);
 
     /* Title bar */
-    render_fill_rect(NULL, dialog_x + 2, dialog_y + 2, dialog_width - 4, 24, 0x1084);
-    render_text(dialog_x + 10, dialog_y + 6, "Login", COLOR_WHITE);
+    render_fill_rect(NULL, dialog_x + 2, dialog_y + 2, dialog_width - 4, 22, 0x1084);
+    render_text(dialog_x + 10, dialog_y + 5, "Login", COLOR_WHITE);
+
+    /* Server name and player count - FUN_00420590 state 3+ */
+    if (g_login.server_name[0]) {
+        char server_info[64];
+        _snprintf(server_info, sizeof(server_info), "%s (%d)",
+                  g_login.server_name, g_login.server_player_count);
+        render_text(dialog_x + dialog_width - 100, dialog_y + 5, server_info, COLOR_CYAN);
+    }
 
     /* Username field */
-    render_text(dialog_x + 20, dialog_y + 50, "Username:", COLOR_WHITE);
-    render_fill_rect(NULL, dialog_x + 20, dialog_y + 70, dialog_width - 40, 24, 0x0000);
-    render_draw_rect(NULL, dialog_x + 20, dialog_y + 70, dialog_width - 40, 24, COLOR_WHITE);
+    render_text(dialog_x + 20, dialog_y + 40, "Username:", COLOR_WHITE);
+    render_fill_rect(NULL, dialog_x + 20, dialog_y + 58, dialog_width - 40, 22, 0x0000);
+    render_draw_rect(NULL, dialog_x + 20, dialog_y + 58, dialog_width - 40, 22,
+                     g_login.input_focus == 0 ? COLOR_YELLOW : COLOR_WHITE);
+    if (g_login.username[0]) {
+        render_text(dialog_x + 25, dialog_y + 61, g_login.username, COLOR_WHITE);
+    }
 
-    /* Password field */
-    render_text(dialog_x + 20, dialog_y + 110, "Password:", COLOR_WHITE);
-    render_fill_rect(NULL, dialog_x + 20, dialog_y + 130, dialog_width - 40, 24, 0x0000);
-    render_draw_rect(NULL, dialog_x + 20, dialog_y + 130, dialog_width - 40, 24, COLOR_WHITE);
+    /* Password field - shows asterisks */
+    render_text(dialog_x + 20, dialog_y + 90, "Password:", COLOR_WHITE);
+    render_fill_rect(NULL, dialog_x + 20, dialog_y + 108, dialog_width - 40, 22, 0x0000);
+    render_draw_rect(NULL, dialog_x + 20, dialog_y + 108, dialog_width - 40, 22,
+                     g_login.input_focus == 1 ? COLOR_YELLOW : COLOR_WHITE);
+    if (g_login.password[0]) {
+        char masked[32];
+        int i;
+        int len = (int)strlen(g_login.password);
+        for (i = 0; i < len && i < 31; i++) masked[i] = '*';
+        masked[i] = '\0';
+        render_text(dialog_x + 25, dialog_y + 111, masked, COLOR_WHITE);
+    }
 
-    /* Login button */
-    render_fill_rect(NULL, dialog_x + 50, dialog_y + 180, 80, 28, 0x1084);
-    render_draw_rect(NULL, dialog_x + 50, dialog_y + 180, 80, 28, COLOR_WHITE);
-    render_text_centered(dialog_x + 90, dialog_y + 188, "Login", COLOR_WHITE);
+    /* Blinking cursor on active field */
+    tick = GetTickCount();
+    cursor_visible = (tick / 500) % 2 == 0;
+    if (cursor_visible) {
+        int cursor_x_pos;
+        int cursor_y_pos;
+        if (g_login.input_focus == 0) {
+            cursor_x_pos = dialog_x + 25 + (int)strlen(g_login.username) * 8;
+            cursor_y_pos = dialog_y + 58;
+        } else {
+            cursor_x_pos = dialog_x + 25 + (int)strlen(g_login.password) * 8;
+            cursor_y_pos = dialog_y + 108;
+        }
+        render_fill_rect(NULL, cursor_x_pos, cursor_y_pos + 2, 2, 18, COLOR_WHITE);
+    }
 
-    /* Cancel button */
-    render_fill_rect(NULL, dialog_x + 170, dialog_y + 180, 80, 28, 0x0842);
-    render_draw_rect(NULL, dialog_x + 170, dialog_y + 180, 80, 28, COLOR_WHITE);
-    render_text_centered(dialog_x + 210, dialog_y + 188, "Cancel", COLOR_WHITE);
+    /* Login button - sprite 0x66be, hit area (320,225)-(410,350) from FUN_00420b70 */
+    input_get_mouse_pos(&mouse_x, &mouse_y);
+    if (mouse_x >= 320 && mouse_x <= 410 && mouse_y >= 225 && mouse_y <= 350) {
+        render_queue_add_sprite(0x140, 0xf0, 0, 0x66be, 1);
+    }
+    render_fill_rect(NULL, dialog_x + 40, dialog_y + 150, 100, 26, 0x1084);
+    render_draw_rect(NULL, dialog_x + 40, dialog_y + 150, 100, 26, COLOR_WHITE);
+    render_text_centered(dialog_x + 90, dialog_y + 156, "Login", COLOR_WHITE);
 
-    /* Server status */
-    render_text_centered(center_x, dialog_y + 240, "Server: Online", COLOR_GREEN);
+    /* Exit button - sprite 0x66bf, hit area (412,232)-(494,372) from FUN_00420b70 */
+    if (mouse_x >= 412 && mouse_x <= 494 && mouse_y >= 232 && mouse_y <= 372) {
+        render_queue_add_sprite(0x140, 0xf0, 0, 0x66bf, 1);
+    }
+    render_fill_rect(NULL, dialog_x + 160, dialog_y + 150, 100, 26, 0x0842);
+    render_draw_rect(NULL, dialog_x + 160, dialog_y + 150, 100, 26, COLOR_WHITE);
+    render_text_centered(dialog_x + 210, dialog_y + 156, "Exit", COLOR_WHITE);
+
+    /* Status text */
+    if (g_login.screen_state == LOGIN_SCREEN_ERROR && g_login.error_message[0]) {
+        render_text_centered(center_x, dialog_y + 200, g_login.error_message, COLOR_RED);
+    } else if (g_login.screen_state == LOGIN_SCREEN_CONNECTING ||
+               g_login.screen_state == LOGIN_SCREEN_WAITING) {
+        render_text_centered(center_x, dialog_y + 200, "Connecting...", COLOR_CYAN);
+    } else {
+        render_text_centered(center_x, dialog_y + 200, "Tab: switch field  |  Enter: login",
+                             COLOR_GRAY);
+    }
+
+    /* Input hint */
+    render_text_centered(center_x, dialog_y + 230, "Press Tab to switch fields",
+                         0x8410);
 }
 
 void ui_render_character_select_screen(void) {
