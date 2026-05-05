@@ -27,6 +27,18 @@
 static SpriteSurfaceEntry s_sprite_cache[SPRITE_SURFACE_CACHE_SIZE];
 static int s_sprite_cache_initialized = 0;
 
+/* Sprite table - matching DAT_0466b7e0 (12 bytes per entry, stride 3 dwords)
+ * Stores head pointers to linked lists of SpriteNode per sprite_id
+ */
+static SpriteTableEntry s_sprite_table[SPRITE_SURFACE_CACHE_SIZE];
+
+/* Node pool - matching DAT_0464f7c0 (28 bytes per node)
+ * Fixed-size pool with LRU eviction for sprite surface nodes
+ */
+#define SPRITE_NODE_POOL_SIZE 4096
+static SpriteNode s_node_pool[SPRITE_NODE_POOL_SIZE];
+static int s_node_pool_initialized = 0;
+
 /* Extended sprite file handle - DAT_00a04c60 pattern */
 static HANDLE s_extended_sprite_file = INVALID_HANDLE_VALUE;
 
@@ -42,8 +54,28 @@ void render_sprite_cache_init(void) {
     }
 
     memset(s_sprite_cache, 0, sizeof(s_sprite_cache));
+    memset(s_sprite_table, 0, sizeof(s_sprite_table));
+    memset(s_node_pool, 0, sizeof(s_node_pool));
     s_sprite_cache_initialized = 1;
-    LOG_INFO("Sprite cache initialized (%d entries)", SPRITE_SURFACE_CACHE_SIZE);
+    s_node_pool_initialized = 1;
+    LOG_INFO("Sprite cache initialized (%d entries, %d nodes)", SPRITE_SURFACE_CACHE_SIZE, SPRITE_NODE_POOL_SIZE);
+}
+
+/*
+ * Get sprite node head from table - DAT_0466b7e0 lookup
+ * Returns head of linked list for given sprite_id
+ */
+SpriteNode* render_get_sprite_node(u32 sprite_id) {
+    if (sprite_id >= SPRITE_SURFACE_CACHE_SIZE) return NULL;
+    return s_sprite_table[sprite_id].head;
+}
+
+/*
+ * Get alpha node head from table - DAT_0466b7e4 lookup
+ */
+SpriteNode* render_get_alpha_node(u32 sprite_id) {
+    if (sprite_id >= SPRITE_SURFACE_CACHE_SIZE) return NULL;
+    return s_sprite_table[sprite_id].alpha_head;
 }
 
 /*
@@ -236,6 +268,30 @@ int render_load_sprite(u32 sprite_id) {
     entry->width = (u16)width;
     entry->height = (u16)height;
     entry->timestamp = timeGetTime();
+
+    /* Update sprite table (DAT_0466b7e0) - single-node for complete sprite */
+    s_sprite_table[sprite_id].width = (u16)width;
+    s_sprite_table[sprite_id].height = (u16)height;
+
+    /* Allocate a node from pool for this sprite */
+    if (!s_sprite_table[sprite_id].head) {
+        int ni;
+        for (ni = 0; ni < SPRITE_NODE_POOL_SIZE; ni++) {
+            if (s_node_pool[ni].surface == NULL) {
+                SpriteNode* node = &s_node_pool[ni];
+                node->surface = entry->surface;
+                node->alpha_data = entry->alpha_surface;
+                node->frame_type = 1;
+                node->sprite_id = sprite_id;
+                node->timestamp = timeGetTime();
+                node->x_offset = 0;
+                node->y_offset = 0;
+                node->next = NULL;
+                s_sprite_table[sprite_id].head = node;
+                break;
+            }
+        }
+    }
 
     /* Copy sprite data to surface if available */
     if (sprite_data) {
