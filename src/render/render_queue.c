@@ -402,36 +402,45 @@ static void render_queue_process_entry(int index, int use_alpha) {
     }
 
     while (node) {
-        int node_x = x + node->x_offset;
-        int node_y = y + node->y_offset;
+        int node_x = x + (int)node->x_offset;
+        int node_y = y + (int)node->y_offset;
 
         if (node->surface) {
-            /* Render based on blend mode */
+            /* Get node surface dimensions */
+            DDSURFACEDESC2 ddsd;
+            int nw = 64, nh = 48;  /* Default tile chunk size */
+            memset(&ddsd, 0, sizeof(ddsd));
+            ddsd.dwSize = sizeof(ddsd);
+            if (SUCCEEDED(IDirectDrawSurface_GetSurfaceDesc(node->surface, &ddsd))) {
+                nw = ddsd.dwWidth;
+                nh = ddsd.dwHeight;
+            }
+
             switch (blend_mode) {
                 case 0:
                     render_blit_transparent(node->surface, g_graphics.offscreen_surface,
-                        0, 0, 0, 0, node_x, node_y, 0);
+                        0, 0, nw, nh, node_x, node_y, 0);
                     break;
                 case 1:
                     if (use_alpha) {
                         render_blit_alpha_blend(node->surface, g_graphics.offscreen_surface,
-                            node_x, node_y, 0, 0, 16);
+                            node_x, node_y, nw, nh, 16);
                     } else {
                         render_blit_transparent(node->surface, g_graphics.offscreen_surface,
-                            0, 0, 0, 0, node_x, node_y, 0);
+                            0, 0, nw, nh, node_x, node_y, 0);
                     }
                     break;
                 case 2:
                     render_blit_additive(node->surface, g_graphics.offscreen_surface,
-                        node_x, node_y, 0, 0);
+                        node_x, node_y, nw, nh);
                     break;
                 case 3:
                     render_blit_subtractive(node->surface, g_graphics.offscreen_surface,
-                        node_x, node_y, 0, 0);
+                        node_x, node_y, nw, nh);
                     break;
                 default:
                     render_blit_transparent(node->surface, g_graphics.offscreen_surface,
-                        0, 0, 0, 0, node_x, node_y, 0);
+                        0, 0, nw, nh, node_x, node_y, 0);
                     break;
             }
             node->timestamp = timeGetTime();
