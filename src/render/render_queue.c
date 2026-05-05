@@ -23,6 +23,7 @@
 #include "render.h"
 #include "render_surface.h"
 #include "render_blend.h"
+#include "render_text.h"
 #include "directx.h"
 #include "logger.h"
 
@@ -491,17 +492,48 @@ void render_queue_process_full(void) {
         }
     }
 
-    /* Process render queue entries - FUN_0047dc60 pattern */
-    for (i = 0; i < s_queue_count; i++) {
-        u8 layer = s_queue_layer[i];
+    /* Process render queue entries - FUN_0047dc60 pattern
+     * At specific layer thresholds, text queue is flushed (FUN_00414820):
+     *   layer > 0x67: flush text groups 0 and 3, set state 1
+     *   layer > 0x6c: flush text group 1, set state 2
+     *   layer > 0x6e: flush text group 2, set state 2
+     * After all entries: flush remaining text groups
+     */
+    {
+        int text_state = 0;  /* Tracks which text passes have been rendered */
+        for (i = 0; i < s_queue_count; i++) {
+            u8 layer = s_queue_layer[i];
 
-        /* Handle layer changes - palette group switching */
-        if (layer != last_layer) {
-            /* FUN_00414820 - set palette group */
+            /* Text rendering at layer thresholds - exact FUN_0047dc60 pattern */
+            if (text_state == 0 && layer > 0x67) {
+                text_queue_process(0);
+                text_queue_process(3);
+                text_state = 1;
+            }
+            if (text_state == 1 && layer > 0x6c) {
+                text_queue_process(1);
+                text_state = 2;
+            }
+            if (text_state == 2 && layer > 0x6e) {
+                text_queue_process(2);
+            }
+
             last_layer = layer;
+            render_queue_process_entry(i, 1);
         }
 
-        render_queue_process_entry(i, 1);
+        /* Final text flush matching FUN_0047dc60 post-loop */
+        if (text_state == 0) {
+            text_queue_process(0);
+            text_queue_process(3);
+            text_queue_process(1);
+        } else if (text_state == 1) {
+            text_queue_process(1);
+        }
+        /* text_state == 2: groups 0,3,1 already done, group 2 done if threshold hit */
+
+        /* Clear all text entries after final flush */
+        text_queue_process(-1);
     }
 
     /* Clear render entries */

@@ -653,23 +653,13 @@ void FUN_0047a6e0(void) {
  * - Returns 1 on success, 0 on failure
  */
 int FUN_0041f900(unsigned int param_1, unsigned short* param_2, unsigned short* param_3) {
-    if (param_1 < 500000) {
-        extern u16 DAT_00e8f234[];
-        extern u16 DAT_00e8f238[];
-        *param_2 = DAT_00e8f234[param_1 * 0x28];
-        *param_3 = DAT_00e8f238[param_1 * 0x28];
+    extern int render_get_sprite_dimensions(unsigned int, unsigned short*, unsigned short*);
+    if (render_get_sprite_dimensions(param_1, param_2, param_3)) {
         return 1;
     }
-    if (param_1 > 550000) {
-        *param_2 = 0;
-        *param_3 = 0;
-        return 0;
-    }
-    extern u16 DAT_0081c7f4[];
-    int idx = (param_1 - 500000) * 20;
-    *param_2 = DAT_0081c7f4[idx];
-    *param_3 = DAT_0081c7f4[idx + 1];
-    return 1;
+    *param_2 = 0;
+    *param_3 = 0;
+    return 0;
 }
 
 /*

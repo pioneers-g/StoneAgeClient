@@ -53,8 +53,15 @@ int text_queue_add_simple(int x, int y, u8 color_type, u8 flags, const char* tex
 void text_queue_clear(void);
 int text_queue_get_count(void);
 
-/* Rendering - FUN_00414820 */
-void text_queue_process(void);
+/* Rendering - FUN_00414820(group)
+ * group parameter filters which text entries to render by their color_type field:
+ *   0 = general text (rendered at layer > 0x67)
+ *   1 = second text layer (rendered at layer > 0x6c)
+ *   2 = third text layer (rendered at layer > 0x6e)
+ *   3 = special text / dialog / IME (rendered at layer > 0x67)
+ * Pass -1 to render all groups (for final flush).
+ */
+void text_queue_process(int group);
 
 /* Backward compatible aliases */
 #define render_text_queue_add    text_queue_add

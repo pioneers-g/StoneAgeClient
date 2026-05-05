@@ -213,12 +213,14 @@ void text_queue_clear(void) {
 static void text_queue_render_shadow_entry(HDC hdc, HDC hdc_alpha, TextQueueEntry* entry) {
     int x = entry->x;
     int y = entry->y;
-    int text_len = (int)strlen(entry->text);
+    int text_len;
 
-    /* Skip dialog text type (3) in shadow pass if dialog flag is set */
+    /* Dialog text (type 3) with dialog flag set: skip */
     if (entry->color_type == 3 && s_dialog_flag) {
         return;
     }
+
+    text_len = (int)strlen(entry->text);
 
     /* Handle custom font size from param1 (offset 0x107 from text in original) */
     if (entry->param1 >= 1) {
@@ -274,12 +276,14 @@ static void text_queue_render_shadow_entry(HDC hdc, HDC hdc_alpha, TextQueueEntr
 static void text_queue_render_color_entry(HDC hdc, HDC hdc_alpha, TextQueueEntry* entry) {
     int x = entry->x;
     int y = entry->y;
-    int text_len = (int)strlen(entry->text);
+    int text_len;
 
-    /* Skip dialog text type (3) if dialog flag is set */
+    /* Dialog text (type 3) with dialog flag set: skip */
     if (entry->color_type == 3 && s_dialog_flag) {
         return;
     }
+
+    text_len = (int)strlen(entry->text);
 
     /* Handle custom font size from param1 */
     if (entry->param1 >= 1) {
@@ -329,19 +333,24 @@ static void text_queue_render_color_entry(HDC hdc, HDC hdc_alpha, TextQueueEntry
 }
 
 /*
- * Process and render all queued text entries - FUN_00414820
+ * Process and render queued text entries for a specific group - FUN_00414820(group)
  *
- * Original uses two-pass rendering:
- * - Pass 1: Shadow pass (black text at +1,+1 offset)
- * - Pass 2: Main text pass with color from PTR_DAT_004a2720
+ * From Ghidra decompilation of FUN_0047dc60, text rendering is called with:
+ *   FUN_00414820(0) - general text (at layer > 0x67)
+ *   FUN_00414820(3) - special text / dialog / IME (at layer > 0x67)
+ *   FUN_00414820(1) - second text layer (at layer > 0x6c)
+ *   FUN_00414820(2) - third text layer (at layer > 0x6e)
  *
- * Iterates through entries with stride 0x110, matching color_type at offset 0x105
- * Special handling for color_type 3 (dialog text) with DAT_045f1a14 offset
+ * The group parameter filters entries by their color_type field.
+ * Pass -1 to render all groups (used for final flush).
+ *
+ * Two-pass rendering:
+ * - Pass 1: Shadow (black text at +1,+1 offset)
+ * - Pass 2: Main text with color from PTR_DAT_004a2720, also checking flags byte
  */
-void text_queue_process(void) {
+void text_queue_process(int group) {
     int i;
     int color_pass;
-    int color_index;
     HDC hdc = NULL;
     HDC hdc_alpha = NULL;
     HFONT prev_font = NULL;
@@ -352,22 +361,18 @@ void text_queue_process(void) {
 
     if (s_text_queue_count == 0) return;
 
-    /* Get alpha mode from render module - DAT_0054c83c */
     alpha_mode = render_get_alpha_mode();
 
-    /* Get DC for text rendering from offscreen surface */
     if (FAILED(IDirectDrawSurface_GetDC(g_graphics.offscreen_surface, &hdc))) {
         return;
     }
 
-    /* In alpha mode, also get DC for alpha surface */
     if (alpha_mode && g_graphics.alpha_surface) {
         if (SUCCEEDED(IDirectDrawSurface_GetDC(g_graphics.alpha_surface, &hdc_alpha))) {
             /* Alpha surface DC ready */
         }
     }
 
-    /* Set up font - DAT_0054b188 */
     if (g_font) {
         prev_font = SelectObject(hdc, g_font);
         if (hdc_alpha) {
@@ -382,7 +387,7 @@ void text_queue_process(void) {
 
     /*
      * First pass: shadow rendering (black text at +1,+1)
-     * From FUN_00414820 first loop
+     * From FUN_00414820 first loop - filters by group matching color_type
      */
     SetTextColor(hdc, RGB(0, 0, 0));
     if (hdc_alpha) {
@@ -390,13 +395,16 @@ void text_queue_process(void) {
     }
 
     for (i = 0; i < s_text_queue_count; i++) {
-        text_queue_render_shadow_entry(hdc, hdc_alpha, &s_text_queue[i]);
+        entry = &s_text_queue[i];
+        if (group >= 0 && entry->color_type != (u8)group) continue;
+        text_queue_render_shadow_entry(hdc, hdc_alpha, entry);
     }
 
     /*
-     * Second pass: main text rendering with color table PTR_DAT_004a2720
-     * Iterates through 10 color types (PTR_DAT_004a2720 to 0x4a2748)
-     * For each color, iterate through all entries and render matching ones
+     * Second pass: colored text rendering
+     * From FUN_00414820 second loop:
+     * - Outer: iterate 10 colors from PTR_DAT_004a2720
+     * - Inner: check BOTH color_type == group AND flags == color_index
      */
     for (color_pass = 0; color_pass < 10; color_pass++) {
         int color_set = 0;
@@ -404,15 +412,11 @@ void text_queue_process(void) {
         for (i = 0; i < s_text_queue_count; i++) {
             entry = &s_text_queue[i];
 
-            /* Check color_type at offset 0x105 (entry->color_type) */
-            if (entry->color_type != color_pass) {
-                continue;
-            }
+            /* Filter by group (color_type) */
+            if (group >= 0 && entry->color_type != (u8)group) continue;
+            /* Filter by flags matching current color index */
+            if (entry->flags != (u8)color_pass) continue;
 
-            /* Check flags at offset 0x104 (entry->flags) - secondary iteration index */
-            /* In original, this iterates through flags 0-9 for each color type */
-
-            /* Set color once per color pass for efficiency */
             if (!color_set) {
                 SetTextColor(hdc, s_text_colors[color_pass]);
                 if (hdc_alpha) {
@@ -425,19 +429,17 @@ void text_queue_process(void) {
         }
     }
 
-    /* Render dialog title for color_type 3 if dialog_offset is set */
-    if (s_dialog_offset >= 0 && s_dialog_offset < 5) {
+    /* Dialog title for group 3 (dialog text) with dialog offset */
+    if ((group < 0 || group == 3) && s_dialog_offset >= 0 && s_dialog_offset < 5) {
         const char* title = s_dialog_titles[s_dialog_offset];
         text_len = (int)strlen(title);
 
-        /* Shadow at position (3, 0x1b1) */
         SetTextColor(hdc, RGB(0, 0, 0));
         TextOutA(hdc, 3, 0x1b1, title, text_len);
         if (hdc_alpha) {
             TextOutA(hdc_alpha, 3, 0x1b1, title, text_len);
         }
 
-        /* Color at position (2, 0x1b0) */
         SetTextColor(hdc, s_text_colors[0]);
         TextOutA(hdc, 2, 0x1b0, title, text_len);
         if (hdc_alpha) {
@@ -458,6 +460,8 @@ void text_queue_process(void) {
         IDirectDrawSurface_ReleaseDC(g_graphics.alpha_surface, hdc_alpha);
     }
 
-    /* Clear queue after processing */
-    s_text_queue_count = 0;
+    /* Clear queue after final flush (group < 0 means render all and clear) */
+    if (group < 0) {
+        s_text_queue_count = 0;
+    }
 }

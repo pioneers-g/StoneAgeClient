@@ -661,6 +661,11 @@ void game_render(void) {
     /* Render UI on top */
     ui_render();
 
+    /* Process render queue - FUN_0047dc60
+     * Sprites added via render_queue_add_sprite during frame are sorted and
+     * blitted here, then the queue is cleared. */
+    render_queue_process_full();
+
     /* Flip surfaces */
     graphics_flip();
 }
