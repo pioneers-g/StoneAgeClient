@@ -661,6 +661,9 @@ void game_render(void) {
     /* Render UI on top */
     ui_render();
 
+    /* Sync render mode to render queue (DAT_005ab6fc) */
+    render_set_mode(g_game.render_mode);
+
     /* Process render queue - FUN_0047dc60
      * Sprites added via render_queue_add_sprite during frame are sorted and
      * blitted here, then the queue is cleared. */

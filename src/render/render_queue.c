@@ -23,6 +23,7 @@
 #include "render.h"
 #include "render_surface.h"
 #include "render_blend.h"
+#include "render_sprite.h"
 #include "render_text.h"
 #include "directx.h"
 #include "logger.h"
@@ -346,8 +347,7 @@ static void render_queue_process_entry(int index, int use_alpha) {
     u32 sprite_id;
     int x, y;
     int blend_mode;
-    SpriteSurfaceEntry* sprite;
-    HRESULT hr;
+    SpriteNode* node;
 
     sprite_id = s_queue_sprite_id[index];
     x = s_queue_x[index];
@@ -379,57 +379,66 @@ static void render_queue_process_entry(int index, int use_alpha) {
         return;
     }
 
-    /* Get sprite surface */
-    sprite = render_get_sprite_surface(sprite_id);
-    if (!sprite) {
+    /* Lazy load sprite if needed - FUN_004808e0 */
+    if (!render_get_sprite_surface(sprite_id)) {
         if (!render_load_sprite(sprite_id)) {
             return;
         }
-        sprite = render_get_sprite_surface(sprite_id);
     }
 
-    if (!sprite || !sprite->surface) {
+    /* Walk sprite node linked list - FUN_0047dc60 pattern
+     * Each node is a 64x48 tile chunk with its own surface and offset.
+     * Position = queue_base_pos + node_offset. */
+    node = render_get_sprite_node(sprite_id);
+    if (!node) {
+        /* Fallback: single surface blit */
+        SpriteSurfaceEntry* sprite = render_get_sprite_surface(sprite_id);
+        if (sprite && sprite->surface) {
+            render_blit_transparent(sprite->surface, g_graphics.offscreen_surface,
+                0, 0, sprite->width, sprite->height, x, y, 0);
+            sprite->timestamp = timeGetTime();
+        }
         return;
     }
 
-    /* Render based on blend mode - FUN_0047dc60 pattern */
-    switch (blend_mode) {
-        case 0:
-            /* Normal transparent blit - FUN_004142f0 */
-            render_blit_transparent(sprite->surface, g_graphics.offscreen_surface,
-                0, 0, sprite->width, sprite->height, x, y, 0);
-            break;
+    while (node) {
+        int node_x = x + node->x_offset;
+        int node_y = y + node->y_offset;
 
-        case 1:
-            /* Alpha blend - FUN_0047e970 */
-            if (use_alpha) {
-                render_blit_alpha_blend(sprite->surface, g_graphics.offscreen_surface,
-                    x, y, sprite->width, sprite->height, 16);
-            } else {
-                render_blit_transparent(sprite->surface, g_graphics.offscreen_surface,
-                    0, 0, sprite->width, sprite->height, x, y, 0);
+        if (node->surface) {
+            /* Render based on blend mode */
+            switch (blend_mode) {
+                case 0:
+                    render_blit_transparent(node->surface, g_graphics.offscreen_surface,
+                        0, 0, 0, 0, node_x, node_y, 0);
+                    break;
+                case 1:
+                    if (use_alpha) {
+                        render_blit_alpha_blend(node->surface, g_graphics.offscreen_surface,
+                            node_x, node_y, 0, 0, 16);
+                    } else {
+                        render_blit_transparent(node->surface, g_graphics.offscreen_surface,
+                            0, 0, 0, 0, node_x, node_y, 0);
+                    }
+                    break;
+                case 2:
+                    render_blit_additive(node->surface, g_graphics.offscreen_surface,
+                        node_x, node_y, 0, 0);
+                    break;
+                case 3:
+                    render_blit_subtractive(node->surface, g_graphics.offscreen_surface,
+                        node_x, node_y, 0, 0);
+                    break;
+                default:
+                    render_blit_transparent(node->surface, g_graphics.offscreen_surface,
+                        0, 0, 0, 0, node_x, node_y, 0);
+                    break;
             }
-            break;
+            node->timestamp = timeGetTime();
+        }
 
-        case 2:
-            /* Additive blend - FUN_0047f170 */
-            render_blit_additive(sprite->surface, g_graphics.offscreen_surface,
-                x, y, sprite->width, sprite->height);
-            break;
-
-        case 3:
-            /* Special blend - FUN_0047f710 */
-            render_blit_subtractive(sprite->surface, g_graphics.offscreen_surface,
-                x, y, sprite->width, sprite->height);
-            break;
-
-        default:
-            render_blit_transparent(sprite->surface, g_graphics.offscreen_surface,
-                0, 0, sprite->width, sprite->height, x, y, 0);
-            break;
+        node = node->next;
     }
-
-    sprite->timestamp = timeGetTime();
 }
 
 /*
@@ -455,22 +464,19 @@ void render_queue_process_full(void) {
 
     /* Check render mode - DAT_005ab6fc */
     if (s_render_mode == 0) {
-        /* Normal mode - restore surfaces first */
-        if (g_graphics.offscreen_surface) {
-            IDirectDrawSurface_Restore(g_graphics.offscreen_surface);
-        }
+        /* Normal mode - FUN_0047dc60 mode 0:
+         * FUN_00412a40: clear back buffer
+         * FUN_0047d850: update animation timer
+         * FUN_0047d8e0: animation update (returns 1 if battle active)
+         * Surface-lost recovery
+         * FUN_0047e720: process background sprites (layers 0-1)
+         */
         if (g_graphics.back_buffer) {
-            IDirectDrawSurface_Restore(g_graphics.back_buffer);
-        }
-
-        /* Try blit from offscreen to back buffer */
-        if (g_graphics.back_buffer && g_graphics.offscreen_surface) {
-            hr = IDirectDrawSurface_BltFast(g_graphics.back_buffer, 0, 0,
-                g_graphics.offscreen_surface, NULL, 0x11);
-            if (hr == DDERR_SURFACELOST) {
-                s_surface_lost = 1;
-                return;
-            }
+            DDBLTFX bltfx;
+            memset(&bltfx, 0, sizeof(bltfx));
+            bltfx.dwSize = sizeof(bltfx);
+            IDirectDrawSurface_Blt(g_graphics.back_buffer, NULL, NULL, NULL,
+                DDBLT_COLORFILL | DDBLT_WAIT, &bltfx);
         }
 
         /* Process background sprites - FUN_0047e720 */
@@ -546,44 +552,45 @@ void render_queue_process_full(void) {
 
 /*
  * Process background sprites - FUN_0047e720
+ *
+ * From Ghidra: processes only layer 0 entries, then adjusts queue count.
+ * Layer 0 sprites are rendered as background before the main queue processing.
+ * When a layer > 0 entry is encountered, the processed count is subtracted
+ * from the total and processing stops.
  */
 void render_process_background(void) {
     int i;
-    u32 sprite_id;
-    int x, y;
-    SpriteSurfaceEntry* sprite;
-    HRESULT hr;
+    int bg_count = 0;
 
     for (i = 0; i < s_queue_count; i++) {
         u8 layer = s_queue_layer[i];
 
-        /* Skip high priority entries (layer > 103 = 0x67) */
-        if (layer > 0x67) {
-            continue;
+        /* Layer 0: process as background */
+        if (layer == 0) {
+            render_queue_process_entry(i, 1);
+            bg_count++;
+        } else if (layer == 1) {
+            /* Layer 1: also background but signals end of layer 0 group */
+            render_queue_process_entry(i, 1);
+            bg_count++;
+        } else {
+            /* Layer > 1: stop background processing, adjust queue count */
+            /* Remove processed background entries by shifting remaining */
+            break;
         }
-
-        sprite_id = s_queue_sprite_id[i];
-        x = s_queue_x[i];
-        y = s_queue_y[i];
-
-        /* Get sprite surface */
-        sprite = render_get_sprite_surface(sprite_id);
-        if (!sprite || !sprite->surface) {
-            continue;
-        }
-
-        /* Render sprite */
-        render_blit_transparent(sprite->surface, g_graphics.offscreen_surface,
-            0, 0, sprite->width, sprite->height, x, y, 0);
     }
 
-    /* Final blit check */
-    if (g_graphics.back_buffer && g_graphics.offscreen_surface) {
-        hr = IDirectDrawSurface_BltFast(g_graphics.back_buffer, 0, 0,
-            g_graphics.offscreen_surface, NULL, 0x11);
-        if (hr == DDERR_SURFACELOST) {
-            s_surface_lost = 1;
-        }
+    /* Compact queue: remove processed background entries */
+    if (bg_count > 0 && bg_count < s_queue_count) {
+        int remaining = s_queue_count - bg_count;
+        memmove(s_queue_x, s_queue_x + bg_count, remaining * sizeof(s_queue_x[0]));
+        memmove(s_queue_y, s_queue_y + bg_count, remaining * sizeof(s_queue_y[0]));
+        memmove(s_queue_layer, s_queue_layer + bg_count, remaining * sizeof(s_queue_layer[0]));
+        memmove(s_queue_sprite_id, s_queue_sprite_id + bg_count, remaining * sizeof(s_queue_sprite_id[0]));
+        memmove(s_queue_blend_mode, s_queue_blend_mode + bg_count, remaining * sizeof(s_queue_blend_mode[0]));
+        s_queue_count = remaining;
+    } else if (bg_count >= s_queue_count) {
+        s_queue_count = 0;
     }
 }
 
