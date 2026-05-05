@@ -257,9 +257,9 @@ int render_text(int x, int y, const char* text, u32 color) {
     }
 
     SetBkMode(hdc, TRANSPARENT);
-    old_color = SetTextColor(hdc, RGB((color >> 11) & 0x1F << 3,
-                                       (color >> 5) & 0x3F << 2,
-                                       color & 0x1F << 3));
+    old_color = SetTextColor(hdc, RGB(((color >> 11) & 0x1F) << 3,
+                                       ((color >> 5) & 0x3F) << 2,
+                                       (color & 0x1F) << 3));
 
     TextOutA(hdc, x, y, text, (int)strlen(text));
 

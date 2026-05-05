@@ -104,10 +104,18 @@ IDirectDrawSurface* graphics_create_offscreen(int width, int height, int flags) 
 
     memset(&ddsd, 0, sizeof(DDSURFACEDESC2));
     ddsd.dwSize = sizeof(DDSURFACEDESC2);
-    ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
+    ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;
     ddsd.dwWidth = width;
     ddsd.dwHeight = height;
     ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+
+    /* Force 16-bit RGB565 pixel format to match original binary's rendering */
+    ddsd.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+    ddsd.ddpfPixelFormat.dwFlags = DDPF_RGB;
+    ddsd.ddpfPixelFormat.dwRGBBitCount = 16;
+    ddsd.ddpfPixelFormat.dwRBitMask = 0xF800;
+    ddsd.ddpfPixelFormat.dwGBitMask = 0x07E0;
+    ddsd.ddpfPixelFormat.dwBBitMask = 0x001F;
 
     if (flags & SURFACE_FLAG_SYSTEM_MEMORY) {
         ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
@@ -122,7 +130,7 @@ IDirectDrawSurface* graphics_create_offscreen(int width, int height, int flags) 
         ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
         hr = IDirectDraw4_CreateSurface(g_graphics.ddraw4, &ddsd, &surface, NULL);
         if (FAILED(hr)) {
-            LOG_WARN("CreateSurface failed: 0x%08X", hr);
+            LOG_WARN("CreateSurface (16-bit) failed: 0x%08X", hr);
             return NULL;
         }
     }
@@ -372,7 +380,10 @@ int graphics_init(HWND hWnd, int window_mode) {
             return 0;
         }
     }
-    LOG_INFO("Offscreen surface created");
+    LOG_INFO("Offscreen surface created (16-bit RGB565)");
+
+    /* Set internal bpp to 16 for rendering code */
+    g_graphics.bpp = 16;
 
     if (g_alpha_mode) {
         g_graphics.alpha_surface = graphics_create_offscreen(g_graphics.width, g_graphics.height, SURFACE_FLAG_SYSTEM_MEMORY);
