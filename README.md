@@ -201,5 +201,6 @@ data/
 
 - 本项目由AI生成，全程几乎0人类干预，是一个实验项目
 - 工具: claude code、ghidra、bethington/ghidra-mcp、cc-switch、vscode、clawgod(开启claude code高级功能)
-- 模型: glm5(百度千帆 - 200RMB 的coding plan(本项目大概占了约70%的请求，成本不到150RMB))
-- AI Agent连续工作时长: 48小时43分(从2026年5月1日10:42分开始)
+- 模型: glm5(百度千帆 - 200RMB 的coding plan(本项目大概占了约55%的请求，成本不到120RMB))
+- AI Agent连续工作时长: 79小时51分(从2026年5月1日10:42分开始)
+    - 5月4日下午5点多的时候，我发现AI一直在处理分析stubs方法(不一定是错误的方向)，随后调整了提示词，需要以里程碑为作为重要的工作成果判断。 (开始切换到glm5.1模型)

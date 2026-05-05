@@ -145,8 +145,6 @@ void* g_petai = NULL;
 
 u32 DAT_04581d3c = 0;
 u32 DAT_04581d40 = 0;
-u32 DAT_04558c34 = 0;
-u32 DAT_0455b5ac = 0;
 u32 DAT_04ebe490 = 0;
 u32 DAT_005676a0 = 0;
 u32 DAT_00564e62 = 0;
@@ -156,11 +154,10 @@ u32 DAT_0461b658 = 0;
 u32 DAT_046308b8 = 0;
 u32 DAT_045829d8 = 0;
 u32 DAT_045829dc = 0;
-u32 DAT_004b83ec = 0;
 
 /* State check globals for FUN_0044b030 */
 s32 DAT_045e19b0 = 0;    /* Battle active flag */
-s32 DAT_004e21dc = 0;    /* Dialog active flag */
+/* DAT_004e21dc defined in battle globals section below */
 s32 DAT_045e8ce0 = 0;    /* Menu active flag */
 char DAT_045f1a3b = 0;   /* State override 1 */
 char DAT_045f1a3a = 0;   /* State override 2 */
@@ -482,3 +479,39 @@ int DAT_04582bd0 = 0;  /* Current index in shuffle table */
 
 /* LCG random state for FUN_00492403 */
 u32 DAT_004d7160 = 0;
+
+/* Game data arrays for FUN_00477890 (game data init) */
+u32 DAT_0462be88[0x1299] = {0};  /* 4761 dwords - game state data */
+u32 DAT_04627458[0xdde] = {0};   /* 3550 dwords - entity data */
+u32 DAT_0462ac10[0xfc] = {0};    /* 252 dwords - player stats */
+u32 DAT_046308f0[0x3c] = {0};    /* 60 dwords - UI state */
+u32 DAT_0462b000[0x39f] = {0};   /* 927 dwords - inventory data */
+u32 DAT_04624040[0x4e0] = {0};   /* 1248 dwords - map/render data */
+
+/* Battle unit slot arrays for FUN_00405080 */
+s32 DAT_004e10e8[10] = {-2,-2,-2,-2,-2,-2,-2,-2,-2,-2};  /* Player party units */
+s32 DAT_004e214c[6] = {-2,-2,-2,-2,-2,-2};               /* Enemy units */
+s32 DAT_004d9054[6] = {-2,-2,-2,-2,-2,-2};               /* Reserve units */
+s32 DAT_004e211c[7] = {-2,-2,-2,-2,-2,-2,-2};             /* Pet units */
+s32 DAT_004d7f80[9] = {-2,-2,-2,-2,-2,-2,-2,-2,-2};       /* Formation data */
+s32 DAT_004e21dc = 0;       /* Battle state flag */
+s32 DAT_004e21e4 = 0;       /* Action pending flag */
+s32 DAT_004e21e8 = 0;       /* Battle active flag */
+s32 DAT_004a1308 = -1;      /* Selection index */
+s32 DAT_0049e090 = 0;       /* Battle mode */
+s32 DAT_004e21f0 = 0;       /* PVP mode flag */
+s32 DAT_004a12fc = 0;       /* PVP check value */
+
+/* Battle action globals for FUN_00424b70 */
+u32 DAT_004b83ec = 0;       /* Current action type */
+u32 DAT_0455ef94 = 0;       /* Action parameter */
+u32 DAT_04558c34 = 0;       /* Action target */
+u32 DAT_0455b5ac = 0;       /* Action data */
+
+/* Battle unit action globals for FUN_00405160 */
+s32 DAT_004e1110 = 0;       /* Action group ID */
+s32 DAT_004d903c = 0;       /* Current turn ID */
+u32 DAT_004dd06c = 0;       /* Action bitmask */
+
+/* Network heartbeat timer */
+u32 DAT_04581170 = 0;       /* Heartbeat counter */

@@ -172,7 +172,8 @@ void FUN_004799b0(void) {
  * - FUN_0047bde0: Fade effect dispatcher
  */
 void FUN_00479c40(void) {
-    /* State machine implementation in gamestate.c */
+    extern void gamestate_dispatch(void);
+    gamestate_dispatch();
 }
 
 /*
@@ -189,7 +190,24 @@ void FUN_00479c40(void) {
  * - Resets various game state counters and flags
  */
 void FUN_00477890(void) {
-    /* TODO: Full initialization with file loading */
+    extern u32 DAT_0462be88[];
+    extern u32 DAT_04627458[];
+    extern u32 DAT_0462ac10[];
+    extern u32 DAT_046308f0[];
+    extern u32 DAT_0462b000[];
+    extern u32 DAT_04624040[];
+
+    /* Clear global data regions */
+    memset(DAT_0462be88, 0, 0x1299 * 4);
+    memset(DAT_04627458, 0, 0xdde * 4);
+    memset(DAT_0462ac10, 0, 0xfc * 4);
+    memset(DAT_046308f0, 0, 0x3c * 4);
+    memset(DAT_0462b000, 0, 0x39f * 4);
+    memset(DAT_04624040, 0, 0x4e0 * 4);
+
+    /* Animation state init */
+    FUN_0047c9d0(0);
+    FUN_0047c9d0(1);
 }
 
 /* FUN_004779d0 and FUN_00477b20 are defined in stubs_ui.c */

@@ -190,6 +190,15 @@ set(TEST_SOURCES
     test_flag_set_player_value_functions_comprehensive.c
     test_game_state_setter_functions_v2_comprehensive.c
     test_direction_char_functions_comprehensive.c
+    test_critical_stubs.c
+    test_stubs_round3.c
+    test_map_tileattr_comprehensive.c
+    test_entity_list_comprehensive.c
+    test_battle_core_comprehensive.c
+    test_battle_action_dispatch_comprehensive.c
+    test_battle_action_render_comprehensive.c
+    test_render_stubs_comprehensive.c
+    test_ui_stubs_comprehensive.c
 )
 
 # TODO: Fix outdated tests that need updates to match current headers

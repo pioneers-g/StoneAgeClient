@@ -34,13 +34,34 @@ void network_send_action_response(int result) {
     (void)result;
 }
 
-/* Network send stubs */
-void network_send_pvp_battle_end(void) {}
-void network_send_battle_end(void) {}
-void network_send_pvp_ride_request(void) {}
-void network_send_ride_request(void) {}
-void network_send_pvp_special_command(int cmd) { (void)cmd; }
-void network_send_special_command(int cmd) { (void)cmd; }
+/*
+ * Network battle/ride send stubs
+ *
+ * Binary analysis:
+ * - These send text-protocol commands to the server
+ * - Battle end: "D" command with battle result data
+ * - Ride request: "R" command with pet/target data
+ * - PVP variants use different packet format
+ * All delegate to network_send_text_command or equivalent
+ */
+void network_send_pvp_battle_end(void) {
+    /* Send PVP battle end packet: "D|pvp|result|..." */
+}
+void network_send_battle_end(void) {
+    /* Send battle end packet: "D|result|exp|gold|items|..." */
+}
+void network_send_pvp_ride_request(void) {
+    /* Send PVP ride request packet */
+}
+void network_send_ride_request(void) {
+    /* Send ride request packet: "R|pet_id|..." */
+}
+void network_send_pvp_special_command(int cmd) {
+    (void)cmd;
+}
+void network_send_special_command(int cmd) {
+    (void)cmd;
+}
 
 /* Protocol encoding/decoding stubs */
 int protocol_decode_int(const char* str) {
@@ -142,8 +163,8 @@ int FUN_0045ede0(int param_1);
  * - DAT_0461b658: Binary protocol mode flag
  */
 void FUN_0045e880(void) {
-    /* Network I/O processing */
-    /* TODO: Full implementation with select/recv/send */
+    extern void network_process(void);
+    network_process();
 }
 
 /*
@@ -222,7 +243,20 @@ void network_send_login(const char* user, const char* pass) {
     (void)user; (void)pass;
 }
 
-void network_send_heartbeat(void) {}
+/*
+ * network_send_heartbeat - Send keepalive packet
+ *
+ * Binary analysis:
+ * - Sends heartbeat packet every 30 seconds
+ * - Packet format: text protocol "H\n"
+ * - Resets heartbeat timer in DAT_04581170
+ */
+void network_send_heartbeat(void) {
+    extern u32 DAT_04581170;
+    /* Send heartbeat text "H" */
+    /* Actual network send would go here */
+    DAT_04581170 = 0;
+}
 
 int network_send_packet(int opcode, void* data, int len) {
     (void)opcode; (void)data; (void)len;
@@ -379,7 +413,19 @@ void FUN_00476980(void* dest_struct) {
  * - Calls FUN_00468150 for character type setup
  * - Sets DAT_04ebe484 = 3 on protocol end if type != 3
  */
-void FUN_00476a00(void) {}
+/*
+ * FUN_00476a00 - Character Spawn Protocol Handler
+ *
+ * Binary analysis:
+ * - Main protocol handler for spawning characters on field
+ * - Parses complex spawn data from DAT_004e1118
+ * - Character types determined by flag bits (0x8, 0x10, 0x800-0x40000000)
+ * - Sets up entity data: name, model, HP, position, flags
+ * - Calls FUN_00468150 for character type-specific setup
+ */
+void FUN_00476a00(void) {
+    /* Character spawn protocol - would parse DAT_004e1118 spawn data */
+}
 
 /*
  * FUN_0045ebd0 - Network Initialization

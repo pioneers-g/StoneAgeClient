@@ -84,7 +84,7 @@ extern int gSocket;
 /* External functions */
 extern void FUN_00418370(void);  /* field_update */
 extern void FUN_00424f50(void);  /* battle_action_execute */
-extern void FUN_004011c0(int window);
+extern void FUN_004011c0(int window);  /* entity/window release: sets release flag */
 extern int FUN_00448610(int x, int y, int w, int h, int flags, int visible);
 extern void FUN_00488190(int r, int g, int b);
 extern int FUN_0041d860(int x, int y, int font, int style, const char* text, int color);

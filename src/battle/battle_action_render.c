@@ -33,7 +33,7 @@ static u32 s_effect_count = 0;
  * Show visual effect
  * Effect IDs: 1=hit, 2=heal, 3=death, 4=revive, 5=skill, 6=summon, 7=recall
  */
-void action_show_effect(u32 effect_id, u32 x, u32 y) {
+void battle_action_show_effect(u32 effect_id, u32 x, u32 y) {
     BattleEffect* effect;
 
     if (s_effect_count >= MAX_BATTLE_EFFECTS) {
@@ -55,7 +55,7 @@ void action_show_effect(u32 effect_id, u32 x, u32 y) {
  * Play sound effect
  * Sound IDs: 1=attack, 2=skill, 3=item, 4=capture, 5=capture_fail, 6=summon, 7=recall, 8=death, 9=revive
  */
-void action_play_sound(u32 sound_id) {
+void battle_action_play_sound(u32 sound_id) {
     /* Integrate with sound system */
     /* Actual implementation would call audio_play_sound() */
 
@@ -77,20 +77,8 @@ void action_play_sound(u32 sound_id) {
 /*
  * Check if player position is close to action position
  */
-int battle_action_check_position(void) {
-    int dx = g_battle_action.player_x - g_player_x;
-    int dy = g_battle_action.player_y - g_player_y;
-
-    if (dx < 0) dx = -dx;
-    if (dy < 0) dy = -dy;
-
-    /* If within 2 tiles, position is valid */
-    if (dx >= 2 || dy >= 2) {
-        return 0;  /* Position too far */
-    }
-
-    return 1;  /* Position valid */
-}
+/* Position check delegates to core module */
+extern int battle_action_check_position(void);
 
 /*
  * Get effect queue for rendering
@@ -114,7 +102,7 @@ void battle_action_clear_effects(void) {
  * Action execution dispatcher - FUN_00424f50
  * Executes the rendering/animation for the current battle action
  */
-void battle_action_execute(void) {
+void battle_render_execute(void) {
     u32 action = g_battle_action.current_action;
 
     /* Check death flag - if set, send death message */

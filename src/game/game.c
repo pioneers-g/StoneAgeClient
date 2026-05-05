@@ -151,28 +151,16 @@ int game_init(void) {
     /* Initialize CPU info - FUN_004813f0, cpuid */
     LOG_DEBUG("Checking CPU features...");
 
-    /* Initialize window and DirectX */
-    if (!directx_init(g_state.hWnd, g_config.window_mode)) {
-        LOG_ERROR("Failed to initialize DirectX");
-        MessageBoxA(g_state.hWnd, "Failed to initialize DirectX", "Error", MB_OK | MB_ICONERROR);
-        return 0;
-    }
+    /* DirectX already initialized by main_entry before game_init.
+     * Original binary: FUN_0043f1f0 calls FUN_00411a00 (directx_init)
+     * before FUN_0041db40 (game_run) which calls FUN_0041e260 (game_init). */
 
-    /* Initialize input system */
-    if (!input_init(g_state.hWnd, !g_config.window_mode)) {
-        LOG_WARN("Failed to initialize input system");
-    }
-
-    /* Initialize sound system */
-    if (!sound_init(g_state.hWnd)) {
-        LOG_WARN("Failed to initialize sound system");
-    }
+    /* Initialize render system (sets g_render.target to offscreen surface) */
+    render_init();
 
     /* Load game assets */
     if (!assets_init()) {
-        LOG_ERROR("Failed to load game assets");
-        MessageBoxA(g_state.hWnd, "Failed to load game data files", "Error", MB_OK | MB_ICONERROR);
-        return 0;
+        LOG_WARN("Failed to load game assets - continuing without data files");
     }
 
     /* Initialize UI system */
@@ -332,7 +320,7 @@ void game_main_loop(void) {
         g_game.frame_time = frame_time;
     }
 
-    LOG_INFO("Exited main game loop");
+    LOG_INFO("Exited main game loop (frames: %d, fps: %d)", g_game.frame_count, g_game.fps);
 }
 
 /*
@@ -610,6 +598,12 @@ void game_update(void) {
  * Game rendering
  */
 void game_render(void) {
+    static int first_frame = 1;
+    if (first_frame) {
+        LOG_INFO("First frame rendering, state=%d", g_game.state);
+        first_frame = 0;
+    }
+
     /* Clear back buffer */
     graphics_clear(0);
 

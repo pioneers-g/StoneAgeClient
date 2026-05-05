@@ -72,7 +72,7 @@ u32 battle_action_get_type(void) {
  * Position Check - from FUN_00424f50
  * ======================================== */
 
-int battle_action_check_position(void) {
+int battle_exec_check_position(void) {
     int dx, dy;
 
     /* Calculate distance from target position */
@@ -90,7 +90,7 @@ int battle_action_check_position(void) {
  * Main Action Executor - FUN_00424f50
  * ======================================== */
 
-void battle_action_execute(void) {
+void battle_exec_update(void) {
     /* Check for death flag - DAT_0455efa0 */
     /* If set, send death notification to server */
     /* FUN_00464ac0(gSocket, 0, 1, -1, -1, &DAT_04554270) */
@@ -101,7 +101,7 @@ void battle_action_execute(void) {
     }
 
     /* Check position - from FUN_00424f50 */
-    if (!battle_action_check_position()) {
+    if (!battle_exec_check_position()) {
         g_battle_exec.scroll_active = 1;
     }
 

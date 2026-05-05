@@ -123,10 +123,8 @@ set(EXCLUDE_FILES
     # Duplicate ui (g_chat in chat.c)
     "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/ui.c"
 
-    # Duplicate battle files
+    # Duplicate battle files (overlap with stubs)
     "${CMAKE_CURRENT_SOURCE_DIR}/src/battle/battle_unit.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/battle/battle_action_render.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/battle/battle_action_exec.c"
 
     # Duplicate gameconfig (g_config is in main.c)
     "${CMAKE_CURRENT_SOURCE_DIR}/src/game/gameconfig.c"

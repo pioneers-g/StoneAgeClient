@@ -1,0 +1,78 @@
+[1/2] Building C object CMakeFiles\sa_client.dir\src\stubs\stubs_globals.c.obj
+[2/2] Linking C executable bin\sa_9061.exe
+===BUILD DONE=== 
+
+=== Critical Stub Functions Tests ===
+
+[FUN_00488190 - Render Area/Fade Setup]
+  TEST: FUN_00488190 sets fade parameters ... PASS
+  TEST: FUN_00488190 high-res mode (640x480) ... PASS
+  TEST: FUN_00488190 with zero params ... PASS
+  TEST: FUN_00488190 called multiple times (last wins) ... PASS
+
+[FUN_004011c0 - Entity/Window Cleanup]
+  TEST: FUN_004011c0 with NULL pointer (no crash) ... PASS
+  TEST: FUN_004011c0 sets release flag at offset 0x24 ... PASS
+  TEST: FUN_004011c0 called twice on same pointer (idempotent) ... PASS
+  TEST: FUN_004011c0 on different structures ... PASS
+
+[FUN_00448610 - Window Draw (9-Sprite Grid)]
+  TEST: FUN_00448610 basic 7x5 window ... PASS
+  TEST: FUN_00448610 rejects zero width ... PASS
+  TEST: FUN_00448610 rejects zero height ... PASS
+  TEST: FUN_00448610 rejects negative dimensions ... PASS
+  TEST: FUN_00448610 multiple windows ... PASS
+  TEST: FUN_00448610 with different center sprites ... PASS
+  TEST: FUN_00448610 preserves style flags ... PASS
+
+=== Results: 15 passed, 0 failed, 15 total ===
+===CRITICAL=== 
+
+=== Round 3 Stub Functions Tests ===
+
+[FUN_004923a7 - sprintf wrapper]
+  TEST: FUN_004923a7 basic string ... PASS
+  TEST: FUN_004923a7 integer formatting ... PASS
+  TEST: FUN_004923a7 hex formatting ... PASS
+  TEST: FUN_004923a7 empty format ... PASS
+  TEST: FUN_004923a7 mixed types ... PASS
+
+[FUN_0041d7c0/0041d860 - Text Render Queue]
+  TEST: FUN_0041d7c0 add single entry ... PASS
+  TEST: FUN_0041d7c0 multiple entries ... PASS
+  TEST: FUN_0041d7c0 queue full returns -2 ... PASS
+  TEST: FUN_0041d7c0 NULL text handling ... PASS
+  TEST: FUN_0041d860 wrapper delegates correctly ... PASS
+  TEST: FUN_0041d7c0 long text truncated ... PASS
+
+=== Results: 11 passed, 0 failed, 11 total ===
+===ROUND3=== 
+
+=== Map Tile Attribute Tests ===
+
+[FUN_00441b90 - Tile Attribute Processing]
+  TEST: FUN_00441b90 walkable tile types (1,2,5,6,9,10) ... PASS
+  TEST: FUN_00441b90 tile 0 is blocked ... PASS
+  TEST: FUN_00441b90 tile 4 is blocked ... PASS
+  TEST: FUN_00441b90 sprite tiles (>=100) are walkable without collision map ... PASS
+  TEST: FUN_00441b90 environment tiles (0x28-0x3b) are walkable ... PASS
+  TEST: FUN_00441b90 ground effect tiles (0x14-0x27) are walkable ... PASS
+  TEST: FUN_00441b90 handles NULL inputs gracefully ... PASS
+  TEST: FUN_00441b90 processes 2D grid correctly ... PASS
+  TEST: FUN_00441b90 respects stride parameter ... PASS
+  TEST: FUN_00441b90 uses collision map for sprite tiles ... PASS
+
+[FUN_00442070 - Find Walkable Tile]
+  TEST: FUN_00442070 search mode 7 (north) ... PASS
+  TEST: FUN_00442070 search mode 2 (east) ... PASS
+  TEST: FUN_00442070 search mode 3/4 (south) ... PASS
+  TEST: FUN_00442070 search mode 0 (west) ... PASS
+  TEST: FUN_00442070 returns 0 when all tiles blocked ... PASS
+  TEST: FUN_00442070 returns 0 for invalid mode ... PASS
+  TEST: FUN_00442070 handles player at map edge ... PASS
+  TEST: FUN_00442070 uses collision map ... PASS
+  TEST: FUN_00442070 stores found positions correctly ... PASS
+  TEST: FUN_00442070 skips blocked tiles in path ... PASS
+
+=== Results: 20 passed, 0 failed, 20 total ===
+===TILE=== 

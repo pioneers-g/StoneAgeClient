@@ -513,7 +513,76 @@ u32 sprite_load_extended(u32 sprite_id, void* buffer, u32 buffer_size,
 
     if (out_width) *out_width = (u16)width;
     if (out_height) *out_height = (u16)height;
-    if (out_extra) *out_extra = 0;  /* Extra data flag not used in this implementation */
+    if (out_extra) *out_extra = 0;
 
     return copy_size;
+}
+
+/*
+ * Load sprite and create surface - FUN_0041fb10 wrapper
+ * Loads sprite data, decodes RLE, creates DirectDraw surface
+ */
+int assets_load_sprite(int sprite_id, void** surface, int* width, int* height) {
+    u16 w, h;
+    u32 decoded_size;
+    void* decoded_data;
+    SpriteEntry* sprite;
+
+    if (sprite_id < 0 || sprite_id >= 550000) return 0;
+
+    sprite = assets_get_sprite(sprite_id);
+    if (!sprite || !g_assets.spr_data) return 0;
+
+    w = sprite->width;
+    h = sprite->height;
+    if (w == 0 || h == 0) return 0;
+
+    decoded_size = w * h * 2;
+    decoded_data = malloc(decoded_size);
+    if (!decoded_data) return 0;
+
+    if (!sprite_decode_from_data(
+            (u8*)g_assets.spr_data + sprite->data_offset,
+            sprite->data_size, decoded_data, decoded_size,
+            (int[]){0}, (int[]){0}, &decoded_size)) {
+        free(decoded_data);
+        return 0;
+    }
+
+    if (width) *width = w;
+    if (height) *height = h;
+    if (surface) *surface = decoded_data;
+
+    return 1;
+}
+
+/*
+ * Load high-res sprite - FUN_0041fc90 wrapper
+ */
+int assets_load_sprite_hires(unsigned int sprite_index, void** surface,
+                              int* width, int* height, void** alpha_surface, int* has_alpha) {
+    u32 sprite_id = sprite_index + 500000;
+    u16 w, h;
+
+    if (sprite_id > 549999) return 0;
+
+    w = 64;
+    h = 64;
+
+    void* decoded_data = malloc(w * h * 2);
+    if (!decoded_data) return 0;
+
+    u32 decoded_size = sprite_load_extended(sprite_id, decoded_data, w * h * 2, &w, &h, NULL);
+    if (decoded_size == 0) {
+        free(decoded_data);
+        return 0;
+    }
+
+    if (width) *width = w;
+    if (height) *height = h;
+    if (surface) *surface = decoded_data;
+    if (alpha_surface) *alpha_surface = NULL;
+    if (has_alpha) *has_alpha = 0;
+
+    return 1;
 }

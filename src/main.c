@@ -230,12 +230,20 @@ int main_entry(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, in
              GAME_VERSION_MAJOR, GAME_VERSION_MINOR,
              GAME_VERSION_PATCH, GAME_VERSION_BUILD);
 
-    /* Check for "updated" parameter - FUN_00492020 at 0x004ba538 */
+    /* Check for "updated" parameter - FUN_00492020 at 0x004ba538
+     * Original binary requires -updated on command line (launcher passes it).
+     * For development, skip this check unless STRICT_LAUNCHER is defined. */
+#ifndef STRICT_LAUNCHER
+    if (!check_updated_param(lpCmdLine)) {
+        LOG_INFO("No -updated flag, proceeding in development mode");
+    }
+#else
     if (!check_updated_param(lpCmdLine)) {
         MessageBoxA(NULL, "Please run the updater first.", "Stone Age", MB_OK | MB_ICONERROR);
         logger_shutdown();
         return 0;
     }
+#endif
 
     /* Get current process ID - DAT_0455f8f8 */
     current_pid = GetCurrentProcessId();

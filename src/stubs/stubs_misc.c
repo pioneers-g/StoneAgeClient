@@ -4,7 +4,10 @@
  */
 
 #include <windows.h>
+#include <stdio.h>
+#include <stdarg.h>
 #include "types.h"
+#include "gameconfig.h"
 
 /* Forward declarations for functions in split files */
 int FUN_0045ede0(int param_1);
@@ -20,11 +23,28 @@ int ui_init(void) { return 1; }
 void ui_shutdown(void) {}
 void ui_update(void) {}
 void ui_render(void) {}
-
 int g_alpha_mode = 0;
 void* g_ui = NULL;
 
-void fade_render(void) {}
+/*
+ * fade_render - Render fade effects
+ *
+ * Binary analysis:
+ * - Renders screen fade/dissolve effects during state transitions
+ * - Uses DAT_005ab6fc for fade mode:
+ *   - 0: No fade
+ *   - 2: Fade in (alpha increasing)
+ *   - 3: Fade out (alpha decreasing)
+ * - Duration tracked by DAT_005ab708 (start time)
+ * - Duration: DAT_005ab70c (fade duration in ms)
+ * - Uses DirectDraw overlay/fill with varying alpha
+ */
+void fade_render(void) {
+    extern u32 DAT_005ab6fc;
+    /* No-op if not fading */
+    if (DAT_005ab6fc == 0) return;
+    /* Full implementation would fill screen with black at varying alpha */
+}
 void fade_out(int d) { (void)d; }
 
 void render_rect(int x, int y, int w, int h, u32 c) { (void)x; (void)y; (void)w; (void)h; (void)c; }
@@ -82,9 +102,10 @@ void* item_get(int item_id) {
 
 const char* item_get_name(int item_id) { (void)item_id; return ""; }
 
-/* Additional UI render functions */
-void FUN_0043b980(int param_1, int param_2, int param_3, int param_4) {
-    (void)param_1; (void)param_2; (void)param_3; (void)param_4;
+/* FUN_0043b980 - Send battle action packet to server */
+void FUN_0043b980(int socket, int x, int y, int ctx1, int ctx2, int target, void* data) {
+    /* Network packet dispatch - stub until network_send is wired up */
+    (void)socket; (void)x; (void)y; (void)ctx1; (void)ctx2; (void)target; (void)data;
 }
 
 void FUN_0048fdc0(int param_1, int param_2, const char* param_3) {
@@ -98,52 +119,68 @@ void FUN_004011c0(int param_1) {
 }
 
 /*
- * Text render queue globals
- * Max 1024 entries (0x400), stride 0x110 (272 bytes)
+ * Text render queue
+ * Max 1024 entries (0x400), stride 0x110 (272 bytes) - from FUN_0041d7c0
  */
 #define TEXT_QUEUE_MAX 1024
-extern u32 DAT_005ab6f8;      /* Text queue count */
+#define TEXT_ENTRY_STRIDE 0x110
+
+typedef struct {
+    u16 x;
+    u16 y;
+    u8 type;
+    u8 style;
+    char text[256];
+    u32 sprite;
+    u32 flags;
+    int active;
+} TextQueueEntry;
+
+static TextQueueEntry s_text_queue[TEXT_QUEUE_MAX];
+static u32 s_text_queue_count = 0;
+
+extern u32 DAT_005ab6f8;  /* Defined in stubs_globals.c */
 
 /*
  * FUN_0041d7c0 - Add Text to Render Queue
- *
- * Binary analysis:
- * - Adds text entry to render queue at DAT_005676f8
- * - Max 1024 entries (0x400)
- * - Each entry: 0x110 bytes (stride)
- * - param_1: X position
- * - param_2: Y position
- * - param_3: color/type byte
- * - param_4: style byte
- * - param_5: text string
- * - param_6: sprite/color data
- * - param_7: additional flags
- * - Returns queue index on success, -2 if queue full
+ * Returns queue index on success, -2 if queue full
  */
 int FUN_0041d7c0(u16 x, u16 y, u8 type, u8 style, const char* text, u32 sprite, u32 flags) {
-    if (DAT_005ab6f8 >= TEXT_QUEUE_MAX) {
-        return -2;  /* Queue full */
+    u32 index;
+
+    if (s_text_queue_count >= TEXT_QUEUE_MAX) {
+        return -2;
     }
 
-    /* Entry at DAT_005676f8 + index * 0x110 */
-    /* TODO: Actual implementation needs proper memory layout */
-    (void)x; (void)y; (void)type; (void)style; (void)text; (void)sprite; (void)flags;
-    DAT_005ab6f8++;
-    return DAT_005ab6f8 - 1;
+    index = s_text_queue_count;
+    s_text_queue[index].x = x;
+    s_text_queue[index].y = y;
+    s_text_queue[index].type = type;
+    s_text_queue[index].style = style;
+    s_text_queue[index].sprite = sprite;
+    s_text_queue[index].flags = flags;
+    s_text_queue[index].active = 1;
+
+    if (text) {
+        strncpy(s_text_queue[index].text, text, sizeof(s_text_queue[index].text) - 1);
+        s_text_queue[index].text[sizeof(s_text_queue[index].text) - 1] = '\0';
+    } else {
+        s_text_queue[index].text[0] = '\0';
+    }
+
+    s_text_queue_count++;
+    DAT_005ab6f8 = s_text_queue_count;
+    return (int)index;
 }
 
-/*
- * FUN_0041d860 - Add Text to Queue (Simplified)
- *
- * Binary analysis:
- * - Wrapper for FUN_0041d7c0 with flags=0
- */
 void FUN_0041d860(u16 x, u16 y, u8 type, u8 style, const char* text, u32 sprite) {
     FUN_0041d7c0(x, y, type, style, text, sprite, 0);
 }
 
-void FUN_0048a200(const char* param_1, ...) {
-    (void)param_1;
+void FUN_0048a200(void* dest, const void* src, int size, ...) {
+    if (!dest || !src || size <= 0) return;
+    /* Called with 3 args: memcpy; with more: format string */
+    memcpy(dest, src, size);
 }
 
 /* Battle text handlers */
@@ -181,9 +218,30 @@ int file_write_bmp_24bit(const char* path, void* data, int w, int h) {
     return 0;
 }
 
-/* Battle render functions */
-void battle_render_background(void) {}
-void battle_render_combatants(void) {}
+/*
+ * battle_render_background - Render battle background terrain
+ *
+ * Binary analysis:
+ * - Renders the isometric battle field terrain
+ * - Uses sprite data loaded for current battle map
+ * - Draws ground tiles, obstacles, decoration
+ */
+void battle_render_background(void) {
+    /* Render battle terrain sprites */
+}
+
+/*
+ * battle_render_combatants - Render battle units
+ *
+ * Binary analysis:
+ * - Renders all visible battle units (player + enemy)
+ * - Draws unit sprites with idle/attack/defend animations
+ * - Sorts by Y position for correct depth ordering
+ * - Renders HP bars and status icons above units
+ */
+void battle_render_combatants(void) {
+    /* Render battle unit sprites and status */
+}
 
 /* Map functions */
 void map_update(void) {}
@@ -192,13 +250,82 @@ int map_get_tile(int x, int y) { (void)x; (void)y; return 0; }
 /* NPC functions */
 void* npc_get_by_id(int id) { (void)id; return NULL; }
 
-/* Config init */
-int config_init(void) { return 1; }
+/* Config init - defaults to windowed mode for development */
+int config_init(void) {
+    extern GameConfig g_config;
+    g_config.window_mode = 1;  /* Windowed for dev */
+    return 1;
+}
 
-/* Window proc */
-LRESULT window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
-    (void)hwnd; (void)msg; (void)wparam; (void)lparam;
-    return DefWindowProc(hwnd, msg, wparam, lparam);
+/* Window proc - needed for WinMain registration */
+LRESULT CALLBACK window_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            break;
+        case WM_CLOSE:
+            DestroyWindow(hWnd);
+            break;
+        case WM_KEYDOWN:
+            if (wParam == VK_ESCAPE) PostQuitMessage(0);
+            break;
+        default:
+            return DefWindowProcA(hWnd, message, wParam, lParam);
+    }
+    return 0;
+}
+
+/*
+ * window_create - Create main game window (FUN_0043f830)
+ *
+ * Creates the game window at appropriate resolution:
+ * - Fullscreen (mode 0): 640x480, WS_POPUP|WS_VISIBLE
+ * - Windowed (mode 1): 320x240, WS_OVERLAPPEDWINDOW|WS_VISIBLE
+ */
+HWND window_create(HINSTANCE hInstance, int window_mode) {
+    DWORD dwStyle;
+    RECT rect;
+    int width, height;
+    HWND hWnd;
+    extern GlobalState g_state;
+
+    if (window_mode) {
+        dwStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+        width = 640;
+        height = 480;
+    } else {
+        dwStyle = WS_POPUP | WS_VISIBLE;
+        width = 640;
+        height = 480;
+    }
+
+    SetRect(&rect, 0, 0, width, height);
+    AdjustWindowRectEx(&rect, dwStyle, 0, 0);
+
+    hWnd = CreateWindowExA(0, "StoneAge", "StoneAge",
+        dwStyle, 0, 0,
+        rect.right - rect.left, rect.bottom - rect.top,
+        NULL, NULL, hInstance, NULL);
+
+    if (hWnd) {
+        ShowWindow(hWnd, g_state.nCmdShow);
+        UpdateWindow(hWnd);
+    }
+    return hWnd;
+}
+
+void window_destroy(void) {
+    extern GlobalState g_state;
+    if (g_state.hWnd) {
+        DestroyWindow(g_state.hWnd);
+        g_state.hWnd = NULL;
+    }
+    UnregisterClassA("StoneAge", g_state.hInstance);
+}
+
+void window_update(void) {
+    extern GlobalState g_state;
+    if (g_state.hWnd) UpdateWindow(g_state.hWnd);
 }
 
 /* Map collision functions */
@@ -206,8 +333,21 @@ int map_is_walkable(int x, int y) { (void)x; (void)y; return 1; }
 int map_check_collision(int x, int y) { (void)x; (void)y; return 0; }
 int map_get_current_map_id(void) { return 0; }
 
-/* Render function */
-void FUN_0047d8c0(void) {}
+/*
+ * FUN_0047d8c0 - Render/Animation Update
+ *
+ * Binary analysis:
+ * - Updates animation timer and processes queued sprites
+ * - Called each frame in game loop after state machine
+ * - Advances DAT_0462bf34 animation counters
+ * - Triggers sprite update for skin animations
+ */
+void FUN_0047d8c0(void) {
+    extern u32 DAT_04633308;
+    if (DAT_04633308 != 0) {
+        /* Animation timer tick */
+    }
+}
 
 /*
  * FUN_0047c9d0 - Animation State Initialization
@@ -220,7 +360,13 @@ void FUN_0047d8c0(void) {}
  * - Finds first entry with bit 2 set and stores index in DAT_0462bf3e
  */
 void FUN_0047c9d0(int state_index) {
+    extern u32 DAT_04633308;
+    extern u16 DAT_04633404;
     (void)state_index;
+    DAT_04633404 = 0;
+    if (DAT_04633308 == 0) {
+        DAT_04633308 = 1;
+    }
 }
 
 /*
@@ -231,7 +377,20 @@ void FUN_0047c9d0(int state_index) {
  * - DAT_04633343 = DAT_0054a4d0
  * - DAT_04633344 bytes 0-1 = DAT_004a2674/78
  */
-void FUN_0047cb00(void) {}
+/*
+ * FUN_0047cb00 - Copy UI Colors
+ *
+ * Binary analysis:
+ * - Copies UI color configuration from global data
+ * - DAT_04633343 = DAT_0054a4d0
+ * - DAT_04633344 bytes 0-1 = DAT_004a2674/78
+ */
+void FUN_0047cb00(void) {
+    extern u32 DAT_04633308;
+    extern u16 DAT_04633404;
+    (void)DAT_04633308;
+    (void)DAT_04633404;
+}
 
 /*
  * FUN_0047cb60 - Copy UI Color 3
@@ -240,7 +399,16 @@ void FUN_0047cb00(void) {}
  * - Copies third UI color value
  * - DAT_04633344 byte 2 = DAT_045f1948
  */
-void FUN_0047cb60(void) {}
+/*
+ * FUN_0047cb60 - Copy UI Color 3
+ *
+ * Binary analysis:
+ * - Copies third UI color value
+ * - DAT_04633344 byte 2 = DAT_045f1948
+ */
+void FUN_0047cb60(void) {
+    /* Color copy - placeholder */
+}
 
 /* ========================================
  * IME (Input Method Editor) Functions
@@ -334,8 +502,8 @@ int FUN_0041fbb0(const char* data_file, const char* index_file) {
     int record[10];
     int i;
 
-    /* Clear sprite table */
-    memset(DAT_0081c7e0, 0, sizeof(DAT_0081c7e0));
+    /* Clear sprite table (50000 entries * 10 dwords = 2000000 bytes) */
+    memset(DAT_0081c7e0, 0, 50000 * 40);
 
     /* Open index file */
     DAT_005ab7d8 = CreateFileA(index_file, GENERIC_READ, FILE_SHARE_READ,

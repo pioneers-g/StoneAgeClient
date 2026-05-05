@@ -14,6 +14,7 @@
 #include <string.h>
 #include "types.h"
 #include "render_blend.h"
+#include "render.h"
 #include "directx.h"
 #include "logger.h"
 
@@ -685,7 +686,9 @@ void render_fill_rect(IDirectDrawSurface* surface, int x, int y, int w, int h, u
     DDBLTFX bltfx;
     RECT rect;
     HRESULT hr;
+    extern RenderContext g_render;
 
+    if (!surface) surface = g_render.target;
     if (!surface) return;
 
     rect.left = x;

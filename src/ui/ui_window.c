@@ -68,7 +68,7 @@ static u32 s_close_btn_bg = 0;
  * 3: DAT_0054c208
  * 4: offset 0x6d, sprite_base = -2 (minimal)
  */
-WindowWidget* window_create(int x, int y, int width, int height, int style) {
+WindowWidget* ui_widget_window_create(int x, int y, int width, int height, int style) {
     WindowWidget* wnd;
     WindowInternal* wi;
     int half_w;
@@ -171,7 +171,7 @@ WindowWidget* window_create(int x, int y, int width, int height, int style) {
 /*
  * Destroy window widget
  */
-void window_destroy(WindowWidget* wnd) {
+void ui_widget_window_destroy(WindowWidget* wnd) {
     if (wnd) {
         free(wnd);
     }
@@ -356,7 +356,7 @@ void window_render_handler(WindowWidget* wnd) {
 /*
  * Update window animation
  */
-void window_update(WindowWidget* wnd) {
+void ui_widget_window_update(WindowWidget* wnd) {
     if (!wnd) return;
 
     /* Animation is handled in render handler */

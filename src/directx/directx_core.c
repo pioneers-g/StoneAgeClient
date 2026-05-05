@@ -241,17 +241,11 @@ int graphics_load_palette(const char* path) {
  */
 int graphics_allocate_context(int screen_mode) {
     switch (screen_mode) {
-        case 0: case 2:
+        case 0: case 1: case 2:
             g_graphics.width = 640;
             g_graphics.height = 480;
             g_sprite_width = 64;
             g_sprite_height = 48;
-            break;
-        case 1:
-            g_graphics.width = 320;
-            g_graphics.height = 240;
-            g_sprite_width = 32;
-            g_sprite_height = 24;
             break;
         default:
             g_graphics.width = 640;
@@ -281,24 +275,26 @@ int graphics_init(HWND hWnd, int window_mode) {
     g_graphics.bpp = GetDeviceCaps(hdc, BITSPIXEL);
     ReleaseDC(hWnd, hdc);
 
-    LOG_INFO("Initializing DirectDraw, color depth: %d", g_graphics.bpp);
+    LOG_INFO("Initializing DirectDraw, color depth: %d, mode: %s",
+             g_graphics.bpp, window_mode ? "windowed" : "fullscreen");
 
     hr = p_DirectDrawCreate(NULL, &g_graphics.ddraw, NULL);
     if (FAILED(hr)) {
         LOG_ERROR("DirectDrawCreate failed: 0x%08X, trying secondary", hr);
         hr = p_DirectDrawCreate((GUID*)2, &g_graphics.ddraw, NULL);
         if (FAILED(hr)) {
-            MessageBoxA(hWnd, "DirectDrawCreate Error", "Error", MB_OK | MB_ICONERROR);
+            LOG_ERROR("DirectDrawCreate secondary also failed: 0x%08X", hr);
             return 0;
         }
     }
+    LOG_INFO("DirectDrawCreate succeeded");
 
     hr = IDirectDraw_QueryInterface(g_graphics.ddraw, &IID_IDirectDraw4, (void**)&g_graphics.ddraw4);
     if (FAILED(hr)) {
         LOG_ERROR("QueryInterface IDirectDraw4 failed: 0x%08X", hr);
-        MessageBoxA(hWnd, "QueryInterface Error", "Error", MB_OK | MB_ICONERROR);
         return 0;
     }
+    LOG_INFO("QueryInterface IDirectDraw4 succeeded");
 
     if (window_mode == SCREEN_MODE_FULLSCREEN) {
         g_graphics.bpp = 16;
@@ -341,9 +337,10 @@ int graphics_init(HWND hWnd, int window_mode) {
 
     hr = IDirectDraw4_CreateSurface(g_graphics.ddraw4, &ddsd, &g_graphics.primary_surface, NULL);
     if (FAILED(hr)) {
-        MessageBoxA(hWnd, "Create frontbuffer error", "Error", MB_OK | MB_ICONERROR);
+        LOG_ERROR("CreateSurface (primary) failed: 0x%08X", hr);
         return 0;
     }
+    LOG_INFO("Primary surface created");
 
     if (window_mode == SCREEN_MODE_FULLSCREEN) {
         memset(&caps, 0, sizeof(DDSCAPS2));
@@ -368,12 +365,14 @@ int graphics_init(HWND hWnd, int window_mode) {
 
     g_graphics.offscreen_surface = graphics_create_offscreen(g_graphics.width, g_graphics.height, SURFACE_FLAG_VIDEO_MEMORY);
     if (!g_graphics.offscreen_surface) {
+        LOG_WARN("Video memory offscreen failed, trying system memory");
         g_graphics.offscreen_surface = graphics_create_offscreen(g_graphics.width, g_graphics.height, SURFACE_FLAG_SYSTEM_MEMORY);
         if (!g_graphics.offscreen_surface) {
-            MessageBoxA(hWnd, "Failed to create offscreen surface", "Error", MB_OK | MB_ICONERROR);
+            LOG_ERROR("Failed to create offscreen surface");
             return 0;
         }
     }
+    LOG_INFO("Offscreen surface created");
 
     if (g_alpha_mode) {
         g_graphics.alpha_surface = graphics_create_offscreen(g_graphics.width, g_graphics.height, SURFACE_FLAG_SYSTEM_MEMORY);

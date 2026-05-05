@@ -5,6 +5,8 @@
 
 #include <windows.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
 #include "types.h"
 
 /* External globals */
@@ -135,8 +137,12 @@ char* FUN_0049b108(int value, char* buffer, int radix) {
  * - Returns formatted string length
  */
 int FUN_004923a7(char* buffer, const char* format, ...) {
-    (void)buffer; (void)format;
-    return 0;
+    va_list args;
+    int result;
+    va_start(args, format);
+    result = vsprintf(buffer, format, args);
+    va_end(args);
+    return result;
 }
 
 /*

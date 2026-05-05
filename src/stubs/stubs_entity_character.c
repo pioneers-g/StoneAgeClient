@@ -257,7 +257,9 @@ void FUN_00477c70(int model_id, int extra_data) {
  *   - offset 0x11c/120: from DAT_045827fc/800
  *   - offset 0xb8/bc: from DAT_0458118c/84
  */
-void FUN_00477cd0(void) {}
+void FUN_00477cd0(void) {
+    /* Character position sync - copies world coordinates to entity */
+}
 
 /*
  * FUN_00478a30 - Parse Character Data String

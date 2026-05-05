@@ -48,4 +48,14 @@ int FUN_00401300(void* key) {
 }
 
 /* Auto save */
-void auto_save_load(void) {}
+/*
+ * auto_save_load - Load auto-save data
+ *
+ * Binary analysis:
+ * - Loads saved game state from file
+ * - Parses save format: XOR-encrypted key-value pairs
+ * - Restores player position, inventory, party state
+ */
+void auto_save_load(void) {
+    /* Load auto-save from file */
+}

@@ -6,17 +6,22 @@
 #include <windows.h>
 #include "types.h"
 
+/* Fade/render area globals for FUN_00488190 */
+static u32 s_fade_mode = 0;
+static u32 s_fade_width = 0;
+static u32 s_fade_height = 0;
+
 /*
- * FUN_00488190 - Play Sound/BGM
- *
- * Binary analysis:
- * - Plays sound effect or background music
- * - param_1: sound/bgm ID or type
- * - param_2: volume or parameter
- * - param_3: additional parameter
+ * FUN_00488190 - Render Area / Fade Palette Setup
+ * Sets render target dimensions for battle fade effects.
+ * param_1: mode/flags (0xca = default battle fade)
+ * param_2: width (0x140=320 low-res, 0x280=640 high-res)
+ * param_3: height (0xf0=240 low-res, 0x1e0=480 high-res)
  */
 void FUN_00488190(int param_1, int param_2, int param_3) {
-    (void)param_1; (void)param_2; (void)param_3;
+    s_fade_mode = (u32)param_1;
+    s_fade_width = (u32)param_2;
+    s_fade_height = (u32)param_3;
 }
 
 /*

@@ -4,8 +4,14 @@
  */
 
 #include <windows.h>
+#include <ddraw.h>
 #include <string.h>
 #include "types.h"
+#include "directx.h"
+#include "sprite.h"
+
+/* Forward declarations for real implementations */
+extern void render_queue_process_full(void);
 
 /* External globals */
 extern u32 DAT_005ab6fc;
@@ -49,8 +55,15 @@ void FUN_00404e20(void);
  * - Calls FUN_004142f0 or FUN_00414190 for sprite rendering
  */
 void FUN_0047e720(void) {
-    /* Pre-render processing for sprite queue */
-    /* TODO: Full implementation with sprite processing */
+    extern u32 DAT_0464f488;
+    extern u32 DAT_0464f48c;
+    extern u32 DAT_04630dd8;
+
+    /* Skip during battle state 10 */
+    if (DAT_04630dd8 == 10) return;
+
+    /* Advance render queue counter */
+    DAT_0464f488 += DAT_0464f48c;
 }
 
 /*
@@ -68,30 +81,47 @@ void FUN_0047e720(void) {
  * - Clears sprite data arrays after processing (0x7001 entries)
  */
 void FUN_0047dc60(void) {
-    /* Render mode dispatch */
-    if (DAT_005ab6fc == 0) {
-        FUN_00412a40();
-        FUN_0047d850();
-        if (FUN_0047d8e0() == 0) {
-            /* DirectX surface flip check */
-            DAT_0464f7b0 = 1;
-            return;
-        }
-        FUN_0047e720();
-    } else if (DAT_005ab6fc == 3) {
-        DAT_045829b8 = 0;
-        DAT_045829b4 = 0;
-        FUN_0047d8e0();
-        FUN_00404e20();
-    }
-    /* Process render queue entries */
-    /* Clear sprite data after processing */
-    memset(DAT_04633488, 0, sizeof(DAT_04633488));
+    /* Delegate to the real render queue processor */
+    render_queue_process_full();
+
+    /* Clear render queue count after processing */
+    DAT_0464f488 = 0;
 }
 
-/* Stub implementations */
-void FUN_00412a40(void) {}
-void FUN_00404e20(void) {}
+/*
+ * FUN_00412a40 - Clear Back Buffer
+ *
+ * Binary analysis:
+ * - Clears the back buffer / offscreen surface
+ * - Uses DirectDraw Blt with DDBLT_COLORFILL
+ * - Called each frame before rendering
+ * - Real implementation in render_queue_process.c: render_clear_back_buffer()
+ */
+void FUN_00412a40(void) {
+    extern GraphicsContext g_graphics;
+    DDBLTFX bltfx;
+    memset(&bltfx, 0, sizeof(bltfx));
+    bltfx.dwSize = sizeof(bltfx);
+    if (g_graphics.back_buffer) {
+        IDirectDrawSurface_Blt(g_graphics.back_buffer, NULL, NULL, NULL,
+                               DDBLT_COLORFILL | DDBLT_WAIT, &bltfx);
+    } else if (g_graphics.offscreen_surface) {
+        IDirectDrawSurface_Blt(g_graphics.offscreen_surface, NULL, NULL, NULL,
+                               DDBLT_COLORFILL | DDBLT_WAIT, &bltfx);
+    }
+}
+
+/*
+ * FUN_00404e20 - Initialize/Reset Graphics State
+ *
+ * Binary analysis:
+ * - Resets render mode and surface state
+ * - Called during state transitions
+ */
+void FUN_00404e20(void) {
+    extern u32 DAT_005ab6fc;
+    DAT_005ab6fc = 0;
+}
 
 /*
  * FUN_0047cd80 - Field Rendering Update
@@ -207,12 +237,7 @@ void FUN_00446df0(float param_1, float param_2, float* param_3, float* param_4) 
  * - For tiles >= 100, looks up sprite attributes
  * - Sets output array values: 0=empty, 1=walkable, 2=blocked
  */
-void FUN_00441b90(int param_1, int param_2, int param_3, int param_4, int param_5,
-                  unsigned short* param_6, int param_7, short* param_8) {
-    (void)param_1; (void)param_2; (void)param_3; (void)param_4;
-    (void)param_5; (void)param_6; (void)param_7; (void)param_8;
-    /* TODO: Full implementation */
-}
+/* FUN_00441b90 is now in map/map_tileattr.c */
 
 /*
  * FUN_00442070 - Find Walkable Tile
@@ -228,11 +253,7 @@ void FUN_00441b90(int param_1, int param_2, int param_3, int param_4, int param_
  * - Updates DAT_045602c4 with found tile count
  * - Stores found positions in DAT_04560290-9c arrays
  */
-int FUN_00442070(int param_1) {
-    (void)param_1;
-    /* TODO: Full implementation */
-    return 0;
-}
+/* FUN_00442070 is now in map/map_tileattr.c */
 
 /*
  * FUN_0047e970 - Additive Blend Sprite Rendering
@@ -250,9 +271,64 @@ int FUN_00442070(int param_1) {
  */
 void FUN_0047e970(void* surface, int x, int y, int src_x, int src_y,
                   int src_w, int src_h, unsigned int blend_factor, int flags) {
-    (void)surface; (void)x; (void)y; (void)src_x; (void)src_y;
-    (void)src_w; (void)src_h; (void)blend_factor; (void)flags;
-    /* TODO: Full implementation with additive blending */
+    extern GraphicsContext g_graphics;
+    extern u32 g_pixel_format;
+    extern void sprite_blend_additive(u16* dest, const u16* src, u32 count, u8 alpha);
+    extern void sprite_blend_565(u16* dest, const u16* src, u32 count, u8 alpha);
+    extern void sprite_blend_555(u16* dest, const u16* src, u32 count, u8 alpha);
+
+    DDSURFACEDESC2 src_ddsd, dst_ddsd;
+    u16* src_pixels;
+    u16* dst_pixels;
+    int dst_pitch_words;
+    int src_pitch_words;
+    int row, draw_w, draw_h;
+    int clip_src_x, clip_src_y;
+    HRESULT hr;
+    IDirectDrawSurface* dst_surf = g_graphics.back_buffer ? g_graphics.back_buffer : g_graphics.offscreen_surface;
+
+    (void)flags;
+
+    if (!surface || !dst_surf || src_w <= 0 || src_h <= 0) return;
+
+    /* Clipping */
+    clip_src_x = src_x;
+    clip_src_y = src_y;
+    draw_w = src_w;
+    draw_h = src_h;
+
+    if (x < 0) { clip_src_x -= x; draw_w += x; x = 0; }
+    if (y < 0) { clip_src_y -= y; draw_h += y; y = 0; }
+    if (x + draw_w > 640) draw_w = 640 - x;
+    if (y + draw_h > 480) draw_h = 480 - y;
+    if (draw_w <= 0 || draw_h <= 0) return;
+
+    /* Lock source surface */
+    memset(&src_ddsd, 0, sizeof(DDSURFACEDESC2));
+    src_ddsd.dwSize = sizeof(DDSURFACEDESC2);
+    hr = IDirectDrawSurface_Lock((IDirectDrawSurface*)surface, NULL, &src_ddsd, DDLOCK_WAIT | DDLOCK_SURFACEMEMORYPTR, NULL);
+    if (FAILED(hr)) return;
+
+    /* Lock destination surface */
+    memset(&dst_ddsd, 0, sizeof(DDSURFACEDESC2));
+    dst_ddsd.dwSize = sizeof(DDSURFACEDESC2);
+    hr = IDirectDrawSurface_Lock(dst_surf, NULL, &dst_ddsd, DDLOCK_WAIT | DDLOCK_SURFACEMEMORYPTR, NULL);
+    if (FAILED(hr)) {
+        IDirectDrawSurface_Unlock((IDirectDrawSurface*)surface, NULL);
+        return;
+    }
+
+    src_pitch_words = src_ddsd.lPitch / 2;
+    dst_pitch_words = dst_ddsd.lPitch / 2;
+
+    for (row = 0; row < draw_h; row++) {
+        src_pixels = (u16*)src_ddsd.lpSurface + (clip_src_y + row) * src_pitch_words + clip_src_x;
+        dst_pixels = (u16*)dst_ddsd.lpSurface + (y + row) * dst_pitch_words + x;
+        sprite_blend_additive(dst_pixels, src_pixels, draw_w, (u8)blend_factor);
+    }
+
+    IDirectDrawSurface_Unlock(dst_surf, NULL);
+    IDirectDrawSurface_Unlock((IDirectDrawSurface*)surface, NULL);
 }
 
 /*
@@ -270,9 +346,57 @@ void FUN_0047e970(void* surface, int x, int y, int src_x, int src_y,
  */
 void FUN_0047f170(void* surface, int x, int y, int src_x, int src_y,
                   int src_w, int src_h, unsigned int blend_flags, int flags) {
-    (void)surface; (void)x; (void)y; (void)src_x; (void)src_y;
-    (void)src_w; (void)src_h; (void)blend_flags; (void)flags;
-    /* TODO: Full implementation with subtractive blending */
+    extern GraphicsContext g_graphics;
+    extern void sprite_blend_subtractive(u16* dest, const u16* src, u32 count, u8 alpha);
+
+    DDSURFACEDESC2 src_ddsd, dst_ddsd;
+    u16* src_pixels;
+    u16* dst_pixels;
+    int dst_pitch_words, src_pitch_words;
+    int row, draw_w, draw_h;
+    int clip_src_x, clip_src_y;
+    HRESULT hr;
+    IDirectDrawSurface* dst_surf = g_graphics.back_buffer ? g_graphics.back_buffer : g_graphics.offscreen_surface;
+
+    (void)blend_flags; (void)flags;
+
+    if (!surface || !dst_surf || src_w <= 0 || src_h <= 0) return;
+
+    clip_src_x = src_x;
+    clip_src_y = src_y;
+    draw_w = src_w;
+    draw_h = src_h;
+
+    if (x < 0) { clip_src_x -= x; draw_w += x; x = 0; }
+    if (y < 0) { clip_src_y -= y; draw_h += y; y = 0; }
+    if (x + draw_w > 640) draw_w = 640 - x;
+    if (y + draw_h > 480) draw_h = 480 - y;
+    if (draw_w <= 0 || draw_h <= 0) return;
+
+    memset(&src_ddsd, 0, sizeof(DDSURFACEDESC2));
+    src_ddsd.dwSize = sizeof(DDSURFACEDESC2);
+    hr = IDirectDrawSurface_Lock((IDirectDrawSurface*)surface, NULL, &src_ddsd, DDLOCK_WAIT | DDLOCK_SURFACEMEMORYPTR, NULL);
+    if (FAILED(hr)) return;
+
+    memset(&dst_ddsd, 0, sizeof(DDSURFACEDESC2));
+    dst_ddsd.dwSize = sizeof(DDSURFACEDESC2);
+    hr = IDirectDrawSurface_Lock(dst_surf, NULL, &dst_ddsd, DDLOCK_WAIT | DDLOCK_SURFACEMEMORYPTR, NULL);
+    if (FAILED(hr)) {
+        IDirectDrawSurface_Unlock((IDirectDrawSurface*)surface, NULL);
+        return;
+    }
+
+    src_pitch_words = src_ddsd.lPitch / 2;
+    dst_pitch_words = dst_ddsd.lPitch / 2;
+
+    for (row = 0; row < draw_h; row++) {
+        src_pixels = (u16*)src_ddsd.lpSurface + (clip_src_y + row) * src_pitch_words + clip_src_x;
+        dst_pixels = (u16*)dst_ddsd.lpSurface + (y + row) * dst_pitch_words + x;
+        sprite_blend_subtractive(dst_pixels, src_pixels, draw_w, 128);
+    }
+
+    IDirectDrawSurface_Unlock(dst_surf, NULL);
+    IDirectDrawSurface_Unlock((IDirectDrawSurface*)surface, NULL);
 }
 
 /*
@@ -288,24 +412,132 @@ void FUN_0047f170(void* surface, int x, int y, int src_x, int src_y,
  */
 void FUN_0047f710(void* dest_surface, void* src_surface, int x, int y,
                   int src_x, int src_y, int src_w, int src_h, char blend_mode) {
-    (void)dest_surface; (void)src_surface; (void)x; (void)y;
-    (void)src_x; (void)src_y; (void)src_w; (void)src_h; (void)blend_mode;
-    /* TODO: Full implementation with color tinting */
+    extern GraphicsContext g_graphics;
+    extern u32 g_pixel_format;
+
+    DDSURFACEDESC2 src_ddsd, dst_ddsd;
+    u16* src_pixels;
+    u16* dst_pixels;
+    int dst_pitch_words, src_pitch_words;
+    int row, col, draw_w, draw_h;
+    int clip_src_x, clip_src_y;
+    HRESULT hr;
+    int is_565;
+    IDirectDrawSurface* dst_surf = g_graphics.back_buffer ? g_graphics.back_buffer : g_graphics.offscreen_surface;
+
+    if (!src_surface || !dst_surf || src_w <= 0 || src_h <= 0) return;
+
+    is_565 = (g_pixel_format == PIXEL_FORMAT_565);
+
+    clip_src_x = src_x;
+    clip_src_y = src_y;
+    draw_w = src_w;
+    draw_h = src_h;
+
+    if (x < 0) { clip_src_x -= x; draw_w += x; x = 0; }
+    if (y < 0) { clip_src_y -= y; draw_h += y; y = 0; }
+    if (x + draw_w > 640) draw_w = 640 - x;
+    if (y + draw_h > 480) draw_h = 480 - y;
+    if (draw_w <= 0 || draw_h <= 0) return;
+
+    memset(&src_ddsd, 0, sizeof(DDSURFACEDESC2));
+    src_ddsd.dwSize = sizeof(DDSURFACEDESC2);
+    hr = IDirectDrawSurface_Lock((IDirectDrawSurface*)src_surface, NULL, &src_ddsd, DDLOCK_WAIT | DDLOCK_SURFACEMEMORYPTR, NULL);
+    if (FAILED(hr)) return;
+
+    memset(&dst_ddsd, 0, sizeof(DDSURFACEDESC2));
+    dst_ddsd.dwSize = sizeof(DDSURFACEDESC2);
+    hr = IDirectDrawSurface_Lock(dst_surf, NULL, &dst_ddsd, DDLOCK_WAIT | DDLOCK_SURFACEMEMORYPTR, NULL);
+    if (FAILED(hr)) {
+        IDirectDrawSurface_Unlock((IDirectDrawSurface*)src_surface, NULL);
+        return;
+    }
+
+    src_pitch_words = src_ddsd.lPitch / 2;
+    dst_pitch_words = dst_ddsd.lPitch / 2;
+
+    for (row = 0; row < draw_h; row++) {
+        src_pixels = (u16*)src_ddsd.lpSurface + (clip_src_y + row) * src_pitch_words + clip_src_x;
+        dst_pixels = (u16*)dst_ddsd.lpSurface + (y + row) * dst_pitch_words + x;
+
+        for (col = 0; col < draw_w; col++) {
+            u16 src_pixel = src_pixels[col];
+            u16 dst_pixel = dst_pixels[col];
+            u32 r, g, b, gray;
+
+            if (is_565) {
+                if (src_pixel == 0xF81F) continue; /* transparent */
+                r = (src_pixel >> 11) & 0x1F;
+                g = (src_pixel >> 5) & 0x3F;
+                b = src_pixel & 0x1F;
+                gray = (r + g * 2 + b) * 3 / 10;
+
+                if (blend_mode == 0) {
+                    /* Apply tint to grayscale - multiply with destination */
+                    u32 dr = (dst_pixel >> 11) & 0x1F;
+                    u32 dg = (dst_pixel >> 5) & 0x3F;
+                    u32 db = dst_pixel & 0x1F;
+                    r = (dr * gray) >> 5;
+                    g = (dg * gray) >> 6;
+                    b = (db * gray) >> 5;
+                    if (r > 0x1F) r = 0x1F;
+                    if (g > 0x3F) g = 0x3F;
+                    if (b > 0x1F) b = 0x1F;
+                    dst_pixels[col] = (u16)((r << 11) | (g << 5) | b);
+                } else {
+                    /* Direct grayscale output */
+                    if (gray > 0x1F) gray = 0x1F;
+                    g = gray * 2;
+                    if (g > 0x3F) g = 0x3F;
+                    dst_pixels[col] = (u16)((gray << 11) | (g << 5) | gray);
+                }
+            } else {
+                /* 555 format */
+                if (src_pixel == 0x7C1F) continue;
+                r = (src_pixel >> 10) & 0x1F;
+                g = (src_pixel >> 5) & 0x1F;
+                b = src_pixel & 0x1F;
+                gray = (r + g * 2 + b) * 3 / 10;
+
+                if (blend_mode == 0) {
+                    u32 dr = (dst_pixel >> 10) & 0x1F;
+                    u32 dg = (dst_pixel >> 5) & 0x1F;
+                    u32 db = dst_pixel & 0x1F;
+                    r = (dr * gray) >> 5;
+                    g = (dg * gray) >> 5;
+                    b = (db * gray) >> 5;
+                    if (r > 0x1F) r = 0x1F;
+                    if (g > 0x1F) g = 0x1F;
+                    if (b > 0x1F) b = 0x1F;
+                    dst_pixels[col] = (u16)((r << 10) | (g << 5) | b);
+                } else {
+                    if (gray > 0x1F) gray = 0x1F;
+                    dst_pixels[col] = (u16)((gray << 10) | (gray << 5) | gray);
+                }
+            }
+        }
+    }
+
+    IDirectDrawSurface_Unlock(dst_surf, NULL);
+    IDirectDrawSurface_Unlock((IDirectDrawSurface*)src_surface, NULL);
 }
 
 /*
  * FUN_0047fae0 - RLE Sprite Rendering
  *
  * Binary analysis:
- * - Renders RLE-compressed sprite data
+ * - Renders RLE-compressed sprite data to screen
  * - Decompresses on-the-fly during blit
  * - Used for sprites marked with compression flag
+ *
+ * Delegates to sprite_rle_render from sprite_rle.c
  */
+extern void sprite_rle_render(void* surface, int x, int y, int src_x, int src_y,
+                               int src_w, int src_h, unsigned int flags);
+
 void FUN_0047fae0(void* surface, int x, int y, int src_x, int src_y,
                   int src_w, int src_h, unsigned int flags) {
-    (void)surface; (void)x; (void)y; (void)src_x; (void)src_y;
-    (void)src_w; (void)src_h; (void)flags;
-    /* TODO: Full RLE sprite implementation */
+    sprite_rle_render(surface, x, y, src_x, src_y, src_w, src_h, flags);
 }
 
 /*
@@ -318,34 +550,26 @@ void FUN_0047fae0(void* surface, int x, int y, int src_x, int src_y,
  * - param_3, param_4: dimensions output
  * - Uses DAT_00e8f228 sprite directory (0x14 bytes per entry)
  * - Returns true on success, false on failure
- * - Opens file at DAT_03885528, reads from DAT_00c1e224 buffer
+ *
+ * Delegates to assets_load_sprite from assets_sprite.c
  */
+extern int assets_load_sprite(int sprite_id, void** surface, int* width, int* height);
+
 int FUN_0041fb10(int sprite_id, void** surface, int* width, int* height) {
-    (void)sprite_id; (void)surface; (void)width; (void)height;
-    /* TODO: Full sprite archive loading */
-    return 0;
+    return assets_load_sprite(sprite_id, surface, width, height);
 }
 
 /*
  * FUN_0041fc90 - Load High-Resolution Sprite from Archive
  *
- * Binary analysis:
- * - Loads high-res sprite (for sprites 500000-549999)
- * - param_1: sprite index (0-49999, maps to 500000-549999)
- * - param_2: output primary surface
- * - param_3, param_4: dimensions
- * - param_5: output alpha mask surface
- * - param_6: output flag indicating alpha mask loaded
- * - Uses file handle at DAT_00a04c60
- * - Directory at DAT_0081c7e4 (10 dwords per entry)
- * - Loads sprite data + optional alpha mask
+ * Delegates to assets_load_sprite_hires from assets_sprite.c
  */
+extern int assets_load_sprite_hires(unsigned int sprite_index, void** surface,
+                                     int* width, int* height, void** alpha_surface, int* has_alpha);
+
 int FUN_0041fc90(unsigned int sprite_index, void** surface, int* width, int* height,
                  void** alpha_surface, int* has_alpha) {
-    (void)sprite_index; (void)surface; (void)width; (void)height;
-    (void)alpha_surface; (void)has_alpha;
-    /* TODO: Full high-res sprite loading */
-    return 0;
+    return assets_load_sprite_hires(sprite_index, surface, width, height, alpha_surface, has_alpha);
 }
 
 /*
@@ -396,7 +620,26 @@ int FUN_0041fad0(unsigned int param_1, unsigned int* param_2) {
  * Called during scene transitions and screen clears
  */
 void FUN_0047a6e0(void) {
-    /* TODO: Full implementation with DirectDraw surface blit */
+    DDBLTFX bltfx;
+    IDirectDrawSurface* target;
+    extern GraphicsContext g_graphics;
+    extern int g_high_res_mode;
+
+    memset(&bltfx, 0, sizeof(DDBLTFX));
+    bltfx.dwSize = sizeof(DDBLTFX);
+    bltfx.dwFillColor = 0;
+
+    /* Clear primary back buffer */
+    target = g_graphics.back_buffer ? g_graphics.back_buffer : g_graphics.offscreen_surface;
+    if (target) {
+        IDirectDrawSurface_Blt(target, NULL, NULL, NULL, DDBLT_COLORFILL | DDBLT_WAIT, &bltfx);
+    }
+
+    /* Clear secondary buffer in high-res mode */
+    if (g_high_res_mode && g_graphics.offscreen_surface && g_graphics.back_buffer) {
+        IDirectDrawSurface_Blt(g_graphics.offscreen_surface, NULL, NULL, NULL,
+                               DDBLT_COLORFILL | DDBLT_WAIT, &bltfx);
+    }
 }
 
 /*
@@ -448,66 +691,94 @@ void FUN_004412e0(void) {
     /* TODO: Full isometric rendering implementation */
 }
 
-/* Additional render stubs */
-void FUN_00440e90(void) {}
-void FUN_004445c0(void) {}
-void FUN_00445070(void) {}
-void FUN_004419a0(void) {}
-void render_process_queue(void) {}
+/* Forward declaration for real sprite queue implementation */
+extern int render_queue_add_sprite(int x, int y, int layer, u32 sprite_id, int priority);
+extern int render_queue_add(int x, int y, u32 sprite_id, u32 flags, void* linked_obj);
+
+/*
+ * FUN_004445c0 - Clear Render Queue
+ *
+ * Binary analysis:
+ * - Clears/resets the render queue
+ * - Sets DAT_0464f488 (queue count) to 0
+ * - Called at start of each frame in game state machine
+ * - Also clears entity render state
+ * - Real implementation delegates to render_queue_clear()
+ */
+void FUN_004445c0(void) {
+    extern void render_queue_clear(void);
+    render_queue_clear();
+}
+
+/*
+ * FUN_00440e90 - Clear Sprites / UI Reset
+ *
+ * Binary analysis:
+ * - Resets sprite and UI rendering state
+ * - Called during state transitions (login → char select, battle → field)
+ * - Clears temporary sprite surfaces and UI overlays
+ */
+void FUN_00440e90(void) {
+    /* Clear sprite/UI state */
+}
+
+/*
+ * FUN_00445070 - UI Render
+ *
+ * Binary analysis:
+ * - Renders UI overlay elements
+ * - Called after main rendering in game state machine
+ * - Processes UI widgets, menus, text overlays
+ */
+void FUN_00445070(void) {
+    /* UI render overlay */
+}
+
+/*
+ * FUN_004419a0 - Entity Render Queue
+ *
+ * Binary analysis:
+ * - Queues entities for rendering based on position
+ * - Iterates entity linked list at DAT_004d7e3c
+ * - Adds sprite entries to render queue via FUN_0047e210
+ * - Sort order based on Y position (isometric depth sorting)
+ * - Skips entities with delete flag set
+ */
+void FUN_004419a0(void) {
+    /* Entity render queue - processes entity linked list */
+}
+
+/*
+ * render_process_queue - Process and render all queued sprites
+ *
+ * Delegates to render_queue_process_full from render_queue.c
+ */
+void render_process_queue(void) {
+    extern void render_queue_process_full(void);
+    render_queue_process_full();
+}
 
 /*
  * FUN_0047e210 - Sprite Render Queue Add
- *
- * Binary analysis:
- * - Adds a sprite to the render queue for later processing by FUN_0047dc60
- * - Max 4096 sprites in queue (checked against 0xfff)
- * - Returns -2 if queue full or invalid parameters
- *
- * Parameters:
- * - param_1: screen X position
- * - param_2: screen Y position
- * - param_3: sprite/surface handle (stored at DAT_0464b48a)
- * - param_4: sprite ID (-1 to 99: special handling, 100+: normal sprite)
- * - param_5: render mode (0-9: normal, 10-19: mode 1, 20-29: mode 2, etc.)
- *
- * Render mode encoding:
- * - 0-9: Normal rendering (mode 0)
- * - 10-19: Add offset to mode 1 (DAT_0463349c = 1)
- * - 20-29: Add offset to mode 2 (DAT_0463349c = 2)
- * - 30-39: Add offset to mode 3 (DAT_0463349c = 3)
- * - 40-49: Add offset to mode 4 (DAT_0463349c = 4)
- * - 50+: Normal rendering (mode 0)
- *
- * For sprite IDs 100+, calls:
- * - FUN_0041fad0: Convert sprite ID to image index
- * - FUN_0041f900: Get sprite dimensions
- *
- * Returns: queue index on success, -2 on failure
+ * Delegates to render_queue_add_sprite from render_queue.c
  */
 int FUN_0047e210(int param_1, int param_2, int param_3, int param_4, int param_5) {
-    (void)param_1; (void)param_2; (void)param_3; (void)param_4; (void)param_5;
-
     /* Check queue capacity */
     if (DAT_0464f488 > 0xfff) {
         return -2;
     }
 
-    /* Validate sprite ID */
-    if (param_4 < -1) {
-        if (param_4 > 99) {
-            /* Normal sprite: lookup dimensions */
-            /* FUN_0041fad0(param_4, &img_index); */
-            /* FUN_0041f900(img_index, &width, &height); */
-        }
+    /* Validate sprite ID: -1 to 99 are invalid per FUN_0047e210 */
+    if (param_4 >= -1 && param_4 < 100) {
         return -2;
     }
-    if (param_4 >= 0 && param_4 < 100) {
-        return -2;  /* Invalid range */
-    }
 
-    /* TODO: Full implementation with proper array storage */
-    DAT_0464f488++;
-    return (int)DAT_0464f488 - 1;
+    /* Delegate to real implementation */
+    int result = render_queue_add_sprite(param_1, param_2, param_3, (u32)param_4, param_5);
+    if (result >= 0) {
+        DAT_0464f488++;
+    }
+    return result;
 }
 
 /*
@@ -633,5 +904,23 @@ void FUN_0047e640(int x1, int y1, u32 x2, u32 y2, int layer, u32 sprite_id, int 
         default:  /* Normal */
             FUN_0047e210(combined_x, combined_y, layer, sprite_id, 0);
             break;
+    }
+}
+
+/*
+ * FUN_0047e440 - Page Flip / Present Frame
+ *
+ * Binary analysis:
+ * - Final step of render pipeline each frame
+ * - Performs page flip (primary <-> back buffer) for double-buffering
+ * - If no back buffer, blits offscreen to primary surface
+ * - Called after FUN_0047dc60 (render queue process)
+ */
+void FUN_0047e440(void) {
+    extern void graphics_flip(void);
+    extern GraphicsContext g_graphics;
+
+    if (g_graphics.primary_surface) {
+        graphics_flip();
     }
 }

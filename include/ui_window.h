@@ -108,12 +108,12 @@ typedef struct {
  * style: Window style (WINDOW_STYLE_*)
  * Returns: WindowWidget pointer or NULL on failure
  */
-WindowWidget* window_create(int x, int y, int width, int height, int style);
+WindowWidget* ui_widget_window_create(int x, int y, int width, int height, int style);
 
 /*
  * Destroy window widget
  */
-void window_destroy(WindowWidget* wnd);
+void ui_widget_window_destroy(WindowWidget* wnd);
 
 /*
  * Window render handler - FUN_00448270
@@ -124,7 +124,7 @@ void window_render_handler(WindowWidget* wnd);
 /*
  * Update window animation
  */
-void window_update(WindowWidget* wnd);
+void ui_widget_window_update(WindowWidget* wnd);
 
 /*
  * Handle window click
